@@ -1,0 +1,2040 @@
+{
+ "programmes": [
+  {
+   "id": "HORIZON",
+   "name": "Horizon Europe",
+   "short": "Horizon Europe",
+   "summary": "EU framework programme for research and innovation.",
+   "list": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/list-3rd-country-participation_horizon-euratom_en.pdf",
+    "version": "V4.1 – 16.09.2026",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "Y",
+     ""
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "LI": [
+     "N",
+     "Liechtenstein does not intend to associate to Horizon Europe."
+    ],
+    "NO": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "CH": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "GB": [
+     "Y",
+     "Associated to the entire programme except the EIC Fund (equity); transitional arrangements for the EIC Fund from 2026."
+    ],
+    "AL": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "BA": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "XK": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "ME": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "MK": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "RS": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "TR": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "UA": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "MD": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "GE": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "AM": [
+     "Y",
+     "Associated to Horizon Europe."
+    ],
+    "FO": [
+     "Y",
+     "Associated to Horizon Europe."
+    ]
+   },
+   "note": "",
+   "openCalls": 369
+  },
+  {
+   "id": "EURATOM",
+   "name": "Euratom Research and Training Programme",
+   "short": "Euratom",
+   "summary": "EU research and training programme for nuclear research.",
+   "list": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/list-3rd-country-participation_horizon-euratom_en.pdf",
+    "version": "V4.1 – 16.09.2026",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "Y",
+     ""
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "N",
+     "Not listed."
+    ],
+    "LI": [
+     "N",
+     "Not listed."
+    ],
+    "NO": [
+     "N",
+     "Not listed."
+    ],
+    "CH": [
+     "Y",
+     "Associated to Euratom from 2025."
+    ],
+    "GB": [
+     "N",
+     "Not listed."
+    ],
+    "AL": [
+     "N",
+     "Not listed."
+    ],
+    "BA": [
+     "N",
+     "Not listed."
+    ],
+    "XK": [
+     "N",
+     "Not listed."
+    ],
+    "ME": [
+     "N",
+     "Not listed."
+    ],
+    "MK": [
+     "N",
+     "Not listed."
+    ],
+    "RS": [
+     "N",
+     "Not listed."
+    ],
+    "TR": [
+     "N",
+     "Not listed."
+    ],
+    "UA": [
+     "Y",
+     "Associated to Euratom."
+    ],
+    "MD": [
+     "N",
+     "Not listed."
+    ],
+    "GE": [
+     "N",
+     "Not listed."
+    ],
+    "AM": [
+     "N",
+     "Not listed."
+    ],
+    "FO": [
+     "N",
+     "Not listed."
+    ]
+   },
+   "note": "",
+   "openCalls": 4
+  },
+  {
+   "id": "DIGITAL",
+   "name": "Digital Europe Programme",
+   "short": "Digital Europe",
+   "summary": "Deployment of digital capacity: high-performance computing (SO1), AI (SO2), cybersecurity (SO3), advanced digital skills (SO4), deployment and best use (SO5).",
+   "list": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/digital/guidance/list-3rd-country-participation_digital_en.pdf",
+    "version": "V7.0 – 01.12.2025",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "Y",
+     ""
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "Y",
+     "Full participation (EEA)."
+    ],
+    "LI": [
+     "Y",
+     "Full participation (EEA)."
+    ],
+    "NO": [
+     "Y",
+     "Full participation (EEA)."
+    ],
+    "CH": [
+     "P",
+     "Participates only in Specific Objectives 1, 2, 4 and 5."
+    ],
+    "GB": [
+     "N",
+     "Not listed."
+    ],
+    "AL": [
+     "P",
+     "Participates only in Specific Objectives 1, 2, 4 and 5."
+    ],
+    "BA": [
+     "P",
+     "Participates only in Specific Objectives 1, 2, 4 and 5."
+    ],
+    "XK": [
+     "P",
+     "Participates only in Specific Objectives 1, 2, 4 and 5."
+    ],
+    "ME": [
+     "P",
+     "Participates only in Specific Objectives 1, 2, 4 and 5."
+    ],
+    "MK": [
+     "P",
+     "Participates only in Specific Objectives 1, 2, 4 and 5."
+    ],
+    "RS": [
+     "P",
+     "Participates only in Specific Objectives 1, 2, 4 and 5."
+    ],
+    "TR": [
+     "P",
+     "Participates only in Specific Objectives 1, 2, 4 and 5."
+    ],
+    "UA": [
+     "P",
+     "Participates only in Specific Objectives 1, 2, 4 and 5."
+    ],
+    "MD": [
+     "P",
+     "Participates only in Specific Objectives 1, 2, 4 and 5."
+    ],
+    "GE": [
+     "N",
+     "Not listed."
+    ],
+    "AM": [
+     "N",
+     "Not listed."
+    ],
+    "FO": [
+     "N",
+     "Not listed."
+    ]
+   },
+   "note": "",
+   "openCalls": 23
+  },
+  {
+   "id": "CREA",
+   "name": "Creative Europe",
+   "short": "Creative Europe",
+   "summary": "EU programme for the cultural, creative and audiovisual sectors: Culture, MEDIA and Cross-sectoral strands.",
+   "list": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/crea/guidance/list-3rd-country-participation_crea_en.pdf",
+    "version": "V10.0 – 15.01.2026",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "Y",
+     ""
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "Y",
+     "Full participation."
+    ],
+    "LI": [
+     "Y",
+     "Full participation."
+    ],
+    "NO": [
+     "Y",
+     "Full participation."
+    ],
+    "CH": [
+     "N",
+     "Not listed."
+    ],
+    "GB": [
+     "N",
+     "Not listed."
+    ],
+    "AL": [
+     "Y",
+     "Full participation."
+    ],
+    "BA": [
+     "Y",
+     "Full participation."
+    ],
+    "XK": [
+     "P",
+     "Culture strand and Creative Europe Desks only."
+    ],
+    "ME": [
+     "Y",
+     "Full participation."
+    ],
+    "MK": [
+     "Y",
+     "Full participation."
+    ],
+    "RS": [
+     "Y",
+     "Full participation."
+    ],
+    "TR": [
+     "N",
+     "Not listed."
+    ],
+    "UA": [
+     "Y",
+     "Full participation."
+    ],
+    "MD": [
+     "P",
+     "Culture strand and Creative Europe Desks only (from 01.01.2026)."
+    ],
+    "GE": [
+     "P",
+     "Culture and Cross-sectoral strands plus specified MEDIA actions."
+    ],
+    "AM": [
+     "P",
+     "Culture strand and Creative Europe Desks only."
+    ],
+    "FO": [
+     "N",
+     "Not listed."
+    ]
+   },
+   "note": "",
+   "openCalls": 19
+  },
+  {
+   "id": "CERV",
+   "name": "Citizens, Equality, Rights and Values (CERV)",
+   "short": "CERV",
+   "summary": "Funds civil society and public bodies working on equality, rights, gender-based violence (Daphne), citizens' participation and Union values.",
+   "list": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/cerv/guidance/list-3rd-country-participation_cerv_en.pdf",
+    "version": "V10.0 – 01.08.2025",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "Y",
+     ""
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "N",
+     "Not listed."
+    ],
+    "LI": [
+     "N",
+     "Not listed."
+    ],
+    "NO": [
+     "N",
+     "Not listed."
+    ],
+    "CH": [
+     "N",
+     "Not listed."
+    ],
+    "GB": [
+     "N",
+     "Not listed."
+    ],
+    "AL": [
+     "P",
+     "All strands except the Union Values strand."
+    ],
+    "BA": [
+     "P",
+     "All strands except the Union Values strand."
+    ],
+    "XK": [
+     "P",
+     "All strands except the Union Values strand."
+    ],
+    "ME": [
+     "P",
+     "All strands except the Union Values strand."
+    ],
+    "MK": [
+     "P",
+     "All strands except the Union Values strand."
+    ],
+    "RS": [
+     "P",
+     "All strands except the Union Values strand."
+    ],
+    "TR": [
+     "N",
+     "Not listed."
+    ],
+    "UA": [
+     "P",
+     "All strands except the Union Values strand."
+    ],
+    "MD": [
+     "P",
+     "All strands except the Union Values strand."
+    ],
+    "GE": [
+     "N",
+     "Not listed."
+    ],
+    "AM": [
+     "N",
+     "Not listed."
+    ],
+    "FO": [
+     "N",
+     "Not listed."
+    ]
+   },
+   "note": "",
+   "openCalls": 11
+  },
+  {
+   "id": "SMP",
+   "name": "Single Market Programme",
+   "short": "Single Market Programme",
+   "summary": "Internal market, SME competitiveness, consumers, standardisation, statistics and the food chain.",
+   "list": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/smp/guidance/list-3rd-country-participation_smp_en.pdf",
+    "version": "V13.0 – 15.07.2024",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "Y",
+     ""
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "LI": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "NO": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "CH": [
+     "N",
+     "Not listed."
+    ],
+    "GB": [
+     "N",
+     "Not listed."
+    ],
+    "AL": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "BA": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "XK": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "ME": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "MK": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "RS": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "TR": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "UA": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "MD": [
+     "P",
+     "Participates in listed strands only (not the Food strand)."
+    ],
+    "GE": [
+     "N",
+     "Not listed."
+    ],
+    "AM": [
+     "N",
+     "Not listed."
+    ],
+    "FO": [
+     "N",
+     "Not listed."
+    ]
+   },
+   "note": "",
+   "openCalls": 1
+  },
+  {
+   "id": "CEF",
+   "name": "Connecting Europe Facility",
+   "short": "CEF",
+   "summary": "Trans-European networks in transport, energy and digital infrastructure.",
+   "list": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/cef/guidance/list-3rd-country-participation_cef_en.pdf",
+    "version": "V3.0 – 15.06.2023",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "Y",
+     ""
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "N",
+     "Not listed."
+    ],
+    "LI": [
+     "N",
+     "Not listed."
+    ],
+    "NO": [
+     "N",
+     "Not listed."
+    ],
+    "CH": [
+     "N",
+     "Not listed."
+    ],
+    "GB": [
+     "N",
+     "Not listed."
+    ],
+    "AL": [
+     "N",
+     "Not listed."
+    ],
+    "BA": [
+     "N",
+     "Not listed."
+    ],
+    "XK": [
+     "N",
+     "Not listed."
+    ],
+    "ME": [
+     "N",
+     "Not listed."
+    ],
+    "MK": [
+     "N",
+     "Not listed."
+    ],
+    "RS": [
+     "N",
+     "Not listed."
+    ],
+    "TR": [
+     "N",
+     "Not listed."
+    ],
+    "UA": [
+     "Y",
+     "All sub-programmes."
+    ],
+    "MD": [
+     "Y",
+     "All sub-programmes."
+    ],
+    "GE": [
+     "N",
+     "Not listed."
+    ],
+    "AM": [
+     "N",
+     "Not listed."
+    ],
+    "FO": [
+     "N",
+     "Not listed."
+    ]
+   },
+   "note": "No EEA country has expressed interest in CEF. The call document can still allow third-country entities in specific cases (section on eligible countries).",
+   "openCalls": 1
+  },
+  {
+   "id": "EDF",
+   "name": "European Defence Fund / EDIP",
+   "short": "European Defence Fund",
+   "summary": "Defence research and capability development; also hosts EDIP and the Ukraine Support Instrument (USI) calls.",
+   "list": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/edf/guidance/list-3rd-country-participation_edf_en.pdf",
+    "version": "V5.0 – 01.04.2026",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "Y",
+     ""
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "N",
+     "Not listed."
+    ],
+    "LI": [
+     "N",
+     "Not listed."
+    ],
+    "NO": [
+     "Y",
+     "Participates in the EDF."
+    ],
+    "CH": [
+     "N",
+     "Not listed."
+    ],
+    "GB": [
+     "N",
+     "Not listed."
+    ],
+    "AL": [
+     "N",
+     "Not listed."
+    ],
+    "BA": [
+     "N",
+     "Not listed."
+    ],
+    "XK": [
+     "N",
+     "Not listed."
+    ],
+    "ME": [
+     "N",
+     "Not listed."
+    ],
+    "MK": [
+     "N",
+     "Not listed."
+    ],
+    "RS": [
+     "N",
+     "Not listed."
+    ],
+    "TR": [
+     "N",
+     "Not listed."
+    ],
+    "UA": [
+     "N",
+     "Not listed."
+    ],
+    "MD": [
+     "N",
+     "Not listed."
+    ],
+    "GE": [
+     "N",
+     "Not listed."
+    ],
+    "AM": [
+     "N",
+     "Not listed."
+    ],
+    "FO": [
+     "N",
+     "Not listed."
+    ]
+   },
+   "note": "",
+   "openCalls": 9
+  },
+  {
+   "id": "I3",
+   "name": "Interregional Innovation Investments (I3)",
+   "short": "I3",
+   "summary": "Interregional innovation investments under the ERDF.",
+   "list": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/i3/guidance/list-3rd-country-participation_i3_en.pdf",
+    "version": "V1.0 – 15.11.2021",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "Y",
+     ""
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "N",
+     "Not listed."
+    ],
+    "LI": [
+     "N",
+     "Not listed."
+    ],
+    "NO": [
+     "N",
+     "Not listed."
+    ],
+    "CH": [
+     "N",
+     "Not listed."
+    ],
+    "GB": [
+     "N",
+     "Not listed."
+    ],
+    "AL": [
+     "N",
+     "Not listed."
+    ],
+    "BA": [
+     "N",
+     "Not listed."
+    ],
+    "XK": [
+     "N",
+     "Not listed."
+    ],
+    "ME": [
+     "N",
+     "Not listed."
+    ],
+    "MK": [
+     "N",
+     "Not listed."
+    ],
+    "RS": [
+     "N",
+     "Not listed."
+    ],
+    "TR": [
+     "N",
+     "Not listed."
+    ],
+    "UA": [
+     "N",
+     "Not listed."
+    ],
+    "MD": [
+     "N",
+     "Not listed."
+    ],
+    "GE": [
+     "N",
+     "Not listed."
+    ],
+    "AM": [
+     "N",
+     "Not listed."
+    ],
+    "FO": [
+     "N",
+     "Not listed."
+    ]
+   },
+   "note": "",
+   "openCalls": 4
+  },
+  {
+   "id": "JUST",
+   "name": "Justice Programme",
+   "short": "Justice",
+   "summary": "Judicial cooperation, training of justice professionals and access to justice.",
+   "list": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/just/guidance/list-3rd-country-participation_just_en.pdf",
+    "version": "V11.0 – 15.09.2025",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "N",
+     "Denmark does not take part in the Justice Programme."
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "N",
+     "Not listed."
+    ],
+    "LI": [
+     "N",
+     "Not listed."
+    ],
+    "NO": [
+     "N",
+     "Not listed."
+    ],
+    "CH": [
+     "N",
+     "Not listed."
+    ],
+    "GB": [
+     "N",
+     "Not listed."
+    ],
+    "AL": [
+     "Y",
+     "Participates in the Justice Programme."
+    ],
+    "BA": [
+     "Y",
+     "Participates in the Justice Programme."
+    ],
+    "XK": [
+     "Y",
+     "Participates in the Justice Programme."
+    ],
+    "ME": [
+     "N",
+     "Not listed."
+    ],
+    "MK": [
+     "N",
+     "Has confirmed interest but has no participation agreement yet."
+    ],
+    "RS": [
+     "N",
+     "Has confirmed interest but has no participation agreement yet."
+    ],
+    "TR": [
+     "N",
+     "Not listed."
+    ],
+    "UA": [
+     "Y",
+     "Participates in the Justice Programme."
+    ],
+    "MD": [
+     "Y",
+     "Participates in the Justice Programme."
+    ],
+    "GE": [
+     "N",
+     "Not listed."
+    ],
+    "AM": [
+     "N",
+     "Not listed."
+    ],
+    "FO": [
+     "N",
+     "Not listed."
+    ]
+   },
+   "note": "",
+   "openCalls": 1
+  },
+  {
+   "id": "ESF",
+   "name": "European Social Fund Plus (ESF+ / EaSI)",
+   "short": "ESF+",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "note": "No list of participating countries was available on the Funding & Tenders Portal on 30.09.2026. Eligible countries are set in each call document.",
+   "openCalls": 1
+  },
+  {
+   "id": "JTM",
+   "name": "Just Transition Mechanism",
+   "short": "Just Transition Mechanism",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "note": "No list of participating countries was available on the Funding & Tenders Portal on 30.09.2026. Eligible countries are set in each call document.",
+   "openCalls": 2
+  },
+  {
+   "id": "ISF",
+   "name": "Internal Security Fund",
+   "short": "Internal Security Fund",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "note": "No list of participating countries was available on the Funding & Tenders Portal on 30.09.2026. Eligible countries are set in each call document.",
+   "openCalls": 2
+  },
+  {
+   "id": "SOCPL",
+   "name": "Social Prerogative and Specific Competencies Lines",
+   "short": "SOCPL",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "note": "No list of participating countries was available on the Funding & Tenders Portal on 30.09.2026. Eligible countries are set in each call document.",
+   "openCalls": 1
+  },
+  {
+   "id": "PPPA",
+   "name": "Pilot Projects & Preparatory Actions",
+   "short": "Pilot Projects",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "note": "No list of participating countries was available on the Funding & Tenders Portal on 30.09.2026. Eligible countries are set in each call document.",
+   "openCalls": 1
+  },
+  {
+   "id": "EUBA",
+   "name": "EU Bodies and Agencies",
+   "short": "EU agencies",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "note": "No list of participating countries was available on the Funding & Tenders Portal on 30.09.2026. Eligible countries are set in each call document.",
+   "openCalls": 2
+  },
+  {
+   "id": "INTERREG",
+   "name": "Interreg (European Territorial Cooperation)",
+   "short": "Interreg",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "source": "interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page",
+   "note": "Calls from interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page. Eligible countries are taken from the source where it states them; otherwise check each call.",
+   "openCalls": 32
+  },
+  {
+   "id": "EEANORWAY",
+   "name": "EEA and Norway Grants",
+   "short": "EEA & Norway Grants",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "source": "EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office)",
+   "note": "Calls from EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office). Eligible countries are taken from the source where it states them; otherwise check each call.",
+   "openCalls": 15
+  },
+  {
+   "id": "PARTNERSHIPS",
+   "name": "European partnerships: joint transnational calls",
+   "short": "European partnerships",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "source": "ERA-LEARN call calendar (European partnerships' joint calls)",
+   "note": "Calls from ERA-LEARN call calendar (European partnerships' joint calls). Eligible countries are taken from the source where it states them; otherwise check each call.",
+   "openCalls": 6
+  },
+  {
+   "id": "UKRI",
+   "name": "UK Research and Innovation (UKRI)",
+   "short": "UKRI",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "source": "UKRI Funding Finder (ukri.org)",
+   "note": "Calls from UKRI Funding Finder (ukri.org). Eligible countries are taken from the source where it states them; otherwise check each call.",
+   "openCalls": 83
+  },
+  {
+   "id": "EIT",
+   "name": "European Institute of Innovation and Technology (EIT)",
+   "short": "EIT",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "source": "EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology)",
+   "note": "Calls from EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology). Eligible countries are taken from the source where it states them; otherwise check each call.",
+   "openCalls": 12
+  },
+  {
+   "id": "ESA",
+   "name": "European Space Agency: Business Applications and Space Solutions",
+   "short": "ESA Space Solutions",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "source": "ESA Business Applications funding (business.esa.int)",
+   "note": "Calls from ESA Business Applications funding (business.esa.int). Eligible countries are taken from the source where it states them; otherwise check each call.",
+   "openCalls": 9
+  }
+ ]
+}

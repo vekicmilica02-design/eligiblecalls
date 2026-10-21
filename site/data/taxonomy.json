@@ -1,0 +1,868 @@
+{
+ "countryGroups": {
+  "EU27": [
+   "AT",
+   "BE",
+   "BG",
+   "HR",
+   "CY",
+   "CZ",
+   "DK",
+   "EE",
+   "FI",
+   "FR",
+   "DE",
+   "GR",
+   "HU",
+   "IE",
+   "IT",
+   "LV",
+   "LT",
+   "LU",
+   "MT",
+   "NL",
+   "PL",
+   "PT",
+   "RO",
+   "SK",
+   "SI",
+   "ES",
+   "SE"
+  ]
+ },
+ "countries": [
+  {
+   "id": "AT",
+   "en": "Austria",
+   "sr": "Austrija",
+   "group": "EU27"
+  },
+  {
+   "id": "BE",
+   "en": "Belgium",
+   "sr": "Belgija",
+   "group": "EU27"
+  },
+  {
+   "id": "BG",
+   "en": "Bulgaria",
+   "sr": "Bugarska",
+   "group": "EU27"
+  },
+  {
+   "id": "HR",
+   "en": "Croatia",
+   "sr": "Hrvatska",
+   "group": "EU27"
+  },
+  {
+   "id": "CY",
+   "en": "Cyprus",
+   "sr": "Kipar",
+   "group": "EU27"
+  },
+  {
+   "id": "CZ",
+   "en": "Czechia",
+   "sr": "Češka",
+   "group": "EU27"
+  },
+  {
+   "id": "DK",
+   "en": "Denmark",
+   "sr": "Danska",
+   "group": "EU27"
+  },
+  {
+   "id": "EE",
+   "en": "Estonia",
+   "sr": "Estonija",
+   "group": "EU27"
+  },
+  {
+   "id": "FI",
+   "en": "Finland",
+   "sr": "Finska",
+   "group": "EU27"
+  },
+  {
+   "id": "FR",
+   "en": "France",
+   "sr": "Francuska",
+   "group": "EU27"
+  },
+  {
+   "id": "DE",
+   "en": "Germany",
+   "sr": "Nemačka",
+   "group": "EU27"
+  },
+  {
+   "id": "GR",
+   "en": "Greece",
+   "sr": "Grčka",
+   "group": "EU27"
+  },
+  {
+   "id": "HU",
+   "en": "Hungary",
+   "sr": "Mađarska",
+   "group": "EU27"
+  },
+  {
+   "id": "IE",
+   "en": "Ireland",
+   "sr": "Irska",
+   "group": "EU27"
+  },
+  {
+   "id": "IT",
+   "en": "Italy",
+   "sr": "Italija",
+   "group": "EU27"
+  },
+  {
+   "id": "LV",
+   "en": "Latvia",
+   "sr": "Letonija",
+   "group": "EU27"
+  },
+  {
+   "id": "LT",
+   "en": "Lithuania",
+   "sr": "Litvanija",
+   "group": "EU27"
+  },
+  {
+   "id": "LU",
+   "en": "Luxembourg",
+   "sr": "Luksemburg",
+   "group": "EU27"
+  },
+  {
+   "id": "MT",
+   "en": "Malta",
+   "sr": "Malta",
+   "group": "EU27"
+  },
+  {
+   "id": "NL",
+   "en": "Netherlands",
+   "sr": "Holandija",
+   "group": "EU27"
+  },
+  {
+   "id": "PL",
+   "en": "Poland",
+   "sr": "Poljska",
+   "group": "EU27"
+  },
+  {
+   "id": "PT",
+   "en": "Portugal",
+   "sr": "Portugalija",
+   "group": "EU27"
+  },
+  {
+   "id": "RO",
+   "en": "Romania",
+   "sr": "Rumunija",
+   "group": "EU27"
+  },
+  {
+   "id": "SK",
+   "en": "Slovakia",
+   "sr": "Slovačka",
+   "group": "EU27"
+  },
+  {
+   "id": "SI",
+   "en": "Slovenia",
+   "sr": "Slovenija",
+   "group": "EU27"
+  },
+  {
+   "id": "ES",
+   "en": "Spain",
+   "sr": "Španija",
+   "group": "EU27"
+  },
+  {
+   "id": "SE",
+   "en": "Sweden",
+   "sr": "Švedska",
+   "group": "EU27"
+  },
+  {
+   "id": "IS",
+   "en": "Iceland",
+   "sr": "Island",
+   "group": "EEA-EFTA"
+  },
+  {
+   "id": "LI",
+   "en": "Liechtenstein",
+   "sr": "Lihtenštajn",
+   "group": "EEA-EFTA"
+  },
+  {
+   "id": "NO",
+   "en": "Norway",
+   "sr": "Norveška",
+   "group": "EEA-EFTA"
+  },
+  {
+   "id": "CH",
+   "en": "Switzerland",
+   "sr": "Švajcarska",
+   "group": "EEA-EFTA"
+  },
+  {
+   "id": "GB",
+   "en": "United Kingdom",
+   "sr": "Ujedinjeno Kraljevstvo",
+   "group": "OTHER"
+  },
+  {
+   "id": "AL",
+   "en": "Albania",
+   "sr": "Albanija",
+   "group": "WB6"
+  },
+  {
+   "id": "BA",
+   "en": "Bosnia and Herzegovina",
+   "sr": "Bosna i Hercegovina",
+   "group": "WB6"
+  },
+  {
+   "id": "XK",
+   "en": "Kosovo",
+   "sr": "Kosovo",
+   "group": "WB6"
+  },
+  {
+   "id": "ME",
+   "en": "Montenegro",
+   "sr": "Crna Gora",
+   "group": "WB6"
+  },
+  {
+   "id": "MK",
+   "en": "North Macedonia",
+   "sr": "Severna Makedonija",
+   "group": "WB6"
+  },
+  {
+   "id": "RS",
+   "en": "Serbia",
+   "sr": "Srbija",
+   "group": "WB6"
+  },
+  {
+   "id": "TR",
+   "en": "Türkiye",
+   "sr": "Turska",
+   "group": "EAST"
+  },
+  {
+   "id": "UA",
+   "en": "Ukraine",
+   "sr": "Ukrajina",
+   "group": "EAST"
+  },
+  {
+   "id": "MD",
+   "en": "Moldova",
+   "sr": "Moldavija",
+   "group": "EAST"
+  },
+  {
+   "id": "GE",
+   "en": "Georgia",
+   "sr": "Gruzija",
+   "group": "EAST"
+  },
+  {
+   "id": "AM",
+   "en": "Armenia",
+   "sr": "Jermenija",
+   "group": "EAST"
+  },
+  {
+   "id": "FO",
+   "en": "Faroe Islands",
+   "sr": "Farska Ostrva",
+   "group": "OTHER"
+  }
+ ],
+ "countryGroupLabels": {
+  "EU27": [
+   "EU Member States",
+   "Države članice EU"
+  ],
+  "EEA-EFTA": [
+   "EEA / EFTA",
+   "EEA / EFTA"
+  ],
+  "WB6": [
+   "Western Balkans",
+   "Zapadni Balkan"
+  ],
+  "EAST": [
+   "Eastern partnership and Türkiye",
+   "Istočno partnerstvo i Turska"
+  ],
+  "OTHER": [
+   "Other",
+   "Ostalo"
+  ]
+ },
+ "sectors": [
+  {
+   "id": "culture",
+   "en": "Culture",
+   "sr": "Kultura"
+  },
+  {
+   "id": "film",
+   "en": "Film",
+   "sr": "Film"
+  },
+  {
+   "id": "tv",
+   "en": "Television",
+   "sr": "Televizija"
+  },
+  {
+   "id": "media",
+   "en": "Media",
+   "sr": "Mediji"
+  },
+  {
+   "id": "creative-industries",
+   "en": "Creative industries",
+   "sr": "Kreativne industrije"
+  },
+  {
+   "id": "architecture",
+   "en": "Architecture",
+   "sr": "Arhitektura"
+  },
+  {
+   "id": "design",
+   "en": "Design",
+   "sr": "Dizajn"
+  },
+  {
+   "id": "digital",
+   "en": "Digital technology",
+   "sr": "Digitalne tehnologije"
+  },
+  {
+   "id": "it",
+   "en": "IT and computing",
+   "sr": "IT i računarstvo"
+  },
+  {
+   "id": "ai",
+   "en": "AI",
+   "sr": "Veštačka inteligencija"
+  },
+  {
+   "id": "cybersecurity",
+   "en": "Cybersecurity",
+   "sr": "Sajber bezbednost"
+  },
+  {
+   "id": "innovation",
+   "en": "Innovation",
+   "sr": "Inovacije"
+  },
+  {
+   "id": "research",
+   "en": "Research",
+   "sr": "Istraživanje"
+  },
+  {
+   "id": "education",
+   "en": "Education and skills",
+   "sr": "Obrazovanje i veštine"
+  },
+  {
+   "id": "youth",
+   "en": "Youth",
+   "sr": "Mladi"
+  },
+  {
+   "id": "social-inclusion",
+   "en": "Social inclusion",
+   "sr": "Socijalna inkluzija"
+  },
+  {
+   "id": "employment",
+   "en": "Employment",
+   "sr": "Zapošljavanje"
+  },
+  {
+   "id": "human-rights",
+   "en": "Human rights and equality",
+   "sr": "Ljudska prava i ravnopravnost"
+  },
+  {
+   "id": "democracy",
+   "en": "Democracy",
+   "sr": "Demokratija"
+  },
+  {
+   "id": "civil-society",
+   "en": "Civil society",
+   "sr": "Civilno društvo"
+  },
+  {
+   "id": "justice",
+   "en": "Justice",
+   "sr": "Pravosuđe"
+  },
+  {
+   "id": "security",
+   "en": "Security",
+   "sr": "Bezbednost"
+  },
+  {
+   "id": "defence",
+   "en": "Defence",
+   "sr": "Odbrana"
+  },
+  {
+   "id": "health",
+   "en": "Health",
+   "sr": "Zdravlje"
+  },
+  {
+   "id": "environment",
+   "en": "Environment",
+   "sr": "Životna sredina"
+  },
+  {
+   "id": "climate",
+   "en": "Climate",
+   "sr": "Klima"
+  },
+  {
+   "id": "energy",
+   "en": "Energy",
+   "sr": "Energetika"
+  },
+  {
+   "id": "sustainability",
+   "en": "Sustainability",
+   "sr": "Održivost"
+  },
+  {
+   "id": "food",
+   "en": "Food and agriculture",
+   "sr": "Hrana i poljoprivreda"
+  },
+  {
+   "id": "transport",
+   "en": "Transport",
+   "sr": "Saobraćaj"
+  },
+  {
+   "id": "cities",
+   "en": "Cities",
+   "sr": "Gradovi"
+  },
+  {
+   "id": "regional-dev",
+   "en": "Regional development",
+   "sr": "Regionalni razvoj"
+  },
+  {
+   "id": "intl-cooperation",
+   "en": "International cooperation",
+   "sr": "Međunarodna saradnja"
+  },
+  {
+   "id": "entrepreneurship",
+   "en": "Entrepreneurship",
+   "sr": "Preduzetništvo"
+  },
+  {
+   "id": "startups",
+   "en": "Startups",
+   "sr": "Startapi"
+  },
+  {
+   "id": "smes",
+   "en": "SMEs",
+   "sr": "MSP"
+  },
+  {
+   "id": "other",
+   "en": "Other",
+   "sr": "Ostalo"
+  }
+ ],
+ "sectorGroups": [
+  {
+   "id": "g-culture",
+   "en": "Culture and creative sectors",
+   "sr": "Kultura i kreativni sektori",
+   "sectors": [
+    "culture",
+    "film",
+    "tv",
+    "media",
+    "creative-industries",
+    "architecture",
+    "design"
+   ]
+  },
+  {
+   "id": "g-film",
+   "en": "Film and audiovisual",
+   "sr": "Film i audiovizuelno",
+   "sectors": [
+    "film",
+    "tv"
+   ]
+  },
+  {
+   "id": "g-tech",
+   "en": "Digital, AI and cybersecurity",
+   "sr": "Digitalno, AI i sajber bezbednost",
+   "sectors": [
+    "digital",
+    "it",
+    "ai",
+    "cybersecurity"
+   ]
+  },
+  {
+   "id": "g-research",
+   "en": "Research and innovation",
+   "sr": "Istraživanje i inovacije",
+   "sectors": [
+    "research",
+    "innovation"
+   ]
+  },
+  {
+   "id": "g-biz",
+   "en": "Startups and SMEs",
+   "sr": "Startapi i MSP",
+   "sectors": [
+    "startups",
+    "smes",
+    "entrepreneurship"
+   ]
+  },
+  {
+   "id": "g-social",
+   "en": "Rights, inclusion and civil society",
+   "sr": "Prava, inkluzija i civilno društvo",
+   "sectors": [
+    "human-rights",
+    "social-inclusion",
+    "democracy",
+    "civil-society",
+    "justice",
+    "employment"
+   ]
+  },
+  {
+   "id": "g-edu",
+   "en": "Education, skills and youth",
+   "sr": "Obrazovanje, veštine i mladi",
+   "sectors": [
+    "education",
+    "youth"
+   ]
+  },
+  {
+   "id": "g-green",
+   "en": "Climate, energy and environment",
+   "sr": "Klima, energetika i životna sredina",
+   "sectors": [
+    "climate",
+    "energy",
+    "environment",
+    "sustainability"
+   ]
+  },
+  {
+   "id": "g-mobility",
+   "en": "Transport and cities",
+   "sr": "Saobraćaj i gradovi",
+   "sectors": [
+    "transport",
+    "cities",
+    "regional-dev"
+   ]
+  },
+  {
+   "id": "g-health",
+   "en": "Health and food",
+   "sr": "Zdravlje i hrana",
+   "sectors": [
+    "health",
+    "food"
+   ]
+  },
+  {
+   "id": "g-security",
+   "en": "Security and defence",
+   "sr": "Bezbednost i odbrana",
+   "sectors": [
+    "security",
+    "defence"
+   ]
+  },
+  {
+   "id": "g-intl",
+   "en": "International cooperation",
+   "sr": "Međunarodna saradnja",
+   "sectors": [
+    "intl-cooperation"
+   ]
+  }
+ ],
+ "applicants": [
+  {
+   "id": "organisation",
+   "en": "Organisation (any legal entity)",
+   "sr": "Organizacija (bilo koje pravno lice)"
+  },
+  {
+   "id": "sme",
+   "en": "SME",
+   "sr": "MSP"
+  },
+  {
+   "id": "startup",
+   "en": "Startup",
+   "sr": "Startap"
+  },
+  {
+   "id": "university",
+   "en": "University or research organisation",
+   "sr": "Univerzitet ili istraživačka organizacija"
+  },
+  {
+   "id": "researcher",
+   "en": "Researcher",
+   "sr": "Istraživač"
+  },
+  {
+   "id": "ngo",
+   "en": "NGO / civil society",
+   "sr": "Udruženje / civilno društvo"
+  },
+  {
+   "id": "public",
+   "en": "Public authority",
+   "sr": "Javni organ"
+  },
+  {
+   "id": "individual",
+   "en": "Individual",
+   "sr": "Pojedinac"
+  },
+  {
+   "id": "student",
+   "en": "Student",
+   "sr": "Student"
+  }
+ ],
+ "applicantGroups": [
+  {
+   "id": "a-org",
+   "en": "organisation",
+   "sr": "organizacija",
+   "applicants": [
+    "organisation",
+    "university",
+    "ngo",
+    "public",
+    "sme",
+    "startup"
+   ]
+  },
+  {
+   "id": "a-biz",
+   "en": "company, SME or startup",
+   "sr": "preduzeće, MSP ili startap",
+   "applicants": [
+    "sme",
+    "startup",
+    "organisation"
+   ]
+  },
+  {
+   "id": "a-ngo",
+   "en": "NGO or civil society organisation",
+   "sr": "udruženje",
+   "applicants": [
+    "ngo",
+    "organisation"
+   ]
+  },
+  {
+   "id": "a-public",
+   "en": "public authority",
+   "sr": "javni organ",
+   "applicants": [
+    "public",
+    "organisation"
+   ]
+  },
+  {
+   "id": "a-uni",
+   "en": "university or research organisation",
+   "sr": "univerzitet ili istraživačka organizacija",
+   "applicants": [
+    "university",
+    "organisation"
+   ]
+  },
+  {
+   "id": "a-res",
+   "en": "individual researcher",
+   "sr": "istraživač",
+   "applicants": [
+    "researcher"
+   ]
+  },
+  {
+   "id": "a-ind",
+   "en": "individual",
+   "sr": "pojedinac",
+   "applicants": [
+    "individual",
+    "student",
+    "researcher"
+   ]
+  }
+ ],
+ "types": [
+  {
+   "id": "grant",
+   "en": "Grant",
+   "sr": "Grant"
+  },
+  {
+   "id": "research-funding",
+   "en": "Research and innovation grant",
+   "sr": "Grant za istraživanje i inovacije"
+  },
+  {
+   "id": "prize",
+   "en": "Prize",
+   "sr": "Nagrada"
+  },
+  {
+   "id": "equity",
+   "en": "Equity investment (EIC Fund)",
+   "sr": "Vlasničko ulaganje (EIC fond)"
+  },
+  {
+   "id": "procurement",
+   "en": "Innovation procurement grant (PCP/PPI)",
+   "sr": "Grant za inovativne nabavke (PCP/PPI)"
+  }
+ ],
+ "partnership": [
+  {
+   "id": "individual",
+   "en": "Individual application",
+   "sr": "Pojedinačna prijava"
+  },
+  {
+   "id": "alone",
+   "en": "Single applicant possible",
+   "sr": "Moguć jedan podnosilac"
+  },
+  {
+   "id": "consortium",
+   "en": "Consortium required",
+   "sr": "Potreban konzorcijum"
+  },
+  {
+   "id": "unspecified",
+   "en": "See call conditions",
+   "sr": "Vidi uslove poziva"
+  }
+ ],
+ "fundingBands": [
+  {
+   "id": "b1",
+   "en": "Under €60,000",
+   "sr": "Do 60.000 €",
+   "min": 0,
+   "max": 59999
+  },
+  {
+   "id": "b2",
+   "en": "€60,000–€500,000",
+   "sr": "60.000–500.000 €",
+   "min": 60000,
+   "max": 500000
+  },
+  {
+   "id": "b3",
+   "en": "€500,000–€3 million",
+   "sr": "500.000 € – 3 miliona €",
+   "min": 500001,
+   "max": 3000000
+  },
+  {
+   "id": "b4",
+   "en": "€3 million–€10 million",
+   "sr": "3–10 miliona €",
+   "min": 3000001,
+   "max": 10000000
+  },
+  {
+   "id": "b5",
+   "en": "Over €10 million",
+   "sr": "Preko 10 miliona €",
+   "min": 10000001,
+   "max": null
+  },
+  {
+   "id": "b0",
+   "en": "Not stated",
+   "sr": "Nije navedeno",
+   "min": null,
+   "max": null
+  }
+ ],
+ "deadlineBuckets": [
+  {
+   "id": "week",
+   "en": "Closing within 7 days",
+   "sr": "Ističe u roku od 7 dana",
+   "days": 7
+  },
+  {
+   "id": "month",
+   "en": "Within 30 days",
+   "sr": "U roku od 30 dana",
+   "days": 30
+  },
+  {
+   "id": "quarter",
+   "en": "Within 3 months",
+   "sr": "U roku od 3 meseca",
+   "days": 92
+  },
+  {
+   "id": "later",
+   "en": "Later",
+   "sr": "Kasnije",
+   "days": null
+  }
+ ]
+}

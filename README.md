@@ -12,7 +12,7 @@ every 2 hours                     GitHub Actions (your repository)
                                   ingest/build.py   eligibility, deadlines (17:00 Brussels), change log
                                   commits site/data/*.json if anything changed
                                           |
-                                          v  (wrangler pages deploy, when the data changed)
+                                          v  (each data commit triggers a Cloudflare Pages build)
 visitor ── eligiblecalls.pages.dev ──> Cloudflare Pages
                                   site/index.html + site/data/*.json   static, no request limit
                                   /api/chat   Pages Function: picks matching calls from site/data/index.json,
@@ -52,8 +52,8 @@ Nothing, within these free limits (checked 1 October 2026):
 
 | Service | Free limit | Eligible Calls use |
 |---|---|---|
-| GitHub, private repository | 2,000 Actions minutes a month | about 1,100 minutes (12 runs a day, about 3 minutes each) |
-| Cloudflare Pages | static files unlimited; deployments come from GitHub Actions (Wrangler), not Pages builds | at most 12 deployments a day (only when data changed) |
+| GitHub Actions | free in a public repository; 2,000 minutes a month in a private one | about 1,100 minutes (12 runs a day, about 3 minutes each) |
+| Cloudflare Pages | 500 builds a month per account; static files unlimited | at most 12 builds a day (only when data changed), about 360 a month |
 | Pages Functions (Workers free) | 100,000 requests a day, 10 ms CPU per request | 2 requests per assistant message |
 | D1 | 5 GB, 5 million rows read and 100,000 written a day | a few rows per message |
 | Workers AI | 10,000 neurons a day | about 180 neurons per message, so about 50 messages a day |
@@ -78,27 +78,23 @@ You need a free GitHub account and a free Cloudflare account. About 30 minutes.
 3. Repository **Settings → Actions → General → Workflow permissions**: choose **Read and write permissions** and save. The workflow needs this to commit new data.
 4. **Actions** tab → **Refresh calls** → **Run workflow**. After 2 to 5 minutes it should finish green and commit `Data refresh …`. This first run also confirms that GitHub's servers can reach the EU Portal API. If it fails, open the run log; the error is printed there and GitHub emails you about failed runs.
 
-### 2. Cloudflare Pages: deploy from GitHub into the existing project
+### 2. Cloudflare Pages
 
-The existing project was created by uploading a zip (a Direct Upload project). Such a project cannot be connected to Git, but GitHub Actions can deploy into it with Wrangler after every refresh. This also deploys the assistant (`functions/`), which a dashboard zip upload leaves out.
+The live project is **eligiblecalls** (eligiblecalls.pages.dev), connected to this repository through the Cloudflare Pages GitHub app. Every commit to `main`, including the data commits of the refresh workflow, starts a Pages build and deploys the site and the assistant (`functions/`).
 
-1. Cloudflare dashboard → **Manage account → Account API tokens → Create token → Custom token**. Permission: **Account · Cloudflare Pages · Edit**. Create it and copy the token.
-2. Your **Account ID**: Workers & Pages overview, right-hand column (or the URL `dash.cloudflare.com/<account id>/...`).
-3. GitHub repository → **Settings → Secrets and variables → Actions**:
-   - **Secrets**: `CLOUDFLARE_API_TOKEN` (the token), `CLOUDFLARE_ACCOUNT_ID` (the account ID)
-   - **Variables**: `CF_PAGES_PROJECT` = the project name (the part before `.pages.dev`)
-4. **Actions → Refresh calls → Run workflow**. The run refreshes all sources and deploys. From then on it runs every 2 hours and deploys when the data changed.
-5. The deploy goes to the branch `main`. If the project's production branch has another name (Pages project → Settings → Builds & deployments → Production branch), change `--branch=main` in `.github/workflows/refresh.yml`.
+To set it up again: **Workers & Pages → Create → Pages → Import an existing Git repository**, pick the repository (if it is not listed, add it to the "Cloudflare Workers and Pages" app under GitHub → Settings → Applications → Configure), Framework preset **None**, Build command empty, Build output directory **`site`**.
 
-Refresh frequency: every 2 hours uses about 1,100 of the 2,000 free Actions minutes a month of a private repository (a run takes about 3 minutes). Hourly (`"17 * * * *"`) needs about 2,200 minutes, so it fits only in a public repository, where Actions minutes are free; GitHub disables schedules of a public repository after 60 days without repository activity.
+Refresh frequency: the workflow runs every 2 hours and commits only when the data changed, so at most 12 Pages builds a day (the free plan allows 500 builds a month per account). Actions minutes: about 1,100 a month; free without limit while the repository is public. GitHub disables the schedule of a public repository after 60 days without repository activity; the data commits of the workflow keep it active as long as calls change. In a private repository the 2,000 free minutes a month cover the 2-hour schedule.
 
-Alternative for a new project: **Workers & Pages → Create → Pages → Connect to Git**, Framework preset **None**, Build command empty, Build output directory **`site`**. Then remove the "Deploy to Cloudflare Pages" step from the workflow, since every data commit triggers a Pages build (500 builds a month on the free plan).
+The workflow also has an optional Wrangler deploy step for a Direct Upload project (one created by dragging files into the dashboard). It is skipped unless the repository variable `CF_PAGES_PROJECT` and the secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are set. It is not needed with the Git connection above.
+
+The previous project **calldar** (calldar.pages.dev, repository vekicmilica02-design/calldar) is no longer refreshed: its workflow was disabled on 21 October 2026.
 
 ### 3. Assistant
 
-1. **D1**: dashboard → **Storage & Databases → D1 → Create** a database named `eligiblecalls`. Open it → **Console**, paste the contents of `schema.sql`, run it.
+1. **D1**: the live project uses the existing database `calldar` (bound as `DB`). For a new one: dashboard → **Storage & Databases → D1 → Create**, open it → **Console**, paste the contents of `schema.sql`, run it.
 2. Pages project → **Settings → Bindings** (older dashboards: Settings → Functions):
-   - add **D1 database**: variable name `DB`, database `eligiblecalls`
+   - add **D1 database**: variable name `DB`, database `calldar`
    - add **Workers AI**: variable name `AI`
 3. Pages project → **Settings → Variables and Secrets**, add:
    - `HASH_SALT`: any long random text, as a **secret** (used to count visitors without storing IPs)
@@ -131,12 +127,12 @@ Without Turnstile, a script could use up the day's free allowance; the per-visit
 - **New participation restrictions.** When a call's official text limits participation (for example "participation is limited to legal entities established in Member States"), and the call is not yet in `CALL_RULES` in `ingest/build.py` or in `ingest/reviewed.json`, the build sets every non-EU country to "Check the call document" for that call and lists it in `ingest/review.md`. The workflow opens a GitHub issue titled "Calls with an unreviewed participation restriction". Read the call, then either add a rule to `CALL_RULES` (quote the official text) or add the id to `reviewed.json` if the programme list already gives the right answer.
 - **New lists of participating countries.** Every Monday the workflow downloads the Commission's lists and compares their version line with the one in `build.py`. A new version opens an issue. Eligibility does not change automatically; update `PROGRAMMES` in `build.py` by hand.
 - **Portal changes.** The search API is public but undocumented. If it changes, the workflow fails (GitHub emails you), the site keeps the last good data, and after 12 hours a warning about the data's age appears at the top of the page. The build refuses to publish if fewer than 20 open calls come back.
-- **Not published:** calls run by EU-funded projects (cascade funding) and EU external action calls, because their Portal links could not be confirmed to lead to the specific call. See the About page.
+- **Not published:** EU external action calls (the PROSPECT page needs an EU Login, so the call page cannot be checked), and calls run by EU-funded projects whose organiser page could not be confirmed to show the call. See the About page.
 
 ## Files
 
 ```
-.github/workflows/refresh.yml   schedule: every 4 hours, plus a weekly list check
+.github/workflows/refresh.yml   schedule: every 2 hours, plus a weekly list check
 ingest/fetch.py                 Portal search + topic details; only re-fetches topics whose checksum changed
 ingest/fetch_extra.py           runs the other sources; writes ingest/extra.json (records) and ingest/extra_state.json (link-check cache)
 ingest/sources/                 one module per source (cascade, interreg, eeagrants, eralearn, ukri, eit, esa) + common.py

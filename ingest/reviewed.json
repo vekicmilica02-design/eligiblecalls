@@ -1,0 +1,4 @@
+{
+  "note": "Ids of calls whose participation restriction was read in the call document and is already handled correctly by the programme rules. Add an id here only after reading the call text.",
+  "ids": []
+}

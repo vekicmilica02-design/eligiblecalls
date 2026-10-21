@@ -1,13 +1,13 @@
-# Import audit — 2026-10-21T11:54:39.000Z
+# Import audit — 2026-10-21T13:06:31.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1199 rows, 1108 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-21 13:54 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 274
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-21 15:06 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 274
 - Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
 - EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 172, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 50, published 43
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 34, noFutureDeadline 1, linkNotVerified 1, published 32
-- EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 24, noFutureDeadline 9, linkNotVerified 0, published 15
+- EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): FAILED (RuntimeError: listing unavailable: no response), kept last good data from 2026-10-21T11:56:12.000Z · listed 24, noFutureDeadline 9, linkNotVerified 0, published 15
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 31, horizonTopic 8, noFutureDeadline 17, linkNotVerified 0, published 6
 - UKRI Funding Finder (ukri.org): OK · listed 150, inviteOnly 5, noFutureDeadline 61, published 84
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 17, noFutureDeadline 0, linkNotVerified 0, published 12
@@ -17,7 +17,7 @@
 - Duplicates across sources removed: 3 (FSTP-15721; FSTP-15661; FSTP-16501)
 - Published: 614
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 1 new, 1 changed, 0 closed
+- Changes since the previous import: 0 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 369

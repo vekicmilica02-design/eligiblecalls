@@ -1,7 +1,7 @@
-# Import audit — 2026-10-21T16:53:29.000Z
+# Import audit — 2026-10-21T19:01:20.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1199 rows, 1108 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-21 18:53 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 274
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-21 21:01 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 274
 - Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -11,13 +11,13 @@
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 31, horizonTopic 8, noFutureDeadline 17, linkNotVerified 0, published 6
 - UKRI Funding Finder (ukri.org): OK · listed 149, inviteOnly 5, noFutureDeadline 61, published 83
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 17, noFutureDeadline 1, linkNotVerified 0, published 11
-- ESA Business Applications funding (business.esa.int): FAILED (RuntimeError: ESA funding listing unavailable), kept last good data from 2026-10-21T14:53:53.000Z · listed 13, noClosingDate 4, noFutureDeadline 0, published 9
+- ESA Business Applications funding (business.esa.int): FAILED (RuntimeError: ESA funding listing unavailable), kept last good data from None · 
 
 - Dropped at build: 2
 - Duplicates across sources removed: 3 (FSTP-15721; FSTP-15661; FSTP-16501)
-- Published: 612
+- Published: 603
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 1 new, 0 changed, 3 closed
+- Changes since the previous import: 0 new, 0 changed, 9 closed
 
 ## Calls by programme
 - HORIZON: 369
@@ -28,7 +28,6 @@
 - EEANORWAY: 15
 - EIT: 11
 - CERV: 11
-- ESA: 9
 - EDF: 9
 - PARTNERSHIPS: 6
 - OTHER: 5
@@ -45,10 +44,10 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- N: 5425
+- N: 5263
 - P: 198
-- Y: 16428
-- C: 4877
+- Y: 16282
+- C: 4789
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

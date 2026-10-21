@@ -1,0 +1,21 @@
+# Only needed if you want to run the site with Cloudflare's own tools (npx wrangler pages dev).
+# Copy to wrangler.toml and fill in the D1 database id. Note: once a wrangler.toml is in the
+# repository, Cloudflare Pages takes bindings from this file instead of the dashboard.
+name = "eligiblecalls"
+pages_build_output_dir = "site"
+compatibility_date = "2026-09-01"
+
+[ai]
+binding = "AI"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "eligiblecalls"
+database_id = "PASTE-YOUR-D1-DATABASE-ID"
+
+[vars]
+AI_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct"
+DAILY_NEURON_BUDGET = "9000"
+DAILY_VISITOR_LIMIT = "10"
+GROQ_DAILY_TOKENS = "190000"
+# Secrets (set with: npx wrangler pages secret put NAME): GROQ_API_KEY, TURNSTILE_SECRET, HASH_SALT

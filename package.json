@@ -1,0 +1,9 @@
+{
+  "name": "eligiblecalls",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/chat.test.js",
+    "dev": "node test/server.js"
+  }
+}

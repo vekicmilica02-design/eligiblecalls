@@ -1,0 +1,1646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fffcf3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#232323" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<title>Eligible Calls</title>
+<script>try { var th = JSON.parse(localStorage.getItem("konkursi.theme")); if (th === "dark" || th === "light") document.documentElement.dataset.theme = th; } catch (e) {}</script>
+<meta name="description" content="Open EU funding calls from the Funding & Tenders Portal, with eligibility checked for your country.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: search-first masthead, then a quiet filter rail beside a single column of opportunity rows.
+   Each row leads with its deadline (date column), then title + metadata, then eligibility and the official link. */
+:root {
+  /* Eligible Calls palette (brand sheet, 2 Oct 2026). Light: cream, ink, violet for actions, sage/lime for "eligible",
+     orchid (logo colour) for urgency, deep teal for "eligible with a condition", peach and grey-blue for soft fills.
+     Darker shades of sage, orchid and teal are used for small text so it stays readable. */
+  --bg: #fffcf3;
+  --surface: #ffffff;
+  --sunk: #f6f1e3;
+  --ink: #232323;
+  --ink-2: #3f3b47;
+  --muted: #5d5868;
+  --line: #e6dfcd;
+  --line-2: #f0eadb;
+  --green: #756594;          /* primary action colour (violet); name kept for existing rules */
+  --green-hover: #5f5179;
+  --green-ink: #ffffff;
+  --green-soft: #ece8f3;
+  --yes: #46703a;            /* sage, darkened for text */
+  --yes-dot: #6e9c60;
+  --yes-soft: #e4f3d9;       /* lime tint */
+  --orange: #a8429f;         /* urgency: orchid from the logo, deepened for text (name kept for existing rules) */
+  --orange-strong: #d06ccc;
+  --orange-soft: #f8e7f6;
+  --peach: #fda485;
+  --peach-soft: #feeadf;
+  --part: #3c6d67;           /* "eligible with a condition": deep teal from the palette, deepened for text */
+  --part-soft: #e3efed;
+  --grey-soft: #e8edf1;      /* grey-blue tint */
+  --brand: #d06ccc;
+  --focus: #756594;
+  --wave-a: 95, 81, 121;     /* violet, deepened for the light background (r,g,b for the hero canvas) */
+  --wave-b: 168, 66, 159;    /* orchid, deepened */
+  --wave-c: 70, 112, 58;     /* sage, deepened */
+  --wave-alpha: 1.45;        /* light theme dots are drawn stronger */
+  --f-sans: "Bricolage Grotesque", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 6px;
+  --r-lg: 12px;
+  --max: 1240px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #232323; --surface: #2a2a2a; --sunk: #303030; --ink: #f6f3ea; --ink-2: #d5d9de; --muted: #a3abb3;
+    --line: #3a3a3a; --line-2: #303030; --green: #6ac2b8; --green-hover: #86d1c8; --green-ink: #1c1c1c; --green-soft: #2e403e;
+    --yes: #7ed957; --yes-dot: #7ed957; --yes-soft: #2d3d26; --orange: #d06ccc; --orange-strong: #d06ccc; --orange-soft: #312330;
+    --peach: #ffde59; --peach-soft: #3a3522; --part: #ffde59; --part-soft: #39351f; --grey-soft: #33383d; --brand: #d06ccc; --focus: #6ac2b8;
+    --wave-a: 106, 194, 184; --wave-b: 208, 108, 204; --wave-c: 255, 222, 89; --wave-alpha: 1;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #232323; --surface: #2a2a2a; --sunk: #303030; --ink: #f6f3ea; --ink-2: #d5d9de; --muted: #a3abb3;
+  --line: #3a3a3a; --line-2: #303030; --green: #6ac2b8; --green-hover: #86d1c8; --green-ink: #1c1c1c; --green-soft: #2e403e;
+  --yes: #7ed957; --yes-dot: #7ed957; --yes-soft: #2d3d26; --orange: #d06ccc; --orange-strong: #d06ccc; --orange-soft: #312330;
+  --peach: #ffde59; --peach-soft: #3a3522; --part: #ffde59; --part-soft: #39351f; --grey-soft: #33383d; --brand: #d06ccc; --focus: #6ac2b8;
+  --wave-a: 106, 194, 184; --wave-b: 208, 108, 204; --wave-c: 255, 222, 89; --wave-alpha: 1;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-sans); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+a { color: var(--green); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+h1, h2, h3 { font-family: var(--f-sans); font-weight: 600; line-height: 1.15; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+.mono { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0; }
+.wrap { max-width: var(--max); margin: 0 auto; padding-inline: 24px; }
+@media (max-width: 560px) { .wrap { padding-inline: 16px; } }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.fine { font-size: 12.5px; color: var(--muted); }
+.eyebrow { font-size: 13.5px; font-weight: 600; letter-spacing: 0; color: var(--muted); }
+
+/* ---------- header ---------- */
+header.site { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; }
+header.site .wrap { display: flex; align-items: center; gap: 28px; min-height: 64px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); margin-right: auto; }
+.brand-name { font-weight: 700; font-size: 24px; letter-spacing: -0.035em; font-variation-settings: "opsz" 48; }
+.brand-mark { width: 34px; height: 34px; color: var(--brand); flex: none; }
+.brand-mark svg { width: 100%; height: 100%; display: block; fill: currentColor; }
+.brand-sub { font-size: 13px; color: var(--muted); padding-left: 10px; border-left: 1px solid var(--line); }
+nav.main { display: flex; gap: 4px; flex-wrap: wrap; }
+nav.main a { text-decoration: none; color: var(--ink-2); padding: 20px 10px; font-size: 14.5px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+nav.main a:hover { color: var(--ink); }
+nav.main a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--green); font-weight: 500; }
+.count-pill { font-family: var(--f-mono); font-size: 11px; background: var(--green-soft); color: var(--green); border-radius: 10px; padding: 1px 6px; margin-left: 5px; }
+.theme-btn { width: 34px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--r); background: transparent; color: var(--ink-2); cursor: pointer; }
+.theme-btn:hover { border-color: var(--ink); color: var(--ink); }
+.theme-btn .i-moon { display: none; }
+:root[data-theme="dark"] .theme-btn .i-sun { display: none; } :root[data-theme="dark"] .theme-btn .i-moon { display: block; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .theme-btn .i-sun { display: none; } :root:not([data-theme="light"]) .theme-btn .i-moon { display: block; } }
+.lang { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.lang button { background: none; border: 0; padding: 4px 9px; font-size: 12px; font-weight: 600; letter-spacing: .04em; cursor: pointer; color: var(--muted); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+@media (max-width: 1399px) { .brand-sub { display: none; } }
+@media (max-width: 1279px) { header.site .wrap { gap: 14px; } nav.main a { padding-inline: 8px; } }
+@media (min-width: 761px) and (max-width: 1023px) { nav.main a { padding-inline: 6px; font-size: 14px; } }
+@media (max-width: 760px) {
+  header.site { position: static; }
+  header.site .wrap { gap: 8px; padding-block: 10px; min-height: 0; }
+  nav.main { order: 3; width: 100%; overflow-x: auto; flex-wrap: nowrap; gap: 0; }
+  nav.main a { white-space: nowrap; padding: 8px 10px; font-size: 14px; }
+  .brand-sub { display: none; }
+}
+@media (max-width: 380px) { .brand-name { font-size: 20px; } }
+
+/* ---------- search masthead ---------- */
+.hero { position: relative; overflow: hidden; padding-block: 64px 44px; background: var(--bg); border-bottom: 1px solid var(--line); isolation: isolate; }
+.hero > .wrap { position: relative; z-index: 1; }
+.hero canvas.wave { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+@media (max-width: 720px) { .hero { padding-block: 40px 28px; } }
+.hero .eyebrow { margin-bottom: 14px; display: flex; gap: 10px; align-items: center; }
+.hero .eyebrow .live { color: var(--green); }
+.hero .eyebrow .age { color: var(--muted); font-weight: 500; letter-spacing: .06em; }
+.hero .eyebrow .age.stale { color: var(--orange); }
+.hero h1 { font-size: clamp(32px, 5vw, 58px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.02; max-width: 20ch; }
+.hero p.lede { color: var(--ink-2); max-width: 60ch; margin: 16px 0 28px; font-size: 16.5px; }
+.builder { display: grid; gap: 12px; max-width: 920px; }
+.searchrow { display: flex; align-items: stretch; background: var(--surface); border: 1.5px solid var(--ink); border-radius: var(--r-lg); overflow: hidden; }
+.searchrow:focus-within { box-shadow: 0 0 0 3px var(--green-soft); border-color: var(--green); }
+.searchrow .sicon { display: grid; place-items: center; padding-left: 18px; color: var(--muted); }
+.searchrow input { flex: 1; min-width: 0; padding: 16px 14px; font-size: 18px; border: 0; background: transparent; outline: none; }
+.searchrow .btn.big { border-radius: 0; padding-inline: 26px; font-size: 15px; }
+.profile-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 720px) { .profile-row { grid-template-columns: minmax(0, 1fr); } }
+.pick { position: relative; display: grid; gap: 1px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 9px 36px 9px 14px; cursor: pointer; min-width: 0; }
+.pick:hover { border-color: var(--muted); }
+.pick:focus-within { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.pick.set { background: var(--green-soft); border-color: transparent; }
+.pick .pl { font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--muted); }
+.pick.set .pl { color: var(--green); }
+.pick select { appearance: none; -webkit-appearance: none; border: 0; background: transparent; font-size: 15.5px; font-weight: 500; padding: 0; width: 100%; cursor: pointer; outline: none; text-overflow: ellipsis; }
+.pick::after { content: ""; position: absolute; right: 16px; top: 50%; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+select option, select optgroup { color: var(--ink); background: var(--bg); }
+select option { padding: 6px 14px; }
+/* Browsers that support styled select menus (Chrome/Edge 135+) draw the opened menu in the page,
+   so it gets the page background and comfortable padding. Others keep their native menu. */
+@supports (appearance: base-select) {
+  select, .pick select, ::picker(select) { appearance: base-select; -webkit-appearance: base-select; }
+  ::picker(select) { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 8px 0; margin-top: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.18); max-height: min(420px, 60vh); }
+  select option { padding: 9px 18px; gap: 8px; font-size: 15px; font-weight: 450; }
+  select option:hover, select option:focus-visible { background: var(--sunk); outline: none; }
+  select option:checked { font-weight: 600; }
+  select optgroup { padding: 4px 0; }
+  select optgroup::before, select optgroup > legend { padding: 8px 18px 4px; }
+  select optgroup option { padding-left: 30px; }
+  .pick select::picker-icon { display: none; }
+  .toolbar select::picker-icon, .inline-country::picker-icon, #fCountrySel::picker-icon { color: var(--muted); }
+}
+
+/* ---------- buttons ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: var(--r); border: 1px solid var(--green); background: var(--green); color: var(--green-ink); font-weight: 500; cursor: pointer; text-decoration: none; font-size: 14px; white-space: nowrap; }
+.btn:hover { background: var(--green-hover); border-color: var(--green-hover); }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn.ghost:hover { border-color: var(--ink); background: transparent; }
+.btn.quiet { background: var(--surface); color: var(--ink-2); border-color: var(--line); }
+.btn.quiet:hover { border-color: var(--ink); }
+.btn.big { padding: 13px 22px; font-size: 15px; }
+.btn.ext { background: var(--surface); color: var(--ink); border-color: var(--ink); }
+.btn.ext:hover { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.btn.ext .arr { color: var(--green); }
+.btn.ext:hover .arr { color: inherit; }
+.btn .arr { font-size: 1.05em; line-height: 1; }
+.linkbtn { background: none; border: 0; color: var(--ink-2); cursor: pointer; font-size: 13px; padding: 2px 0; text-decoration: underline; text-underline-offset: 3px; }
+.linkbtn:hover { color: var(--green); }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--ink-2); }
+
+/* ---------- closing soon strip ---------- */
+.soon { padding-block: 28px 4px; }
+.soon-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.soon-head h2 { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); display: flex; gap: 8px; align-items: center; }
+.soon-head h2::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--orange-strong); }
+.soon-head a { font-size: 13.5px; color: var(--ink-2); }
+.soon-list { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.soon-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); text-decoration: none; color: var(--ink); min-width: 0; }
+.soon-item:hover { border-color: var(--ink); }
+.soon-item .t { font-size: 14px; font-weight: 500; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.soon-item .p { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.dateblock { text-align: center; line-height: 1; min-width: 42px; padding-top: 2px; }
+.dateblock .d { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; color: var(--orange); font-variant-numeric: tabular-nums; }
+.dateblock .m { font-size: 12.5px; letter-spacing: 0; color: var(--muted); margin-top: 4px; }
+
+/* ---------- results layout ---------- */
+.results-wrap { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 40px; padding-block: 32px 56px; }
+@media (max-width: 960px) { .results-wrap { grid-template-columns: minmax(0, 1fr); gap: 0; } }
+aside.filters { align-self: start; position: sticky; top: 80px; max-height: calc(100vh - 96px); overflow-y: auto; padding-right: 6px; scrollbar-width: thin; }
+.filters-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; }
+.filters-head h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+details.facet { border-top: 1px solid var(--line); padding-block: 12px; }
+details.facet summary { cursor: pointer; font-weight: 600; font-size: 14px; list-style: none; display: flex; align-items: center; gap: 6px; }
+details.facet summary::-webkit-details-marker { display: none; }
+details.facet summary::after { content: ""; margin-left: auto; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
+details.facet[open] summary::after { transform: rotate(-135deg); }
+details.facet summary .fine { font-weight: 400; font-size: 11.5px; }
+details.facet summary .n { font-family: var(--f-mono); font-size: 11px; background: var(--green); color: var(--green-ink); border-radius: 10px; padding: 0 6px; }
+.opts { display: grid; gap: 0; margin-top: 8px; }
+.opt { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; font-size: 14px; padding: 5px 0; cursor: pointer; color: var(--ink-2); }
+.opt:hover { color: var(--ink); }
+.opt input { margin: 0; accent-color: var(--green); width: 15px; height: 15px; }
+.opt .c { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.opt.zero { opacity: .45; }
+.toolbar-sel { font-size: 14px; }
+.filters-close { display: none; }
+@media (max-width: 960px) {
+  aside.filters { position: fixed; inset: 0; top: 0; z-index: 50; background: var(--surface); max-height: none; padding: calc(18px + env(safe-area-inset-top, 0px)) 18px calc(96px + env(safe-area-inset-bottom, 0px)); display: none; }
+  aside.filters.open { display: block; }
+  .filters-close { display: flex; position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--line); gap: 8px; }
+  .filters-close .btn { flex: 1; }
+}
+.toolbar { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; padding-bottom: 14px; }
+.toolbar h2 { font-size: 26px; letter-spacing: -0.02em; }
+.toolbar h2 .cnt { color: var(--muted); font-weight: 400; }
+.toolbar .meta { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.toolbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.toolbar select { padding: 10px 34px 10px 14px; border: 1px solid var(--line); border-radius: var(--r); background-color: var(--bg); font-size: 13.5px; }
+.mobile-filter-btn { display: none; }
+@media (max-width: 960px) { .mobile-filter-btn { display: inline-flex; } }
+.elig-tabs { display: flex; gap: 0; flex-wrap: wrap; margin-bottom: 14px; border: 1px solid var(--line); border-radius: var(--r); width: fit-content; max-width: 100%; overflow: hidden; background: var(--surface); }
+.elig-tabs button { border: 0; border-right: 1px solid var(--line); background: transparent; padding: 7px 12px; font-size: 13px; cursor: pointer; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+.elig-tabs button:last-child { border-right: 0; }
+.elig-tabs button[aria-pressed="true"] { color: var(--ink); background: var(--sunk); font-weight: 500; }
+.elig-tabs button .mono { color: var(--muted); }
+.elig-tabs button::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--muted); }
+.elig-tabs button[data-el="Y"]::before { background: var(--yes-dot); border-color: var(--yes-dot); }
+.elig-tabs button[data-el="P"]::before { background: var(--part); border-color: var(--part); }
+.elig-tabs button[data-el="N"]::before { background: var(--muted); border-color: var(--muted); }
+.active-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.af { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px 4px 12px; font-size: 13px; cursor: pointer; }
+.af:hover { border-color: var(--ink); }
+.af::after { content: "×"; font-size: 15px; line-height: 1; color: var(--muted); }
+
+/* ---------- opportunity rows ---------- */
+.cards { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.group-head { display: flex; align-items: center; gap: 8px; padding: 20px 0 8px; font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--muted); border-bottom: 1px solid var(--line); }
+.group-head .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.group-head.yes { color: var(--yes); } .group-head.yes .dot { background: var(--yes-dot); }
+.group-head.partial { color: var(--part); } .group-head.partial .dot { background: var(--part); }
+.group-head .mono { color: var(--muted); font-weight: 400; }
+.card { display: grid; grid-template-columns: 88px minmax(0, 1fr) 230px; gap: 24px; padding: 22px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.card-date { display: grid; align-content: start; gap: 2px; font-variant-numeric: tabular-nums; }
+.card-date .cd-l { font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--muted); }
+.card-date .cd-d { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; margin-top: 4px; }
+.card-date .cd-m { font-size: 13px; color: var(--ink-2); }
+.card-date .cd-left { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.card-date .cd-t { font-size: 11.5px; color: var(--muted); }
+.card-date.urgent .cd-d, .card-date.urgent .cd-left { color: var(--orange); }
+.card-date.urgent .cd-left { font-weight: 600; }
+.card-date .cd-more { font-size: 11.5px; color: var(--muted); }
+.card-main { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.card-kicker { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.card-kicker a { color: var(--ink-2); font-weight: 600; text-decoration: none; }
+.card-kicker a:hover { color: var(--green); text-decoration: underline; }
+.card-kicker .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--muted); }
+.card-kicker .mono { overflow-wrap: anywhere; }
+.card h3 { font-size: 19px; line-height: 1.28; font-weight: 600; letter-spacing: -0.012em; }
+.card h3 a { color: var(--ink); text-decoration: none; }
+.card h3 a:hover { color: var(--green); text-decoration: underline; text-decoration-thickness: 1px; }
+.card .body { font-size: 13.5px; color: var(--muted); }
+.meta-line { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; padding: 0; margin: 2px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.meta-line li { display: inline-flex; gap: 6px; align-items: center; }
+.meta-line svg { width: 14px; height: 14px; color: var(--muted); flex: none; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 12px; padding: 2px 8px; border-radius: var(--r); background: var(--sunk); color: var(--ink-2); }
+.tag.app { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.card-side { display: grid; gap: 10px; align-content: start; justify-items: stretch; }
+.card-side .stamp { justify-self: start; }
+.card-actions { display: grid; gap: 6px; }
+.card-actions .row { display: flex; gap: 6px; }
+.card-actions .row > * { flex: 1; }
+.savebtn { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 9px 12px; cursor: pointer; color: var(--ink-2); font-size: 13.5px; white-space: nowrap; }
+.savebtn:hover { border-color: var(--ink); }
+.savebtn[aria-pressed="true"] { color: var(--green); border-color: var(--green); background: var(--green-soft); }
+.pick-country { font-size: 12.5px; color: var(--muted); }
+@media (max-width: 1100px) { .card { grid-template-columns: 76px minmax(0, 1fr); } .card-side { grid-column: 2; } .card-actions { display: flex; flex-wrap: wrap; } .card-actions .row { flex: 1; } }
+@media (max-width: 560px) {
+  .card { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .card-side { grid-column: 1; }
+  .card-date { grid-auto-flow: column; justify-content: start; align-items: baseline; gap: 8px; }
+  .card-date .cd-d { font-size: 20px; margin: 0; }
+  .card-date .cd-left, .card-date .cd-more { margin: 0; }
+}
+
+/* ---------- eligibility stamps ---------- */
+.stamp { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; padding: 4px 10px 4px 8px; border-radius: 999px; line-height: 1.3; }
+.stamp .dot { width: 14px; height: 14px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 9px; font-weight: 700; color: var(--surface); }
+.stamp.yes { color: var(--yes); background: var(--yes-soft); }
+.stamp.yes .dot { background: var(--yes-dot); }
+.stamp.yes .dot::before { content: "✓"; }
+.stamp.partial { color: var(--part); background: var(--part-soft); }
+.stamp.partial .dot { background: var(--part); }
+.stamp.partial .dot::before { content: "!"; }
+.stamp.no { color: var(--ink-2); background: var(--grey-soft); }
+.stamp.no .dot { background: var(--muted); }
+.stamp.no .dot::before { content: "✕"; }
+.stamp.unknown { color: var(--ink-2); background: transparent; border: 1px dashed var(--muted); padding-block: 3px; }
+.stamp.unknown .dot { background: transparent; border: 1.5px solid var(--muted); color: var(--muted); }
+.stamp.unknown .dot::before { content: "?"; }
+
+/* legacy classes still produced by some templates */
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge { font-size: 12px; font-weight: 600; letter-spacing: 0; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+.badge.s-active { color: var(--green); background: var(--green-soft); }
+.badge.demo, .badge.s-opening { color: var(--ink-2); background: var(--sunk); }
+.card-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+.card-ref { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+.card-ref a { color: var(--ink-2); font-weight: 600; text-decoration: none; }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.facts dt { font-size: 12.5px; letter-spacing: 0; color: var(--muted); }
+.facts dd { margin: 2px 0 0; }
+.left { color: var(--orange); font-size: 12px; display: block; }
+.left.calm { color: var(--muted); }
+.empty { border: 1px dashed var(--line); border-radius: var(--r-lg); padding: 28px; color: var(--ink-2); margin-top: 16px; background: var(--surface); }
+.empty h3 { font-size: 18px; margin-bottom: 6px; }
+
+/* ---------- browse ---------- */
+.browse { padding-block: 40px 64px; border-top: 1px solid var(--line); display: grid; gap: 40px; }
+.browse h2 { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 14px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 28px; }
+.tile { background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 12px 0; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; color: var(--ink); text-decoration: none; font-size: 16px; font-weight: 500; }
+.tile:hover { color: var(--green); }
+.tile .c { font-size: 13px; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+/* ---------- detail ---------- */
+.back { display: inline-flex; gap: 6px; margin: 24px 0 18px; font-size: 14px; color: var(--ink-2); text-decoration: none; }
+.back:hover { color: var(--green); }
+.detail { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 48px; padding-bottom: 72px; }
+@media (max-width: 960px) { .detail { grid-template-columns: minmax(0, 1fr); gap: 24px; } .detail .side { order: -1; } }
+.detail h1 { font-size: clamp(28px, 3.6vw, 42px); letter-spacing: -0.03em; line-height: 1.08; margin: 12px 0 8px; }
+.detail section { padding-block: 24px; border-top: 1px solid var(--line); }
+.detail section h2 { font-size: 18px; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 12px; font-weight: 600; }
+.detail section p { margin: 0 0 8px; max-width: 70ch; }
+.detail ul, .detail ol { margin: 0; padding-left: 20px; max-width: 70ch; }
+.detail li { margin-bottom: 4px; }
+.answer { border-radius: var(--r-lg); padding: 18px 20px; margin: 22px 0 8px; display: grid; gap: 6px; border: 1px solid var(--line); background: var(--surface); }
+.answer.yes { background: var(--yes-soft); border-color: transparent; }
+.answer.partial { background: var(--part-soft); border-color: transparent; }
+.answer.no { background: var(--grey-soft); border-color: transparent; }
+.answer .q { font-size: 13px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.answer .a { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+.answer.yes .a { color: var(--yes); } .answer.partial .a { color: var(--part); } .answer.no .a { color: var(--ink); } .answer.unknown .a { color: var(--ink-2); }
+.answer .why { font-size: 14.5px; color: var(--ink-2); max-width: 70ch; }
+.answer .src { font-size: 12.5px; color: var(--muted); }
+.inline-country { font: inherit; font-weight: 600; color: var(--ink); background-color: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 6px 12px; }
+.side { display: grid; gap: 16px; align-content: start; }
+.detail .side { position: sticky; top: 84px; }
+@media (max-width: 960px) { .detail .side { position: static; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px; display: grid; gap: 12px; }
+.panel h2 { font-size: 16px; letter-spacing: -0.01em; color: var(--ink); font-weight: 600; }
+.kv { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px 16px; font-size: 14px; margin: 0; }
+.kv dt { color: var(--muted); font-size: 13px; }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+.official .btn { width: 100%; }
+.official-text { white-space: pre-wrap; font-size: 14px; line-height: 1.65; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px 16px; max-height: 440px; overflow: auto; color: var(--ink-2); }
+.notes { list-style: none; padding: 0 !important; margin: 0; display: grid; gap: 8px; }
+.notes li { font-size: 14px; padding: 10px 12px 10px 14px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--orange); border-radius: var(--r); color: var(--ink-2); margin: 0; }
+.deadline-list { list-style: none; padding: 0 !important; margin: 0; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+.deadline-list .past { color: var(--muted); text-decoration: line-through; }
+.deadline-list .next { color: var(--orange); font-weight: 600; }
+.country-groups { display: grid; gap: 16px; }
+.country-groups .lbl { font-size: 12px; margin-bottom: 6px; display: flex; gap: 8px; align-items: center; color: var(--muted); }
+.country-groups ul { font-size: 14px; }
+
+/* ---------- pages ---------- */
+.page { padding-block: 40px 72px; }
+.page > h1 { font-size: clamp(30px, 4vw, 46px); letter-spacing: -0.03em; margin-bottom: 10px; }
+.page > p.lede { color: var(--ink-2); max-width: 64ch; margin: 0 0 28px; font-size: 16px; }
+.prog-table-wrap { overflow-x: auto; border-top: 1px solid var(--ink); }
+table.progs { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 720px; }
+table.progs th { text-align: left; font-size: 13px; letter-spacing: 0; color: var(--muted); font-weight: 600; padding: 12px 14px 12px 0; border-bottom: 1px solid var(--line); }
+table.progs td { padding: 16px 14px 16px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.progs td.num { font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 600; }
+table.progs a.pname { font-weight: 600; color: var(--ink); text-decoration: none; font-size: 16.5px; letter-spacing: -0.01em; }
+table.progs a.pname:hover { color: var(--green); text-decoration: underline; }
+.prog-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; }
+@media (max-width: 960px) { .prog-grid { grid-template-columns: minmax(0, 1fr); } }
+.prog-grid section { padding-block: 22px; border-top: 1px solid var(--line); }
+.prog-grid section h2 { font-size: 18px; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 14px; font-weight: 600; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin-bottom: 24px; flex-wrap: wrap; background: var(--surface); }
+.seg button { border: 0; border-right: 1px solid var(--line); background: transparent; padding: 8px 14px; cursor: pointer; font-size: 13.5px; color: var(--muted); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--sunk); color: var(--ink); font-weight: 500; }
+.agenda { display: grid; gap: 32px; }
+.agenda h2 { font-size: 20px; letter-spacing: -0.02em; margin-bottom: 8px; }
+.agenda-list { display: grid; border-top: 1px solid var(--line); }
+.agenda-item { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+.agenda-item:hover .t { color: var(--green); }
+.agenda-item .t { font-weight: 500; }
+.agenda-item .p { font-size: 12.5px; color: var(--muted); }
+@media (max-width: 560px) { .agenda-item { grid-template-columns: 46px minmax(0, 1fr); } .agenda-item .stamp { grid-column: 2; justify-self: start; } }
+.prose { max-width: 72ch; }
+.prose h2 { font-size: 22px; letter-spacing: -0.02em; margin: 34px 0 10px; }
+.prose p, .prose li { color: var(--ink-2); }
+.prose code { font-family: var(--f-mono); font-size: 13px; background: var(--sunk); padding: 1px 5px; border-radius: 3px; }
+footer.site { border-top: 1px solid var(--line); background: var(--surface); }
+footer.site .wrap { padding-block: 28px; font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+.loading { padding: 48px 0; color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+.verif { font-family: var(--f-mono); font-size: 11px; }
+@media (prefers-reduced-motion: no-preference) { .card h3 a, .tile, .soon-item, .btn, .pick, .af { transition: color .12s, border-color .12s, background-color .12s; } }
+
+/* ---------- assistant ---------- */
+.ask-btn { background: var(--surface); color: var(--ink); border-color: var(--line); padding: 7px 12px; font-size: 13.5px; }
+.ask-btn:hover { background: var(--surface); border-color: var(--green); color: var(--green); }
+.ask-btn span[aria-hidden] { color: var(--green); }
+.chat-fab span[aria-hidden] { color: var(--peach); }
+.hero-ask span[aria-hidden] { color: var(--orange); }
+.hero-ask { margin-top: 16px; display: inline-flex; gap: 8px; align-items: center; background: var(--peach-soft); border: 1px solid transparent; border-radius: 999px; padding: 9px 16px; color: var(--ink); font-size: 14.5px; cursor: pointer; text-align: left; }
+.hero-ask:hover { border-color: var(--orange); }
+.chat-fab { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 40; display: inline-flex; gap: 8px; align-items: center; padding: 12px 18px; border-radius: 999px; border: 1px solid var(--green); background: var(--green); color: var(--green-ink); font-weight: 500; font-size: 14.5px; cursor: pointer; box-shadow: 0 6px 20px rgba(6,32,30,.22); }
+.chat-fab:hover { background: var(--green-hover); border-color: var(--green-hover); }
+body.chat-open .chat-fab { display: none; }
+.chat-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100vw); z-index: 60; background: var(--surface); border-left: 1px solid var(--line); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; box-shadow: -12px 0 40px rgba(0,0,0,.12); padding-top: env(safe-area-inset-top, 0px); }
+.chat-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 18px 20px 10px; border-bottom: 1px solid var(--line-2); }
+.chat-head h2 { font-size: 19px; letter-spacing: -0.015em; margin-top: 2px; }
+.chat-head-actions { display: flex; gap: 12px; align-items: center; }
+.chat-x { background: none; border: 1px solid var(--line); border-radius: var(--r); width: 32px; height: 32px; font-size: 20px; line-height: 1; cursor: pointer; color: var(--ink-2); }
+.chat-x:hover { border-color: var(--ink); }
+.chat-ctx { padding: 8px 20px; font-size: 12.5px; color: var(--muted); background: var(--bg); border-bottom: 1px solid var(--line-2); }
+.chat-log { overflow-y: auto; padding: 18px 20px; display: grid; gap: 14px; align-content: start; }
+.chat-empty p { color: var(--ink-2); margin: 0 0 14px; }
+.starters { display: grid; gap: 8px; }
+.starter { text-align: left; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px 12px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+.starter:hover { border-color: var(--green); color: var(--ink); }
+.msg { max-width: 100%; font-size: 14.5px; line-height: 1.6; overflow-wrap: anywhere; }
+.msg.user { justify-self: end; background: var(--green-soft); color: var(--ink); border-radius: var(--r-lg) var(--r-lg) 2px var(--r-lg); padding: 10px 14px; max-width: 88%; }
+.msg.assistant { border-left: 2px solid var(--line); padding-left: 14px; }
+.msg p { margin: 0 0 8px; } .msg p:last-child { margin-bottom: 0; }
+.msg h4 { font-size: 14.5px; margin: 14px 0 6px; } .msg h4:first-child { margin-top: 0; }
+.msg ul, .msg ol { margin: 0 0 8px; padding-left: 20px; } .msg li { margin-bottom: 4px; }
+.msg a.cid { font-family: var(--f-mono); font-size: 12.5px; }
+.thinking { color: var(--muted); font-style: italic; }
+@media (prefers-reduced-motion: no-preference) { .thinking { animation: pulse 1.6s ease-in-out infinite; } @keyframes pulse { 50% { opacity: .45; } } }
+.chat-foot { border-top: 1px solid var(--line); padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; background: var(--surface); }
+.chat-doc { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 6px 10px; color: var(--ink-2); }
+.chat-compose { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.chat-compose textarea { resize: none; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px 12px; font: inherit; font-size: 14.5px; background: var(--bg); min-height: 44px; max-height: 220px; }
+.chat-compose textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.chat-attach { width: 44px; height: 44px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); font-size: 20px; cursor: pointer; color: var(--ink-2); }
+.chat-attach:hover { border-color: var(--ink); }
+#chatSend { height: 44px; }
+#chatSend.stop { background: var(--surface); color: var(--ink); border-color: var(--ink); }
+.chat-note { font-size: 13px; color: var(--orange); min-height: 0; }
+.chat-note:empty { display: none; }
+.chat-note.info { color: var(--ink-2); }
+.chat-ts:empty { display: none; }
+.badge.new { background: var(--orange-soft); color: var(--orange); font-weight: 600; }
+.updates { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
+.updates li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.updates .k { font-size: 13px; font-weight: 600; letter-spacing: 0; }
+.updates .k.new { color: var(--yes); } .updates .k.changed { color: var(--part); } .updates .k.closed { color: var(--muted); }
+.updates .t { font-weight: 500; } .updates .d { font-size: 13px; color: var(--muted); margin-top: 2px; }
+@media (max-width: 560px) { .updates li { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+@media (max-width: 760px) { .ask-btn { display: none; } .chat-fab { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); } }
+
+/* ---------- layout: narrow filter rail and a card grid (2 Oct 2026) ---------- */
+:root { --max: 1440px; }
+.wrap.results-wrap { grid-template-columns: 172px minmax(0, 1fr); gap: 36px; }
+@media (min-width: 961px) {
+  aside.filters { padding-right: 4px; }
+  .filters-head { padding-bottom: 8px; }
+  .filters-head h2 { font-size: 15px; }
+  .filters-head .linkbtn { font-size: 12px; }
+  details.facet { padding-block: 9px; }
+  details.facet summary { font-size: 13px; gap: 5px; }
+  details.facet summary .fine { font-size: 10.5px; }
+  .opts { margin-top: 6px; }
+  .opt { grid-template-columns: 13px minmax(0, 1fr) auto; gap: 7px; font-size: 12.5px; line-height: 1.3; padding: 3px 0; }
+  .opt input { width: 13px; height: 13px; }
+  .opt .c { font-size: 11px; }
+  aside.filters .linkbtn { font-size: 12px; }
+  #fCountrySel { font-size: 13px; }
+}
+@media (max-width: 960px) { .wrap.results-wrap { grid-template-columns: minmax(0, 1fr); gap: 0; } }
+
+/* ---------- compact cards, hero accent, assistant composer (2 Oct 2026, evening) ---------- */
+:root { --accent-text: #756594; --ask-soft: #ece8f3; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent-text: #a99bd0; --ask-soft: #34303f; } }
+:root[data-theme="dark"] { --accent-text: #a99bd0; --ask-soft: #34303f; }
+.hero h1 .h1-accent { color: var(--accent-text); }
+.hero h1 { font-size: clamp(42px, 6.6vw, 104px); line-height: 0.98; letter-spacing: -0.04em; max-width: 16ch; }
+.hero p.lede { margin-top: 22px; }
+.hero-ask { background: var(--ask-soft); }
+.hero-ask:hover { border-color: var(--green); }
+.hero-ask span[aria-hidden] { color: var(--accent-text); }
+.ask-btn span[aria-hidden] { color: currentColor; }
+.chat-fab span[aria-hidden] { color: #ffffff; }
+
+
+.chat-compose { grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; }
+.chat-compose textarea { min-height: 104px; max-height: 220px; overflow-y: auto; scrollbar-width: none; line-height: 1.5; padding: 12px 14px; }
+.chat-compose textarea::-webkit-scrollbar { display: none; }
+.chat-btns { display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+.chat-btns .chat-attach { width: 48px; height: 44px; display: grid; place-items: center; background: var(--green); color: var(--green-ink); border: 0; border-radius: var(--r-lg); font-size: 0; }
+.chat-btns .chat-attach:hover { background: var(--green-hover); }
+.chat-btns #chatSend { width: 48px; min-width: 48px; height: 44px; padding: 0; font-size: 12.5px; border-radius: var(--r-lg); }
+.chat-btns #chatSend.stop { font-size: 11.5px; }
+
+/* forthcoming calls */
+.badge.soon { background: var(--grey-soft); color: var(--ink-2); }
+.cc-soon { align-self: flex-start; justify-self: start; width: fit-content; font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--grey-soft); border-radius: 999px; padding: 2px 9px; }
+</style>
+</head>
+<body>
+
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="#" data-nav="home" aria-label="Eligible Calls home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 1050 1054"><g transform="translate(0 1054) scale(.1 -.1)"><path d="M5526 10524 c-276 -37 -518 -152 -675 -320 -215 -230 -279 -612 -171 -1029 87 -338 223 -571 775 -1330 346 -476 471 -650 780 -1085 142 -201 398 -558 569 -795 456 -633 592 -844 750 -1165 97 -197 156 -344 201 -500 136 -476 14 -921 -326 -1193 -474 -379 -1083 -169 -1716 593 -254 306 -488 672 -871 1359 -258 465 -366 647 -717 1211 -304 488 -394 643 -605 1040 -371 696 -585 1026 -887 1370 -478 543 -870 731 -1111 533 -208 -171 -383 -707 -357 -1093 13 -189 64 -380 146 -542 64 -127 406 -627 600 -878 700 -904 998 -1356 1681 -2550 355 -620 508 -932 588 -1201 153 -515 83 -848 -206 -986 -75 -36 -84 -38 -179 -38 -158 1 -272 57 -438 215 -225 215 -346 408 -616 987 -345 742 -570 1077 -1017 1513 -561 547 -1175 855 -1478 740 -166 -63 -236 -204 -236 -479 0 -552 216 -1107 728 -1861 414 -610 502 -749 760 -1190 257 -442 347 -566 536 -747 166 -159 342 -275 631 -418 823 -406 1271 -454 1685 -180 247 164 389 425 430 790 31 284 44 366 66 436 85 270 289 366 559 264 140 -52 276 -147 527 -367 766 -672 1095 -841 1643 -842 684 -1 1292 390 1556 1003 105 244 143 437 144 726 0 378 -68 657 -296 1207 -347 838 -491 1313 -506 1673 -8 193 23 296 108 352 78 52 141 43 266 -39 205 -134 320 -277 578 -718 288 -494 458 -659 688 -669 251 -10 387 191 373 554 -8 221 -54 398 -186 705 -189 442 -353 705 -863 1382 -285 380 -370 500 -753 1063 -196 288 -374 527 -540 726 -131 156 -1003 1050 -1197 1227 -469 428 -946 611 -1421 546z M3077 10086 c-254 -95 -306 -450 -130 -891 157 -393 760 -1279 1222 -1795 575 -641 719 -761 872 -720 107 29 154 121 153 295 -2 253 -69 393 -466 983 -137 203 -180 275 -238 402 -240 525 -641 1200 -891 1500 -148 178 -380 279 -522 226z M8909 8894 c-34 -36 -35 -264 -1 -391 73 -274 221 -573 465 -938 311 -465 538 -674 756 -692 302 -25 342 331 95 833 -110 225 -259 418 -516 669 -452 443 -712 612 -799 519z M460 7548 c-88 -47 -134 -162 -187 -473 -24 -143 -24 -404 0 -508 71 -304 286 -540 652 -718 408 -198 633 -180 755 60 96 191 75 381 -75 669 -211 405 -568 807 -833 939 -120 60 -235 72 -312 31z M5525 5876 c-153 -71 -148 -211 21 -589 46 -103 127 -288 180 -410 211 -488 346 -689 551 -821 219 -141 459 -137 578 9 53 64 75 130 75 223 0 135 -50 255 -207 492 -49 74 -125 194 -168 265 -177 290 -360 499 -586 670 -182 137 -241 167 -339 172 -50 2 -85 -1 -105 -11z M9562 4219 c-62 -19 -147 -114 -171 -193 -141 -461 404 -1143 817 -1021 216 64 258 297 107 600 -178 358 -562 672 -753 614z M3135 3684 c-243 -126 -171 -589 137 -880 359 -340 580 166 287 659 -109 184 -302 285 -424 221z M5411 1108 c-90 -55 -116 -113 -116 -258 0 -129 11 -171 76 -304 164 -330 507 -580 738 -536 171 32 247 143 238 345 -7 178 -62 280 -245 456 -287 277 -544 387 -691 297z"/></g></svg></span><span class="brand-name">eligible calls</span><span class="brand-sub" data-i18n="brandSub">European funding calls</span></a>
+    <nav class="main" aria-label="Main">
+      <a href="#" data-route="home" data-i18n="navFind">Find funding</a>
+      <a href="#programmes" data-route="programmes" data-i18n="navProgrammes">Programmes</a>
+      <a href="#deadlines" data-route="deadlines" data-i18n="navDeadlines">Deadlines</a>
+      <a href="#updates" data-route="updates" data-i18n="navUpdates">Updates</a>
+      <a href="#saved" data-route="saved"><span data-i18n="navSaved">Saved</span><span class="count-pill" id="savedCount" hidden>0</span></a>
+      <a href="#about" data-route="about" data-i18n="navAbout">About</a>
+    </nav>
+    <button type="button" class="btn ask-btn" data-chat-open><span aria-hidden="true">✦</span> <span data-ci18n="open">Ask the assistant</span></button>
+    <button type="button" class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg class="i-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="i-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="sr" aria-pressed="false">SR</button>
+    </div>
+  </div>
+</header>
+<main id="app"><div class="wrap loading">Loading calls…</div></main>
+<button type="button" class="chat-fab" data-chat-open aria-label="Ask the assistant"><span aria-hidden="true">✦</span><span data-ci18n="open">Ask the assistant</span></button>
+<aside class="chat-panel" id="chatPanel" hidden role="dialog" aria-labelledby="chatTitle">
+  <div class="chat-head">
+    <div><div class="eyebrow">AI</div><h2 id="chatTitle" data-ci18n="title">Project match assistant</h2></div>
+    <div class="chat-head-actions"><button type="button" class="linkbtn" id="chatClear" data-ci18n="clear">New conversation</button><button type="button" class="chat-x" id="chatClose" aria-label="Close">×</button></div>
+  </div>
+  <div class="chat-ctx" id="chatCtx"></div>
+  <div class="chat-log" id="chatLog" aria-live="polite"></div>
+  <div class="chat-foot">
+    <div class="chat-doc" id="chatDoc" hidden></div>
+    <div class="chat-compose">
+
+      <input type="file" id="chatFile" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" hidden>
+      <label class="vh" for="chatBox">Message</label><textarea id="chatBox" rows="4"></textarea>
+      <div class="chat-btns"><button type="button" class="chat-attach" id="chatAttachBtn" aria-label="Attach"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.4 11.1l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8"/></svg></button>
+      <button type="button" class="btn" id="chatSend">Send</button></div>
+    </div>
+    <div class="chat-ts" id="chatTs"></div>
+    <div class="chat-note" id="chatNote" role="status"></div>
+    <div class="fine"><span data-ci18n="disclaimer"></span> <span id="chatPrivacy"></span></div>
+  </div>
+</aside>
+<footer class="site"><div class="wrap">
+  <span id="footData"></span>
+  <span id="footText">Eligible Calls is an independent directory. The official funding body is always the authoritative source for deadlines, eligibility and amounts.</span>
+</div></footer>
+
+<script src="config.js"></script>
+<script>
+(() => {
+"use strict";
+
+/* ---------- i18n ---------- */
+const I18N = {
+  en: {
+    brandSub: "European funding calls", navFind: "Find funding", navProgrammes: "Programmes", navDeadlines: "Deadlines", navSaved: "Saved", navAbout: "About",
+    footData: (when) => `Data: EU Funding & Tenders Portal and other official sources (see About), imported ${when}. Always confirm on the official call page.`,
+    updatedAgo: (v, u) => `Updated ${v} ${u === "m" ? "min" : u === "h" ? (v === 1 ? "hour" : "hours") : v === 1 ? "day" : "days"} ago`, updatedNow: "Updated just now", staleNote: "newer calls may be missing",
+    foot: "Eligible Calls is an independent directory. The official funding body is always the authoritative source for deadlines, eligibility and amounts.",
+    heroTitleA: "Find European funding", heroTitleB: "you can apply for.",
+    heroLede: "Open calls from EU programmes and other official European funders, checked against the official country lists and each call's own conditions where they are published. Choose your country to see whether you can take part.",
+    basedIn: "I'm based in", applyingAs: "applying as", workingOn: "working on",
+    anyCountry: "Any country", anyone: "Anyone", anything: "Any sector", plCountry: "Your country", plApp: "Applying as", plSector: "Working on", applyBy: "Apply by", liveCount: (n) => `${n} open calls`, portal: "Source: EU Funding & Tenders Portal",
+    searchPh: "Keyword or call ID", search: "Search", tryLabel: "Try:",
+    closingSoon: "Closing in the next 14 days", seeAll: "All deadlines",
+    filters: "Filters", clearAll: "Clear all", showResults: "Show results",
+    fStatus: "Status", stOpenNow: "Open now", stSoon: "Opening soon", opensOn: (d) => `Opens ${d}`, resultsAll: "Open and upcoming calls", fCountry: "Your country", fApplicant: "Applicant type", fSector: "Sector", fProgramme: "Programme", fFunding: "Funding per project", fDeadline: "Deadline", fType: "Type of call", fPartner: "Partnership",
+    showMore: "Show all", showLess: "Show fewer",
+    elY: "Eligible", elP: "Eligible with a condition", elN: "Not eligible", elC: "Not available from the source",
+    elShortY: "Eligible", elShortP: "Condition", elShortN: "Not eligible", elShortC: "Not in source",
+    pickCountry: "Choose your country to see if you can apply.",
+    results: "Open calls", nResults: (n) => n === 1 ? "1 call" : `${n} calls`,
+    sortDeadline: "Deadline, soonest first", sortFunding: "Highest funding per project", sortLabel: "Sort",
+    noResults: "No open calls match these filters", noResultsHint: "Remove a filter, or include calls marked “Not available from the source”.",
+    details: "Details", official: "Official call page", officialShort: "Official page", save: "Save", saved: "Saved",
+    deadline: "Next deadline", funding: "Funding", type: "Type", partnership: "Partnership",
+    daysLeft: (n) => n === 0 ? "Closes today" : n === 1 ? "1 day left" : `${n} days left`, closesIn: (h, m) => h > 0 ? `Closes in ${h} h ${m} min` : `Closes in ${m} min`, closesToday: "Closes today", closesTomorrow: "Closes tomorrow", closedNow: "Closed", brussels: "Brussels time", yourTime: (s) => `${s} your time`, dataAge: (h) => `Data is ${h} hours old: deadlines close on time, but calls published or changed since then are not shown yet.`,
+    moreCutoffs: (n) => `+${n} later cut-off${n > 1 ? "s" : ""}`,
+    timeNote: "Deadline time is 17:00:00 Brussels time, as published on the official topic page.",
+    timeNoteOrg: "Deadline time as stated by the organiser on the official call page.",
+    timeNoteDate: "The organiser gives only a date. Eligible Calls keeps the call open until 23:59 Brussels time that day; check the exact time on the call page.",
+    timeUnknown: "time not stated by the organiser: check the call page", timeUnknownShort: "time not stated", tzTime: (city) => `${city} time`,
+    upTo: "Up to", perGrant: "per project", topicBudget: "Topic budget", forGrants: (n) => `for about ${n} project${n > 1 ? "s" : ""}`, callBudget: "Call budget", noCurrency: "currency not stated", notStated: "Not stated",
+    back: "Back to results",
+    canApply: "Can an applicant based in", canApply2: "take part?",
+    whyLbl: "Why", sourceLbl: "Source",
+    srcCall: "The call's own conditions (official text on the topic page).",
+    srcList: "Official list of participating countries",
+    srcNone: "The Funding & Tenders Portal data does not state the eligible countries for this call.",
+    srcNoneX: "The source does not state the eligible countries for this call in structured form.", refLbl: "Reference",
+    verifX: (how) => `Listed as open by the source · deadline after the import · call page checked: ${how}`,
+    notes: "Call-specific conditions", conditionsH: "Conditions (official text)", descriptionH: "Description (official text)", excerpt: "Excerpt. The full text is on the official call page.",
+    keyFacts: "Key facts", topicId: "Topic / call ID", callLbl: "Call", programme: "Programme", toa: "Type of action", opens: "Opening date", deadlinesH: "Deadlines", model: "Submission",
+    fundingH: "Funding", minMax: "EU contribution per project", expected: "Expected number of grants",
+    classified: "Sector and applicant tags are assigned by Eligible Calls from the programme structure and call text. They help you search; they are not official eligibility criteria.",
+    eligAll: "Eligibility by country", countryUnknown: "Not available from the source",
+    organiser: "Organised by", parentTopic: "EU-funded project and topic",
+    importedAt: "Imported", verif: "Checks done", verifList: "Call exists on the Portal · status Open · deadline on or after the import date · link goes to this specific call",
+    progTitle: "Funding programmes", progLede: "Which countries take part in each programme, according to the Commission's official lists of participating countries. Individual calls can be narrower.",
+    colProgramme: "Programme", colList: "Official list", colOpen: "Open calls", noList: "No published list",
+    participation: "Participation by country", openCalls: "Open calls in this programme",
+    dlTitle: "Deadlines", dlLede: "Next deadline of each open call, grouped by month. The time of day is stated on each official call page.", dl7: "7 days", dl14: "14 days", dl30: "30 days", dlAll: "All", noneInWindow: "No deadlines in this window.",
+    savedTitle: "Saved calls", savedLede: "Saved on this device only.", savedEmpty: "Nothing saved yet.",
+    remindersNote: "Email alerts and deadline reminders need user accounts and are not part of this version.",
+    tCascade: "EU project call", tExternal: "External action",
+    derived: "derived",
+    newBadge: "New", navUpdates: "Updates",
+    updTitle: "Updates", updLede: "What changed between imports: new calls, changed deadlines, budgets or eligibility, and calls that closed. The Portal is checked every 4 hours.",
+    updNew: "New", updChanged: "Changed", updClosed: "Closed", updNone: "No changes recorded yet. The log starts with the second import.",
+    updDeadlines: "Deadlines", updBudget: "Topic budget", updTitleCh: "Title", updElig: (n) => `Eligibility changed for ${n} countr${n === 1 ? "y" : "ies"}`,
+    updPassed: "Deadline passed", updDelisted: "No longer listed as open on the Portal", updNext: "Next deadline", updAt: "Import",
+    updAuto: (when) => `Updated automatically every 2 hours. Last import: ${when}.`
+  },
+  sr: {
+    brandSub: "Evropski pozivi za finansiranje", navFind: "Pretraga", navProgrammes: "Programi", navDeadlines: "Rokovi", navSaved: "Sačuvano", navAbout: "O podacima",
+    footData: (when) => `Podaci: EU Funding & Tenders portal i drugi zvanični izvori (vidi O podacima), preuzeto ${when}. Uvek proverite na zvaničnoj stranici poziva.`,
+    updatedAgo: (v, u) => `Ažurirano pre ${v} ${u === "m" ? "min" : u === "h" ? (v % 10 === 1 && v % 100 !== 11 ? "sat" : v % 10 >= 2 && v % 10 <= 4 && (v % 100 < 12 || v % 100 > 14) ? "sata" : "sati") : v === 1 ? "dan" : "dana"}`, updatedNow: "Upravo ažurirano", staleNote: "noviji pozivi možda nedostaju",
+    foot: "Eligible Calls je nezavisan katalog. Zvanični davalac sredstava je uvek merodavan izvor za rokove, uslove i iznose.",
+    heroTitleA: "Pronađite evropske fondove", heroTitleB: "za koje možete da konkurišete.",
+    heroLede: "Otvoreni pozivi EU programa i drugih zvaničnih evropskih davalaca sredstava, provereni prema zvaničnim listama zemalja i uslovima svakog poziva gde su objavljeni. Izaberite zemlju da vidite da li možete da učestvujete.",
+    basedIn: "Registrovan/a sam u zemlji", applyingAs: "kao", workingOn: "u oblasti",
+    anyCountry: "Bilo koja zemlja", anyone: "Bilo ko", anything: "Bilo koja oblast", plCountry: "Vaša zemlja", plApp: "Prijavljujem se kao", plSector: "Oblast", applyBy: "Rok", liveCount: (n) => `${n} otvorenih poziva`, portal: "Izvor: EU Funding & Tenders portal",
+    searchPh: "Ključna reč ili oznaka poziva", search: "Traži", tryLabel: "Primeri:",
+    closingSoon: "Ističu u narednih 14 dana", seeAll: "Svi rokovi",
+    filters: "Filteri", clearAll: "Obriši sve", showResults: "Prikaži rezultate",
+    fStatus: "Status", stOpenNow: "Otvoren", stSoon: "Uskoro se otvara", opensOn: (d) => `Otvara se ${d}`, resultsAll: "Otvoreni i najavljeni pozivi", fCountry: "Vaša zemlja", fApplicant: "Tip podnosioca", fSector: "Oblast", fProgramme: "Program", fFunding: "Iznos po projektu", fDeadline: "Rok", fType: "Vrsta poziva", fPartner: "Partnerstvo",
+    showMore: "Prikaži sve", showLess: "Prikaži manje",
+    elY: "Ispunjava uslove", elP: "Ispunjava uz uslov", elN: "Ne ispunjava uslove", elC: "Nije dostupno u izvoru",
+    elShortY: "Da", elShortP: "Uz uslov", elShortN: "Ne", elShortC: "Nema podatka",
+    pickCountry: "Izaberite zemlju da vidite da li možete da konkurišete.",
+    results: "Otvoreni pozivi", nResults: (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "poziv" : "poziva"}`,
+    sortDeadline: "Rok, najbliži prvi", sortFunding: "Najveći iznos po grantu", sortLabel: "Redosled",
+    noResults: "Nema otvorenih poziva za ove filtere", noResultsHint: "Uklonite neki filter ili uključite pozive označene sa „Nije dostupno u izvoru“.",
+    details: "Detalji", official: "Zvanična stranica poziva", officialShort: "Zvanična stranica", save: "Sačuvaj", saved: "Sačuvano",
+    deadline: "Sledeći rok", funding: "Iznos", type: "Vrsta", partnership: "Partnerstvo",
+    daysLeft: (n) => n === 0 ? "Ističe danas" : `još ${n} ${n % 10 === 1 && n % 100 !== 11 ? "dan" : "dana"}`, closesIn: (h, m) => h > 0 ? `Ističe za ${h} h ${m} min` : `Ističe za ${m} min`, closesToday: "Ističe danas", closesTomorrow: "Ističe sutra", closedNow: "Zatvoreno", brussels: "po briselskom vremenu", yourTime: (s) => `${s} po vašem vremenu`, dataAge: (h) => `Podaci su stari ${h} sati: rokovi se zatvaraju na vreme, ali novi ili izmenjeni pozivi još nisu prikazani.`,
+    moreCutoffs: (n) => `+${n} kasniji rok`,
+    timeNote: "Rok ističe u 17:00:00 po briselskom vremenu, kako je objavljeno na zvaničnoj stranici teme.",
+    timeNoteOrg: "Vreme roka kako ga navodi organizator na zvaničnoj stranici poziva.",
+    timeNoteDate: "Organizator navodi samo datum. Eligible Calls drži poziv otvorenim do 23:59 po briselskom vremenu tog dana; tačno vreme proverite na stranici poziva.",
+    timeUnknown: "vreme nije navedeno: proverite stranicu poziva", timeUnknownShort: "vreme nije navedeno", tzTime: (city) => `(${city})`,
+    upTo: "Do", perGrant: "po projektu", topicBudget: "Budžet teme", forGrants: (n) => `za oko ${n} projekat(a)`, callBudget: "Budžet poziva", noCurrency: "valuta nije navedena", notStated: "Nije navedeno",
+    back: "Nazad na rezultate",
+    canApply: "Da li podnosilac iz zemlje", canApply2: "može da učestvuje?",
+    whyLbl: "Obrazloženje", sourceLbl: "Izvor",
+    srcCall: "Uslovi samog poziva (zvanični tekst na stranici teme).",
+    srcList: "Zvanična lista zemalja učesnica",
+    srcNone: "Podaci EU Funding & Tenders portala ne navode zemlje koje ispunjavaju uslove za ovaj poziv.",
+    srcNoneX: "Izvor ne navodi zemlje koje ispunjavaju uslove za ovaj poziv u strukturisanom obliku.", refLbl: "Oznaka",
+    verifX: (how) => `Izvor ga navodi kao otvoren · rok je posle preuzimanja · stranica poziva proverena: ${how}`,
+    notes: "Posebni uslovi poziva", conditionsH: "Uslovi (zvanični tekst)", descriptionH: "Opis (zvanični tekst)", excerpt: "Izvod. Ceo tekst je na zvaničnoj stranici poziva.",
+    keyFacts: "Osnovni podaci", topicId: "Oznaka teme / poziva", callLbl: "Poziv", programme: "Program", toa: "Vrsta aktivnosti", opens: "Otvaranje", deadlinesH: "Rokovi", model: "Podnošenje",
+    fundingH: "Finansiranje", minMax: "Doprinos EU po projektu", expected: "Očekivani broj grantova",
+    classified: "Oznake oblasti i tipa podnosioca dodeljuje Eligible Calls na osnovu strukture programa i teksta poziva. Služe pretrazi; nisu zvanični uslovi.",
+    eligAll: "Podobnost po zemljama", countryUnknown: "Nije dostupno u izvoru",
+    organiser: "Organizator", parentTopic: "EU projekat i tema",
+    importedAt: "Preuzeto", verif: "Provere", verifList: "Poziv postoji na portalu · status Otvoren · rok je na dan preuzimanja ili kasnije · link vodi na ovaj konkretan poziv",
+    progTitle: "Programi finansiranja", progLede: "Koje zemlje učestvuju u kom programu, prema zvaničnim listama Komisije. Pojedinačni pozivi mogu biti uži.",
+    colProgramme: "Program", colList: "Zvanična lista", colOpen: "Otvoreni pozivi", noList: "Lista nije objavljena",
+    participation: "Učešće po zemljama", openCalls: "Otvoreni pozivi u ovom programu",
+    dlTitle: "Rokovi", dlLede: "Sledeći rok svakog otvorenog poziva, po mesecima. Tačno vreme piše na zvaničnoj stranici poziva.", dl7: "7 dana", dl14: "14 dana", dl30: "30 dana", dlAll: "Svi", noneInWindow: "Nema rokova u ovom periodu.",
+    savedTitle: "Sačuvani pozivi", savedLede: "Čuva se samo na ovom uređaju.", savedEmpty: "Još ništa nije sačuvano.",
+    remindersNote: "Obaveštenja e-poštom i podsetnici za rokove zahtevaju korisničke naloge i nisu deo ove verzije.",
+    tCascade: "Poziv EU projekta", tExternal: "Spoljno delovanje",
+    derived: "izvedeno",
+    newBadge: "Novo", navUpdates: "Izmene",
+    updTitle: "Izmene", updLede: "Šta se promenilo između dva preuzimanja: novi pozivi, izmenjeni rokovi, budžeti ili podobnost, i pozivi koji su zatvoreni. Portal se proverava na svaka 4 sata.",
+    updNew: "Novo", updChanged: "Izmenjeno", updClosed: "Zatvoreno", updNone: "Još nema zabeleženih izmena. Evidencija počinje od drugog preuzimanja.",
+    updDeadlines: "Rokovi", updBudget: "Budžet teme", updTitleCh: "Naslov", updElig: (n) => `Podobnost izmenjena za ${n} zemalja`,
+    updPassed: "Rok je istekao", updDelisted: "Više se ne vodi kao otvoren na portalu", updNext: "Sledeći rok", updAt: "Preuzimanje",
+    updAuto: (when) => `Ažurira se automatski na svaka 2 sata. Poslednje preuzimanje: ${when}.`
+  }
+};
+let lang = "en";
+const t = (k, ...a) => { const v = (I18N[lang][k] ?? I18N.en[k]); return typeof v === "function" ? v(...a) : (v ?? k); };
+const nm = (o) => (o && (o[lang] || o.en)) || "";
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("konkursi." + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("konkursi." + k, JSON.stringify(v)); } catch (e) {} }
+};
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+/* ---------- data ---------- */
+let TAX, PROGS, META, CALLS, CHANGES = null, P = {}, IDX = {}, BYKEY = {};
+const keyOf = (c) => (c.kind === "8" ? "x-" : "") + c.id.replace(/[^A-Za-z0-9._~-]/g, "_");
+const getJSON = (f) => fetch(f, { cache: "no-cache" }).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.json(); });
+function setData(tax, progs, calls) {
+  TAX = tax; PROGS = progs.programmes; META = calls; CALLS = calls.calls; P = {}; BYKEY = {}; HAY.clear();
+  PROGS.forEach((p) => (P[p.id] = p));
+  for (const k of ["countries", "sectors", "applicants", "types", "partnership", "fundingBands", "deadlineBuckets", "sectorGroups", "applicantGroups"]) { IDX[k] = {}; TAX[k].forEach((x) => (IDX[k][x.id] = x)); }
+  CALLS.forEach((c) => { c.key = keyOf(c); BYKEY[c.key] = c; });
+}
+async function load() {
+  const [tax, progs, calls] = await Promise.all([getJSON("data/taxonomy.json"), getJSON("data/programmes.json"), getJSON("data/calls.json")]);
+  setData(tax, progs, calls);
+}
+/* New imports are published every few hours. An open page checks every 15 minutes and swaps in the new data
+   (the request is conditional, so an unchanged file costs a 304). */
+async function checkForNewData() {
+  if (document.hidden || !META) return;
+  try {
+    const calls = await getJSON("data/calls.json");
+    if (calls.generated === META.generated) return;
+    const [tax, progs] = await Promise.all([getJSON("data/taxonomy.json"), getJSON("data/programmes.json")]);
+    const typing = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && document.getElementById("app").contains(document.activeElement);
+    setData(tax, progs, calls); CHANGES = null; ID_RE = null;
+    const y = window.scrollY;
+    if (lastRoute === "home" && typing) { renderResults(); renderFilters(); } else route();
+    applyLang(); updateSavedCount(); window.scrollTo(0, y); openSig = sigNow();
+  } catch (err) { /* offline or mid-deploy: try again next time */ }
+}
+setInterval(checkForNewData, 15 * 60 * 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && META && Date.now() - Date.parse(META.generated) > 2.5 * 36e5) checkForNewData(); });
+
+/* ---------- dates ---------- */
+const DAY = 864e5;
+const loc = () => (lang === "sr" ? "sr-Latn-RS" : "en-GB");
+function fmtDate(iso, opts) { if (!iso) return ""; const [y, m, d] = iso.slice(0, 10).split("-").map(Number); return new Intl.DateTimeFormat(loc(), Object.assign({ day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }, opts || {})).format(new Date(Date.UTC(y, m - 1, d))); }
+function todayISO() { const p = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); return p; }
+/* Deadlines. "2026-11-30": EU Portal grant topic, 17:00 Brussels time (the Portal topic page renders every grant
+   deadline that way). "2026-11-30T12:00|Europe/Belgrade": time and zone stated by the organiser. "2026-11-30|~": the
+   organiser states only a date; the call stays open until 23:59 Brussels time and the page says the time is not stated.
+   ingest/deadlines.py and src/core.js read the same forms. A call closes at that instant, not at midnight. */
+const DL_TIME = "17:00", DL_TZ = "Europe/Brussels";
+function tzOffsetMin(utcMs, tz) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(new Date(utcMs));
+  const m = {}; parts.forEach((p) => (m[p.type] = p.value));
+  return (Date.UTC(+m.year, +m.month - 1, +m.day, +m.hour % 24, +m.minute, +m.second) - utcMs) / 6e4;
+}
+const DLPARSE = new Map();
+function dlParse(s) {
+  let v = DLPARSE.get(s); if (v) return v;
+  const m = /^(\d{4}-\d\d-\d\d)(?:T(\d\d:\d\d)\|([A-Za-z_]+\/[A-Za-z_]+)|(\|~))?$/.exec(s) || [];
+  v = m[2] ? { date: m[1], time: m[2], tz: m[3], kind: "time" } : m[4] ? { date: m[1], time: "23:59", tz: DL_TZ, kind: "date" } : { date: m[1] || String(s).slice(0, 10), time: DL_TIME, tz: DL_TZ, kind: "portal" };
+  DLPARSE.set(s, v); return v;
+}
+const DLCACHE = new Map();
+function dlMs(iso) {
+  if (DLCACHE.has(iso)) return DLCACHE.get(iso);
+  const p = dlParse(iso); const [y, mo, d] = p.date.split("-").map(Number); const [h, mi] = p.time.split(":").map(Number);
+  const guess = Date.UTC(y, mo - 1, d, h, mi); let v = guess - tzOffsetMin(guess, p.tz) * 6e4;
+  v = guess - tzOffsetMin(v, p.tz) * 6e4;
+  DLCACHE.set(iso, v); return v;
+}
+const dlDay = (s) => +String(s).slice(8, 10);
+const tzCity = (tz) => tz.split("/").pop().replace(/_/g, " ");
+function shortTime(iso) { const p = dlParse(iso); return p.kind === "date" ? "" : p.time; }
+function cardTime(iso) { const p = dlParse(iso); return p.kind === "portal" ? `${DL_TIME} ${t("brussels")}` : p.kind === "time" ? `${p.time} ${t("tzTime", tzCity(p.tz))}` : t("timeUnknownShort"); }
+function dlPlain(iso) { const p = dlParse(iso); return p.kind === "portal" ? `${p.date} 17:00 Brussels time` : p.kind === "time" ? `${p.date} ${p.time} ${p.tz} time` : `${p.date} (time not stated by the source; treat it as possibly earlier than end of day)`; }
+function timeNoteFor(c) { const n = nextDl(c) || c.deadlines[0]; const k = n ? dlParse(n).kind : "portal"; return t(k === "portal" ? "timeNote" : k === "time" ? "timeNoteOrg" : "timeNoteDate"); }
+const msLeft = (iso) => dlMs(iso) - Date.now();
+function daysUntil(iso) { return Math.max(0, Math.floor(msLeft(iso) / DAY)); }
+function calDays(iso) { const a = Date.parse(todayISO() + "T00:00:00Z"), b = Date.parse(iso.slice(0, 10) + "T00:00:00Z"); return Math.round((b - a) / DAY); }
+function nextDl(c) { const now = Date.now(); return c.deadlines.find((d) => dlMs(d) > now) || null; }
+const isOpen = (c) => !!nextDl(c);
+function leftText(iso) {
+  const ms = msLeft(iso); if (ms <= 0) return t("closedNow");
+  if (ms < DAY) return t("closesIn", Math.floor(ms / 36e5), Math.floor((ms % 36e5) / 6e4));
+  const cd = calDays(iso); if (cd <= 0) return t("closesToday"); if (cd === 1) return t("closesTomorrow");
+  return t("daysLeft", cd);
+}
+const leftSpan = (iso, cls) => `<span class="${cls}" data-dl="${iso}">${esc(leftText(iso))}</span>`;
+function timeText(iso) {
+  const p = dlParse(iso); if (p.kind === "date") return t("timeUnknown");
+  const ms = dlMs(iso); const off = tzOffsetMin(ms, p.tz);
+  let s;
+  if (p.kind === "portal") { const abbr = off === 120 ? "CEST" : off === 60 ? "CET" : ""; s = `${DL_TIME} ${t("brussels")}${abbr ? " (" + abbr + ")" : ""}`; }
+  else s = `${p.time} ${t("tzTime", tzCity(p.tz))}`;
+  const local = -new Date(ms).getTimezoneOffset();
+  if (local !== off) s += " · " + t("yourTime", new Intl.DateTimeFormat(loc(), { hour: "2-digit", minute: "2-digit" }).format(new Date(ms)));
+  return s;
+}
+
+/* ---------- eligibility ---------- */
+const ELCLS = { Y: "yes", P: "partial", N: "no", C: "unknown" };
+function elig(c, cc) { const e = c.eligibility[cc]; if (!e) return { s: "C", note: "" }; return { s: e[0], note: c.reasons[e[1]] || "" }; }
+function stampHTML(c, cc, short) {
+  if (!cc) return `<span class="pick-country">${esc(t("pickCountry"))}</span>`;
+  const e = elig(c, cc);
+  return `<span class="stamp ${ELCLS[e.s]}" title="${esc(e.note)}"><span class="dot" aria-hidden="true"></span>${esc(nm(IDX.countries[cc]))}: ${esc(t((short ? "elShort" : "el") + e.s))}</span>`;
+}
+
+/* ---------- filters ---------- */
+const FACETS = ["status", "applicants", "sectors", "programmes", "funding", "deadline", "types", "partnership"];
+const emptyFilters = () => ({ q: "", country: store.get("country", ""), status: [], applicants: [], sectors: [], programmes: [], funding: [], deadline: [], types: [], partnership: [], elig: ["Y", "P", "C"], sort: "deadline" });
+let F = emptyFilters();
+function bandOf(c) { const v = c.bandValue; if (v == null) return "b0"; const b = TAX.fundingBands.find((b) => b.min != null && v >= b.min && (b.max == null || v <= b.max)); return b ? b.id : "b0"; }
+function bucketOf(c) { const n = nextDl(c); if (!n) return null; const d = daysUntil(n); return d <= 7 ? "week" : d <= 30 ? "month" : d <= 92 ? "quarter" : "later"; }
+function inBucket(c, id) { const b = bucketOf(c); if (!b) return false; const o = ["week", "month", "quarter", "later"]; return id === "later" ? b === "later" : o.indexOf(b) <= o.indexOf(id); }
+const HAY = new Map();
+function hay(c) { if (!HAY.has(c.key)) HAY.set(c.key, norm([c.title, c.id, c.callId, c.callTitle, c.programmeName, (c.keywords || []).join(" "), (c.tags || []).join(" "), c.description, c.cascade ? c.cascade.project + " " + c.cascade.projectName : "", c.sectors.map((s) => IDX.sectors[s] ? IDX.sectors[s].en + " " + IDX.sectors[s].sr : s).join(" ")].join(" "))); return HAY.get(c.key); }
+function match(c, f, skip) {
+  if (!isOpen(c)) return false;
+  if (f.q && !norm(f.q).split(/\s+/).filter(Boolean).every((w) => hay(c).includes(w))) return false;
+  const any = (arr, fn) => arr.length === 0 || arr.some(fn);
+  if (skip !== "status" && !any(f.status, (s) => (c.status || "open") === s)) return false;
+  if (skip !== "applicants" && !any(f.applicants, (s) => c.applicants.includes(s))) return false;
+  if (skip !== "sectors" && !any(f.sectors, (s) => c.sectors.includes(s))) return false;
+  if (skip !== "programmes" && !any(f.programmes, (s) => c.programme === s)) return false;
+  if (skip !== "types" && !any(f.types, (s) => c.type === s)) return false;
+  if (skip !== "partnership" && !any(f.partnership, (s) => c.partnership === s)) return false;
+  if (skip !== "funding" && !any(f.funding, (s) => bandOf(c) === s)) return false;
+  if (skip !== "deadline" && !any(f.deadline, (s) => inBucket(c, s))) return false;
+  if (skip !== "elig" && f.country && !f.elig.includes(elig(c, f.country).s)) return false;
+  return true;
+}
+/* With a country chosen, eligible calls come first, then "eligible with a condition", then "check",
+   then "not eligible"; inside each group the chosen sort applies. The closing-soon strip and the
+   Deadlines page stay in pure deadline order. */
+const ELRANK = { Y: 0, P: 1, C: 2, N: 3 };
+function sortList(list) {
+  const by = F.sort === "funding" ? (a, b) => (b.bandValue || 0) - (a.bandValue || 0) : (a, b) => (nextDl(a) || "9").localeCompare(nextDl(b) || "9");
+  if (!F.country) return list.sort(by);
+  return list.sort((a, b) => ELRANK[elig(a, F.country).s] - ELRANK[elig(b, F.country).s] || by(a, b));
+}
+/* Cards with a small heading where the eligibility group changes (only when a country is chosen). */
+function cardsGrouped(list) {
+  if (!F.country) return list.map(card).join("");
+  let prev = null;
+  return list.map((c) => { const s = elig(c, F.country).s; const head = s !== prev ? `<div class="group-head ${ELCLS[s]}"><span class="dot" aria-hidden="true"></span>${esc(t("el" + s))} <span class="mono">${list.filter((x) => elig(x, F.country).s === s).length}</span></div>` : ""; prev = s; return head + card(c); }).join("");
+}
+function facetCount(facet, id) { const f = Object.assign({}, F, { [facet]: [id] }); return CALLS.filter((c) => match(c, f)).length; }
+
+/* ---------- formatting ---------- */
+function money(n, cur) { if (!cur) return new Intl.NumberFormat(loc(), { maximumFractionDigits: 0 }).format(n) + ` (${t("noCurrency")})`; return new Intl.NumberFormat(loc(), { style: "currency", currency: cur, maximumFractionDigits: 0 }).format(n); }
+function fundingText(c) {
+  const f = c.funding || {};
+  if (f.minPerGrant && f.maxPerGrant && f.minPerGrant !== f.maxPerGrant) return `${money(f.minPerGrant, f.currency)} – ${money(f.maxPerGrant, f.currency)} ${t("perGrant")}`;
+  if (f.maxPerGrant) return `${t("upTo")} ${money(f.maxPerGrant, f.currency)} ${t("perGrant")}`;
+  if (f.topicBudget) return `${t("topicBudget")} ${money(f.topicBudget, f.currency)}${f.expectedGrants ? " " + t("forGrants", f.expectedGrants) : ""}`;
+  if (f.callBudget) return `${t("callBudget")} ${money(f.callBudget, f.currency)}`;
+  return t("notStated");
+}
+function deadlineHTML(c, long) {
+  const n = nextDl(c); if (!n) return "–";
+  const d = daysUntil(n); const later = c.deadlines.filter((x) => x > n).length;
+  return `<span>${esc(fmtDate(n, long ? {} : { month: "short" }))}${(long ? timeText(n) : shortTime(n)) ? ", " + esc(long ? timeText(n) : shortTime(n)) : ""}</span>${leftSpan(n, "left" + (d > 30 ? " calm" : ""))}${later ? `<span class="left calm">${esc(t("moreCutoffs", later))}</span>` : ""}${long ? `<span class="fine">${esc(timeNoteFor(c))}</span>` : ""}`;
+}
+const tagList = (ids, dict, cls, max) => { const s = ids.slice(0, max); const more = ids.length - s.length; return s.map((id) => `<span class="tag ${cls}">${esc(nm(dict[id]) || id)}</span>`).join("") + (more > 0 ? `<span class="tag ${cls}">+${more}</span>` : ""); };
+const isSoon = (c) => c.status === "forthcoming";
+const isNew = (c) => c.firstSeen && Date.now() - Date.parse(c.firstSeen) < 7 * DAY;
+const newBadge = (c) => (isNew(c) ? `<span class="badge new">${esc(t("newBadge"))}</span>` : "");
+const typeBadge = (c) => c.type === "cascade" ? `<span class="badge demo">${esc(t("tCascade"))}</span>` : c.type === "external" ? `<span class="badge s-opening">${esc(t("tExternal"))}</span>` : "";
+const progShort = (c) => (P[c.programme] && P[c.programme].short) || c.programmeName || c.programme;
+
+/* ---------- saved ---------- */
+let SAVED = new Set(store.get("saved2", []));
+function toggleSave(k) { SAVED.has(k) ? SAVED.delete(k) : SAVED.add(k); store.set("saved2", [...SAVED]); updateSavedCount(); document.querySelectorAll(`[data-save="${k}"]`).forEach(setSaveBtn); }
+function setSaveBtn(b) { const on = SAVED.has(b.dataset.save); b.setAttribute("aria-pressed", on); b.textContent = on ? "★ " + t("saved") : "☆ " + t("save"); }
+function updateSavedCount() { const el = document.getElementById("savedCount"); const n = [...SAVED].filter((k) => BYKEY[k] && isOpen(BYKEY[k])).length; el.hidden = n === 0; el.textContent = n; }
+const bindSaves = (root) => root.querySelectorAll("[data-save]").forEach((b) => { setSaveBtn(b); b.addEventListener("click", () => toggleSave(b.dataset.save)); });
+
+/* ---------- card ---------- */
+const ICON = {
+  search: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+  money: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 6.5A7 7 0 1 0 17 17.5"/><path d="M4 10h9M4 14h9"/></svg>',
+  type: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h11l5 5v9H4z"/><path d="M15 5v5h5"/></svg>',
+  people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 0 1 0 6M21 20c0-2.6-1.7-4.9-4-5.7"/></svg>'
+};
+function card(c) {
+  const n = nextDl(c); const d = n ? daysUntil(n) : null; const later = n ? c.deadlines.filter((x) => x > n).length : 0;
+  return `<article class="card">
+    <div class="card-date${d != null && d <= 14 ? " urgent" : ""}">${n ? `<span class="cd-l">${esc(t("applyBy"))}</span><span class="cd-d">${dlDay(n)}</span><span class="cd-m">${esc(fmtDate(n, { day: undefined, month: "short" }))}</span><span class="cd-t">${esc(cardTime(n))}</span>${leftSpan(n, "cd-left")}${later ? `<span class="cd-more">${esc(t("moreCutoffs", later))}</span>` : ""}` : "–"}</div>
+    <div class="card-main">
+      <div class="card-kicker"><a href="#p-${esc(c.programme)}">${esc(progShort(c))}</a><span class="sep" aria-hidden="true"></span><span class="mono">${c.cascade ? esc(t("organiser")) + ": " + esc(c.cascade.project || "") : esc(c.id)}</span>${typeBadge(c)}${newBadge(c)}</div>
+      ${isSoon(c) ? `<div class="cc-soon">${esc(c.opens ? t("opensOn", fmtDate(c.opens, { year: undefined, month: "short" })) : t("stSoon"))}</div>` : ""}
+      <h3><a href="#c-${c.key}">${esc(c.title)}</a></h3>
+      ${(c.cascade ? c.cascade.projectName : c.callTitle) && (c.cascade ? c.cascade.projectName : c.callTitle) !== c.title ? `<div class="body">${esc(c.cascade ? c.cascade.projectName : c.callTitle)}</div>` : ""}
+      <ul class="meta-line">
+        <li title="${esc(t("funding"))}">${ICON.money}<span>${esc(fundingText(c))}</span></li>
+        <li title="${esc(t("type"))}">${ICON.type}<span>${esc(nm(IDX.types[c.type]))}</span></li>
+        <li title="${esc(t("partnership"))}">${ICON.people}<span>${esc(nm(IDX.partnership[c.partnership]))}</span></li>
+      </ul>
+      <div class="tags">${tagList(c.sectors, IDX.sectors, "", 4)}${tagList(c.applicants, IDX.applicants, "app", 3)}</div>
+    </div>
+    <div class="card-side">
+      <div class="elig-row">${stampHTML(c, F.country)}</div>
+      <div class="card-actions"><a class="btn ext" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(t("official"))} <span class="arr" aria-hidden="true">↗</span></a><div class="row"><a class="btn ghost" href="#c-${c.key}">${esc(t("details"))}</a><button type="button" class="savebtn" data-save="${c.key}"></button></div></div>
+    </div>
+  </article>`;
+}
+
+/* ---------- hero: field of dotted wave lines (canvas). Slow, pauses when hidden, still under reduced motion ---------- */
+const Wave = (() => {
+  let cv = null, ctx = null, raf = 0, io = null, ro = null, visible = true, W = 0, H = 0, dpr = 1, cA = "117,101,148", cB = "208,108,204", cC = "110,156,96", boost = 1, last = 0, t0 = 0;
+  const still = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function colours() { const cs = getComputedStyle(document.documentElement); cA = cs.getPropertyValue("--wave-a").trim() || cA; cB = cs.getPropertyValue("--wave-b").trim() || cB; cC = cs.getPropertyValue("--wave-c").trim() || cC; boost = parseFloat(cs.getPropertyValue("--wave-alpha")) || 1; }
+  function size() { if (!cv) return; const r = cv.getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1); W = r.width; H = r.height; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); draw(t0); }
+  const smooth = (a, b, x) => { const k = Math.min(1, Math.max(0, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
+  function draw(t) {
+    if (!ctx || !W) return;
+    ctx.clearRect(0, 0, W, H);
+    const narrow = W < 720, lines = narrow ? 14 : 22, gap = narrow ? 8 : 9, dot = 2;
+    const top = narrow ? H * 0.55 : H * 0.18, span = H - top + 20;
+    for (let i = 0; i < lines; i++) {
+      const peach = i % 6 === 3, third = i % 7 === 5;
+      ctx.fillStyle = `rgb(${peach ? cB : third ? cC : cA})`;
+      const base = top + (i / (lines - 1)) * span;
+      const amp = 14 + 26 * Math.sin(i * 0.37 + 1.1) ** 2;
+      for (let x = -gap; x < W + gap; x += gap) {
+        const u = x / W;
+        const y = base + amp * Math.sin(u * 5.2 + t * 0.00022 + i * 0.28) + 9 * Math.sin(u * 11.0 - t * 0.00013 + i * 0.55);
+        const fade = narrow ? 0.4 : 0.1 + 0.75 * smooth(0.15, 0.85, u);
+        const depth = 0.55 + 0.45 * (i / lines);
+        ctx.globalAlpha = Math.min(1, (peach || third ? 1 : 0.8) * fade * depth * boost);
+        ctx.fillRect(x, y, dot, dot);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  function loop(ts) {
+    raf = 0;
+    if (!cv || !cv.isConnected) return stop();
+    if (ts - last > 33) { t0 = ts; draw(ts); last = ts; }
+    if (visible && !document.hidden && !still()) raf = requestAnimationFrame(loop);
+  }
+  function play() { if (!raf && cv && visible && !document.hidden && !still()) raf = requestAnimationFrame(loop); }
+  function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; if (io) io.disconnect(); if (ro) ro.disconnect(); io = ro = null; }
+  function mount(el) {
+    stop(); cv = el; if (!cv || !cv.getContext) return; ctx = cv.getContext("2d"); colours();
+    if ("ResizeObserver" in window) { ro = new ResizeObserver(size); ro.observe(cv); } size();
+    if ("IntersectionObserver" in window) { io = new IntersectionObserver((es) => { visible = es[0].isIntersecting; visible ? play() : (raf && cancelAnimationFrame(raf), raf = 0); }); io.observe(cv); }
+    play();
+  }
+  document.addEventListener("visibilitychange", () => (document.hidden ? (raf && cancelAnimationFrame(raf), raf = 0) : play()));
+  if (window.matchMedia) {
+    matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => { colours(); draw(t0); });
+    matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change", () => { draw(t0); play(); });
+  }
+  return { mount, refresh: () => { colours(); draw(t0); } };
+})();
+
+/* ---------- home ---------- */
+function groupMatch(groups, key, sel) { const g = groups.find((g) => g[key].length === sel.length && g[key].every((x) => sel.includes(x))); return g ? g.id : ""; }
+function countryOptions(sel, withAny) {
+  const labels = TAX.countryGroupLabels; const order = ["WB6", "EU27", "EEA-EFTA", "EAST", "OTHER"];
+  return (withAny ? `<option value="">${esc(t("anyCountry"))}</option>` : "") + order.map((g) => `<optgroup label="${esc(labels[g][lang === "sr" ? 1 : 0])}">${TAX.countries.filter((c) => c.group === g).sort((a, b) => nm(a).localeCompare(nm(b))).map((c) => `<option value="${c.id}"${c.id === sel ? " selected" : ""}>${esc(nm(c))}</option>`).join("")}</optgroup>`).join("");
+}
+function renderHome() {
+  const app = document.getElementById("app");
+  const ag = groupMatch(TAX.applicantGroups, "applicants", F.applicants), sg = groupMatch(TAX.sectorGroups, "sectors", F.sectors);
+  const soon = CALLS.filter((c) => isOpen(c) && daysUntil(nextDl(c)) <= 14).sort((a, b) => nextDl(a).localeCompare(nextDl(b))).slice(0, 12);
+  app.innerHTML = `
+  <section class="hero"><canvas class="wave" aria-hidden="true"></canvas><div class="wrap">
+    <h1>${esc(t("heroTitleA"))} <span class="h1-accent">${esc(t("heroTitleB"))}</span></h1><p class="lede">${esc(t("heroLede"))}</p>
+    <form class="builder" id="builder" role="search">
+      <div class="searchrow"><span class="sicon" aria-hidden="true">${ICON.search}</span><label class="vh" for="q">${esc(t("searchPh"))}</label><input id="q" type="search" placeholder="${esc(t("searchPh"))}" value="${esc(F.q)}" autocomplete="off"><button class="btn big" type="submit">${esc(t("search"))}</button></div>
+      <div class="profile-row">
+        <label class="pick${F.country ? " set" : ""}" for="bCountry"><span class="pl">${esc(t("plCountry"))}</span><select id="bCountry">${countryOptions(F.country, true)}</select></label>
+        <label class="pick${ag ? " set" : ""}" for="bApp"><span class="pl">${esc(t("plApp"))}</span><select id="bApp"><option value="">${esc(t("anyone"))}</option>${TAX.applicantGroups.map((g) => `<option value="${g.id}"${g.id === ag ? " selected" : ""}>${esc(nm(g))}</option>`).join("")}</select></label>
+        <label class="pick${sg ? " set" : ""}" for="bSector"><span class="pl">${esc(t("plSector"))}</span><select id="bSector"><option value="">${esc(t("anything"))}</option>${TAX.sectorGroups.map((g) => `<option value="${g.id}"${g.id === sg ? " selected" : ""}>${esc(nm(g))}</option>`).join("")}</select></label>
+      </div>
+    </form>
+    <button type="button" class="hero-ask" data-chat-open><span aria-hidden="true">✦</span> <span data-ci18n="heroAsk">${esc(ct("heroAsk"))}</span></button>
+  </div></section>
+  ${soon.length ? `<section class="soon wrap"><div class="soon-head"><h2>${esc(t("closingSoon"))}</h2><a href="#deadlines">${esc(t("seeAll"))}</a></div>
+    <div class="soon-list">${soon.map((c) => { const n = nextDl(c); return `<a class="soon-item" href="#c-${c.key}"><div class="dateblock"><div class="d">${dlDay(n)}</div><div class="m">${esc(fmtDate(n, { month: "short", day: undefined, year: undefined }))}</div></div><div style="min-width:0"><div class="t">${esc(c.title)}</div><div class="p">${esc(progShort(c))} · ${leftSpan(n, "")}${F.country ? " · " + esc(nm(IDX.countries[F.country])) + ": " + esc(t("elShort" + elig(c, F.country).s)) : ""}</div></div></a>`; }).join("")}</div></section>` : ""}
+  <div class="wrap results-wrap" id="results"><aside class="filters" id="filters" aria-label="${esc(t("filters"))}"></aside><div id="resultsCol" style="min-width:0"></div></div>`;
+  const apply = () => refresh();
+  document.getElementById("builder").addEventListener("submit", (e) => { e.preventDefault(); F.q = document.getElementById("q").value.trim(); apply(); document.getElementById("results").scrollIntoView(); });
+  document.getElementById("q").addEventListener("input", (e) => { F.q = e.target.value.trim(); apply(); });
+  document.getElementById("bCountry").addEventListener("change", (e) => { F.country = e.target.value; store.set("country", F.country); renderHome(); });
+  document.getElementById("bApp").addEventListener("change", (e) => { const g = IDX.applicantGroups[e.target.value]; F.applicants = g ? g.applicants.slice() : []; apply(); });
+  document.getElementById("bSector").addEventListener("change", (e) => { const g = IDX.sectorGroups[e.target.value]; F.sectors = g ? g.sectors.slice() : []; apply(); });
+  renderFilters(); renderResults();
+  Wave.mount(app.querySelector("canvas.wave"));
+  updateAge();
+}
+function syncBuilder() {
+  const a = document.getElementById("bApp"); if (!a) return;
+  a.value = groupMatch(TAX.applicantGroups, "applicants", F.applicants);
+  document.getElementById("bSector").value = groupMatch(TAX.sectorGroups, "sectors", F.sectors);
+  ["bCountry", "bApp", "bSector"].forEach((id) => { const el = document.getElementById(id); if (el && el.parentElement.classList.contains("pick")) el.parentElement.classList.toggle("set", !!el.value); });
+}
+function facetDef() {
+  const used = (list, key) => list.filter((x) => CALLS.some((c) => (Array.isArray(c[key]) ? c[key].includes(x.id) : c[key] === x.id)));
+  return [
+    ...(CALLS.some(isSoon) ? [{ key: "status", title: t("fStatus"), items: [{ id: "open", label: t("stOpenNow") }, { id: "forthcoming", label: t("stSoon") }], limit: 5, open: true }] : []),
+    { key: "applicants", title: t("fApplicant"), items: used(TAX.applicants, "applicants").map((x) => ({ id: x.id, label: nm(x) })), limit: 9, open: true, note: t("derived") },
+    { key: "sectors", title: t("fSector"), items: used(TAX.sectors, "sectors").map((x) => ({ id: x.id, label: nm(x) })), limit: 8, open: true, note: t("derived") },
+    { key: "programmes", title: t("fProgramme"), items: PROGS.filter((p) => CALLS.some((c) => c.programme === p.id)).map((p) => ({ id: p.id, label: p.short })), limit: 30 },
+    { key: "deadline", title: t("fDeadline"), items: TAX.deadlineBuckets.map((x) => ({ id: x.id, label: nm(x) })), limit: 10 },
+    { key: "funding", title: t("fFunding"), items: TAX.fundingBands.map((x) => ({ id: x.id, label: nm(x) })), limit: 10 },
+    { key: "types", title: t("fType"), items: TAX.types.map((x) => ({ id: x.id, label: nm(x) })), limit: 10 },
+    { key: "partnership", title: t("fPartner"), items: TAX.partnership.map((x) => ({ id: x.id, label: nm(x) })), limit: 10 }
+  ];
+}
+const openState = {}; const expanded = {};
+function renderFilters() {
+  const el = document.getElementById("filters"); if (!el) return;
+  const countryBlock = `<details class="facet" open><summary>${esc(t("fCountry"))}${F.country ? `<span class="n">1</span>` : ""}</summary><div class="opts" style="margin-top:8px"><label class="vh" for="fCountrySel">${esc(t("fCountry"))}</label><select id="fCountrySel" class="toolbar-sel" style="padding:10px 14px;border:1px solid var(--line);border-radius:var(--r);background-color:var(--bg);width:100%">${countryOptions(F.country, true)}</select></div></details>`;
+  const html = facetDef().map((fd) => {
+    const sel = F[fd.key]; const isOpen = openState[fd.key] ?? (fd.open || sel.length > 0);
+    const items = fd.items.map((it) => ({ ...it, c: facetCount(fd.key, it.id) }));
+    const visible = expanded[fd.key] ? items : items.filter((it, i) => i < fd.limit || sel.includes(it.id));
+    const opts = visible.map((it) => { const id = `f-${fd.key}-${it.id}`; return `<label class="opt${it.c === 0 && !sel.includes(it.id) ? " zero" : ""}" for="${id}"><input type="checkbox" id="${id}" data-facet="${fd.key}" value="${it.id}"${sel.includes(it.id) ? " checked" : ""}><span>${esc(it.label)}</span><span class="c">${it.c}</span></label>`; }).join("");
+    const more = items.length > fd.limit ? `<button type="button" class="linkbtn" data-more="${fd.key}">${esc(expanded[fd.key] ? t("showLess") : t("showMore") + ` (${items.length})`)}</button>` : "";
+    return `<details class="facet" data-key="${fd.key}"${isOpen ? " open" : ""}><summary>${esc(fd.title)}${fd.note ? ` <span class="fine">(${esc(fd.note)})</span>` : ""}${sel.length ? `<span class="n">${sel.length}</span>` : ""}</summary><div class="opts">${opts}</div>${more}</details>`;
+  }).join("");
+  el.innerHTML = `<div class="filters-head"><h2>${esc(t("filters"))}</h2>${activeCount() ? `<button type="button" class="linkbtn" id="clearAll">${esc(t("clearAll"))}</button>` : ""}</div>${countryBlock}${html}
+    <div class="filters-close"><button type="button" class="btn quiet" id="fClear">${esc(t("clearAll"))}</button><button type="button" class="btn" id="fDone">${esc(t("showResults"))}</button></div>`;
+  el.querySelector("#fCountrySel").addEventListener("change", (e) => { F.country = e.target.value; store.set("country", F.country); const b = document.getElementById("bCountry"); if (b) b.value = F.country; refresh(); });
+  el.querySelectorAll("input[data-facet]").forEach((cb) => cb.addEventListener("change", () => { const arr = F[cb.dataset.facet]; const i = arr.indexOf(cb.value); cb.checked ? i < 0 && arr.push(cb.value) : i >= 0 && arr.splice(i, 1); refresh(); }));
+  el.querySelectorAll("details.facet[data-key]").forEach((d) => d.addEventListener("toggle", () => (openState[d.dataset.key] = d.open)));
+  el.querySelectorAll("[data-more]").forEach((b) => b.addEventListener("click", () => { expanded[b.dataset.more] = !expanded[b.dataset.more]; renderFilters(); }));
+  const clear = () => { const s = F.sort, c = F.country; F = emptyFilters(); F.sort = s; F.country = c; const q = document.getElementById("q"); if (q) q.value = ""; refresh(); };
+  const ca = el.querySelector("#clearAll"); if (ca) ca.addEventListener("click", clear);
+  el.querySelector("#fClear").addEventListener("click", clear);
+  el.querySelector("#fDone").addEventListener("click", () => { el.classList.remove("open"); document.getElementById("resultsCol").scrollIntoView(); });
+}
+function refresh() { const f = document.getElementById("filters"); const sc = f ? f.scrollTop : 0; renderFilters(); if (f) document.getElementById("filters").scrollTop = sc; renderResults(); syncBuilder(); }
+function activeCount() { return FACETS.reduce((n, k) => n + F[k].length, 0) + (F.q ? 1 : 0); }
+function labelFor(k, id) { if (k === "status") return t(id === "open" ? "stOpenNow" : "stSoon"); const m = { sectors: IDX.sectors, applicants: IDX.applicants, funding: IDX.fundingBands, deadline: IDX.deadlineBuckets, types: IDX.types, partnership: IDX.partnership }; return k === "programmes" ? (P[id] ? P[id].short : id) : nm(m[k][id]); }
+function renderResults() {
+  const col = document.getElementById("resultsCol"); if (!col) return;
+  const list = sortList(CALLS.filter((c) => match(c, F)));
+  const grp = { sectors: groupMatch(TAX.sectorGroups, "sectors", F.sectors), applicants: groupMatch(TAX.applicantGroups, "applicants", F.applicants) };
+  const chips = FACETS.flatMap((k) => grp[k] ? [`<button type="button" class="af" data-rm="${k}:*">${esc(nm((k === "sectors" ? IDX.sectorGroups : IDX.applicantGroups)[grp[k]]))}</button>`] : F[k].map((id) => `<button type="button" class="af" data-rm="${k}:${id}">${esc(labelFor(k, id))}</button>`));
+  if (F.q) chips.unshift(`<button type="button" class="af" data-rm="q:">“${esc(F.q)}”</button>`);
+  const eTabs = F.country ? ["Y", "P", "C", "N"].map((s) => `<button type="button" data-el="${s}" aria-pressed="${F.elig.includes(s)}">${esc(t("elShort" + s))} <span class="mono">${CALLS.filter((c) => match(c, Object.assign({}, F, { elig: [s] }))).length}</span></button>`).join("") : "";
+  col.innerHTML = `
+    <div class="toolbar"><div><h2>${esc(t(CALLS.some(isSoon) ? "resultsAll" : "results"))} <span class="cnt">${list.length}</span></h2><div class="meta" aria-live="polite">${esc(t("nResults", list.length))}${F.country ? " · " + esc(nm(IDX.countries[F.country])) : ""}</div></div>
+      <div class="toolbar-right"><button type="button" class="btn quiet mobile-filter-btn" id="openFilters">${esc(t("filters"))}${activeCount() ? ` (${activeCount()})` : ""}</button>
+      <label class="vh" for="sort">${esc(t("sortLabel"))}</label><select id="sort"><option value="deadline">${esc(t("sortDeadline"))}</option><option value="funding">${esc(t("sortFunding"))}</option></select></div></div>
+    ${eTabs ? `<div class="elig-tabs" role="group" aria-label="Eligibility">${eTabs}</div>` : ""}
+    ${chips.length ? `<div class="active-filters">${chips.join("")}</div>` : ""}
+    <div class="cards">${list.length ? cardsGrouped(list) : `<div class="empty"><h3>${esc(t("noResults"))}</h3><p>${esc(t("noResultsHint"))}</p></div>`}</div>`;
+  col.querySelector("#sort").value = F.sort;
+  col.querySelector("#sort").addEventListener("change", (e) => { F.sort = e.target.value; renderResults(); });
+  col.querySelectorAll("[data-el]").forEach((b) => b.addEventListener("click", () => { const s = b.dataset.el; const i = F.elig.indexOf(s); if (i >= 0) { if (F.elig.length > 1) F.elig.splice(i, 1); } else F.elig.push(s); refresh(); }));
+  col.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => { const [k, id] = b.dataset.rm.split(":"); if (k === "q") { F.q = ""; const q = document.getElementById("q"); if (q) q.value = ""; } else F[k] = id === "*" ? [] : F[k].filter((x) => x !== id); refresh(); }));
+  col.querySelector("#openFilters").addEventListener("click", () => document.getElementById("filters").classList.add("open"));
+  bindSaves(col);
+}
+function renderBrowse() {
+  const el = document.getElementById("browse"); const open = CALLS.filter(isOpen);
+  el.innerHTML = `<section><h2>${esc(lang === "sr" ? "Po oblasti" : "Browse by sector")}</h2><div class="tiles">${TAX.sectorGroups.map((g) => `<button type="button" class="tile" data-bs="${g.id}"><span>${esc(nm(g))}</span><span class="c">${open.filter((c) => c.sectors.some((s) => g.sectors.includes(s))).length}</span></button>`).join("")}</div></section>
+    <section><h2>${esc(t("navProgrammes"))}</h2><div class="tiles">${PROGS.filter((p) => p.openCalls).map((p) => `<a class="tile" href="#p-${p.id}"><span>${esc(p.short)}</span><span class="c">${open.filter((c) => c.programme === p.id).length}</span></a>`).join("")}</div></section>`;
+  el.querySelectorAll("[data-bs]").forEach((b) => b.addEventListener("click", () => { F.sectors = IDX.sectorGroups[b.dataset.bs].sectors.slice(); refresh(); document.getElementById("results").scrollIntoView(); }));
+}
+
+/* ---------- detail ---------- */
+function countryGroupsHTML(getStatus) {
+  const groups = { Y: [], P: [], C: [], N: [] };
+  TAX.countries.forEach((c) => { const e = getStatus(c.id); groups[e.s].push({ c, note: e.note }); });
+  return `<div class="country-groups">${["Y", "P", "C", "N"].filter((s) => groups[s].length).map((s) => {
+    const items = groups[s].sort((a, b) => nm(a.c).localeCompare(nm(b.c)));
+    const withNotes = s === "P" || s === "N";
+    return `<div><div class="lbl ${ELCLS[s]}"><span class="stamp ${ELCLS[s]}" style="padding:0 6px"><span class="dot"></span>${esc(t("el" + s))}</span> ${items.length}</div>${withNotes ? `<ul style="margin:0;padding-left:18px">${items.map((x) => `<li><b>${esc(nm(x.c))}</b>${x.note ? ": " + esc(x.note) : ""}</li>`).join("")}</ul>` : `<div style="font-size:14px">${items.map((x) => esc(nm(x.c))).join(", ")}</div>`}</div>`;
+  }).join("")}</div>`;
+}
+function renderDetail(key) {
+  const c = BYKEY[key]; const app = document.getElementById("app");
+  if (!c) { app.innerHTML = `<div class="wrap page"><h1>Not found</h1><p><a href="#">${esc(t("back"))}</a></p></div>`; return; }
+  const p = P[c.programme] || {}; const cc = F.country;
+  const e = cc ? elig(c, cc) : null;
+  const src = e && e.s === "C" ? esc(t(c.kind === "1" ? "srcNone" : "srcNoneX")) : c.ruleSource === "source" ? esc(c.source) : c.ruleSource === "call" ? esc(t("srcCall")) : c.ruleSource === "programme-list" && p.list ? `${esc(t("srcList"))}: <a href="${esc(p.list.url)}" target="_blank" rel="noopener">${esc(p.name)}, ${esc(p.list.version)}</a>` : esc(t("srcNone"));
+  const f = c.funding || {}; const td = todayISO();
+  app.innerHTML = `<div class="wrap">
+    <a class="back" href="#" data-back>← ${esc(t("back"))}</a>
+    <div class="detail">
+      <article style="min-width:0">
+        <div class="card-top"><div class="card-ref mono">${esc(c.id)} · <a href="#p-${esc(c.programme)}">${esc(c.programmeName)}</a></div><div class="badges">${typeBadge(c)}${isSoon(c) ? `<span class="badge soon">${esc(c.opens ? t("opensOn", fmtDate(c.opens)) : t("stSoon"))}</span>` : `<span class="badge s-active">${esc(t("stOpenNow"))}</span>`}</div></div>
+        <h1>${esc(c.title)}</h1>
+        <div class="fine">${esc(c.cascade ? t("organiser") + ": " + c.cascade.project + " (" + c.cascade.projectName + ")" : c.callTitle)}</div>
+        <div class="answer ${e ? ELCLS[e.s] : "unknown"}">
+          <div class="q">${esc(t("canApply"))} <select id="dCountry" class="inline-country" aria-label="${esc(t("fCountry"))}">${countryOptions(cc, true)}</select> ${esc(t("canApply2"))}</div>
+          ${e ? `<div class="a">${esc(t("el" + e.s))}</div>${e.note ? `<div class="why">${esc(e.note)}</div>` : ""}<div class="src">${esc(t("sourceLbl"))}: ${src}</div>` : `<div class="why">${esc(t("pickCountry"))}</div>`}
+        </div>
+        ${c.notes.length ? `<section><h2>${esc(t("notes"))}</h2><ul class="notes">${c.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></section>` : ""}
+        <section><h2>${esc(t("keyFacts"))}</h2><dl class="kv" style="grid-template-columns:150px minmax(0,1fr)">
+          <dt>${esc(c.kind === "1" ? t("topicId") : t("refLbl"))}</dt><dd class="mono">${esc(c.id)}</dd>
+          ${c.callId ? `<dt>${esc(t("callLbl"))}</dt><dd><span class="mono">${esc(c.callId)}</span>${c.callTitle ? " · " + esc(c.callTitle) : ""}</dd>` : ""}
+          <dt>${esc(t("programme"))}</dt><dd>${esc(c.programmeName)}${c.division.length ? " · " + esc(c.division.join(", ")) : ""}</dd>
+          ${c.typesOfAction.length ? `<dt>${esc(t("toa"))}</dt><dd>${esc(c.typesOfAction.join("; "))}</dd>` : ""}
+          ${c.place ? `<dt>Place of action</dt><dd>${esc(c.place.join(", "))}</dd>` : ""}
+          ${c.opens ? `<dt>${esc(t("opens"))}</dt><dd>${esc(fmtDate(c.opens))}</dd>` : ""}
+          ${c.deadlineModel ? `<dt>${esc(t("model"))}</dt><dd>${esc(c.deadlineModel)}</dd>` : ""}
+          <dt>${esc(t("deadlinesH"))}</dt><dd><ul class="deadline-list">${c.deadlines.map((d) => `<li class="${msLeft(d) <= 0 ? "past" : d === nextDl(c) ? "next" : ""}">${esc(fmtDate(d))}, ${esc(timeText(d))}${d === nextDl(c) ? " · " + leftSpan(d, "") : ""}</li>`).join("")}</ul><span class="fine">${esc(timeNoteFor(c))}</span></dd>
+          <dt>${esc(t("partnership"))}</dt><dd>${esc(nm(IDX.partnership[c.partnership]))}${c.partnershipNote ? `<div class="fine">${esc(c.partnershipNote)}</div>` : ""}</dd>
+        </dl></section>
+        <section><h2>${esc(t("fundingH"))}</h2><dl class="kv" style="grid-template-columns:150px minmax(0,1fr)">
+          ${f.topicBudget ? `<dt>${esc(t("topicBudget"))}</dt><dd>${esc(money(f.topicBudget, f.currency))}</dd>` : ""}
+          ${f.expectedGrants ? `<dt>${esc(t("expected"))}</dt><dd>${esc(f.expectedGrants)}</dd>` : ""}
+          ${f.minPerGrant || f.maxPerGrant ? `<dt>${esc(t("minMax"))}</dt><dd>${esc([f.minPerGrant, f.maxPerGrant].filter(Boolean).map((v) => money(v, f.currency)).join(" – "))}</dd>` : ""}
+          ${f.callBudget ? `<dt>${esc(t("callBudget"))}</dt><dd>${esc(money(f.callBudget, f.currency))}</dd>` : ""}
+          ${!f.topicBudget && !f.callBudget ? `<dt>${esc(t("funding"))}</dt><dd>${esc(t("notStated"))}</dd>` : ""}
+        </dl></section>
+        ${c.conditions ? `<section><h2>${esc(t("conditionsH"))}</h2><div class="official-text">${esc(c.conditions)}</div>${c.conditionsTruncated ? `<p class="fine">${esc(t("excerpt"))}</p>` : ""}</section>` : ""}
+        ${c.description ? `<section><h2>${esc(t("descriptionH"))}</h2><div class="official-text">${esc(c.description)}</div>${c.descriptionTruncated || c.cascade ? `<p class="fine">${esc(t("excerpt"))}</p>` : ""}</section>` : ""}
+        ${c.cascade && c.cascade.info ? `<section><h2>${esc(t("organiser"))}</h2><div class="official-text">${esc(c.cascade.info)}</div><p class="fine">${esc(t("parentTopic"))}: ${esc(c.cascade.project)} · ${esc(c.cascade.topic)}</p></section>` : ""}
+        <section><h2>${esc(t("eligAll"))}</h2>${countryGroupsHTML((id) => elig(c, id))}</section>
+        <section><h2>${esc(t("sectors"))}</h2><div class="tags">${tagList(c.sectors, IDX.sectors, "", 99)}${tagList(c.applicants, IDX.applicants, "app", 99)}</div><p class="fine">${esc(t("classified"))} ${esc(c.applicantNote)}</p></section>
+      </article>
+      <div class="side">
+        <div class="panel official">
+          <a class="btn big" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(t("official"))} ↗</a>
+          <div class="fine mono" style="overflow-wrap:anywhere">${esc(c.url)}</div>
+          <button type="button" class="savebtn" data-save="${c.key}"></button>
+          <p class="fine">${esc(t("foot"))}</p>
+        </div>
+        <div class="panel"><h2>${esc(t("sourceLbl"))}</h2><dl class="kv">
+          <dt>${esc(t("sourceLbl"))}</dt><dd>${esc(c.source)}</dd>
+          <dt>${esc(t("importedAt"))}</dt><dd>${esc(fmtDate(c.lastVerified))}</dd>
+          <dt>${esc(t("verif"))}</dt><dd class="fine">${esc(c.kind === "1" ? t("verifList") : t("verifX", c.urlCheck || ""))}</dd></dl></div>
+      </div>
+    </div></div>`;
+  app.querySelector("[data-back]").addEventListener("click", (ev) => { ev.preventDefault(); if (history.length > 1 && lastRoute === "home") history.back(); else location.hash = ""; });
+  app.querySelector("#dCountry").addEventListener("change", (ev) => { F.country = ev.target.value; store.set("country", F.country); renderDetail(key); });
+  bindSaves(app);
+}
+I18N.en.sectors = "Sectors and applicant types"; I18N.sr.sectors = "Oblasti i tipovi podnosilaca";
+
+/* ---------- programmes ---------- */
+function renderProgrammes() {
+  const app = document.getElementById("app");
+  const open = (p) => CALLS.filter((c) => c.programme === p.id && isOpen(c)).length;
+  app.innerHTML = `<div class="wrap page"><h1>${esc(t("progTitle"))}</h1><p class="lede">${esc(t("progLede"))}</p>
+    <div class="prog-table-wrap"><table class="progs"><thead><tr><th>${esc(t("colProgramme"))}</th><th>${esc(t("colList"))}</th>${F.country ? `<th>${esc(nm(IDX.countries[F.country]))}</th>` : ""}<th>${esc(t("colOpen"))}</th></tr></thead><tbody>
+    ${PROGS.map((p) => `<tr><td><a class="pname" href="#p-${p.id}">${esc(p.name)}</a>${p.summary ? `<div class="fine">${esc(p.summary)}</div>` : ""}</td>
+      <td>${p.list ? `<a href="${esc(p.list.url)}" target="_blank" rel="noopener" class="fine">${esc(p.list.version)}</a>` : `<span class="fine">${esc(t("noList"))}</span>`}</td>
+      ${F.country ? `<td>${p.countries ? (() => { const [s, n] = p.countries[F.country]; return `<span class="stamp ${ELCLS[s]}" title="${esc(n)}" style="font-size:12px"><span class="dot"></span>${esc(t("elShort" + s))}</span>`; })() : `<span class="stamp unknown" style="font-size:12px"><span class="dot"></span>${esc(t("elShortC"))}</span>`}</td>` : ""}
+      <td class="num">${open(p)}</td></tr>`).join("")}
+    </tbody></table></div></div>`;
+}
+function renderProgramme(id) {
+  const p = P[id]; const app = document.getElementById("app");
+  if (!p) { app.innerHTML = `<div class="wrap page"><h1>Not found</h1></div>`; return; }
+  const calls = sortList(CALLS.filter((c) => c.programme === id && isOpen(c)));
+  app.innerHTML = `<div class="wrap page"><a class="back" href="#programmes" style="margin-top:0">← ${esc(t("navProgrammes"))}</a>
+    <h1>${esc(p.name)}</h1>${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ""}
+    <div class="prog-grid"><div style="min-width:0">
+      <section><h2>${esc(t("participation"))}</h2>${p.countries ? countryGroupsHTML((cc) => ({ s: p.countries[cc][0], note: p.countries[cc][1] })) : `<p>${esc(p.note)}</p>`}
+        ${p.note && p.countries ? `<p class="fine">${esc(p.note)}</p>` : ""}</section>
+      <section><h2>${esc(t("openCalls"))} (${calls.length})</h2><div class="cards">${cardsGrouped(calls) || "–"}</div></section>
+    </div>
+    <div class="side">${p.list ? `<div class="panel"><h2>${esc(t("colList"))}</h2><p class="fine">${esc(p.list.version)} · checked ${esc(fmtDate(p.list.checked))}</p><a class="btn" href="${esc(p.list.url)}" target="_blank" rel="noopener">PDF ↗</a></div>` : ""}</div>
+    </div></div>`;
+  bindSaves(app);
+}
+
+/* ---------- deadlines / saved / about ---------- */
+let dlWindow = "all";
+function renderDeadlines() {
+  const app = document.getElementById("app");
+  const lim = { d7: 7, d14: 14, d30: 30, all: Infinity }[dlWindow];
+  const list = CALLS.filter((c) => isOpen(c) && daysUntil(nextDl(c)) <= lim && (!F.country || F.elig.includes(elig(c, F.country).s))).sort((a, b) => nextDl(a).localeCompare(nextDl(b)));
+  const months = {}; list.forEach((c) => { const k = nextDl(c).slice(0, 7); (months[k] = months[k] || []).push(c); });
+  app.innerHTML = `<div class="wrap page"><h1>${esc(t("dlTitle"))}</h1><p class="lede">${esc(t("dlLede"))}</p>
+    <div class="seg" role="group">${[["d7", "dl7"], ["d14", "dl14"], ["d30", "dl30"], ["all", "dlAll"]].map(([k, l]) => `<button type="button" data-w="${k}" aria-pressed="${dlWindow === k}">${esc(t(l))}</button>`).join("")}</div>
+    <div class="agenda">${Object.keys(months).length ? Object.entries(months).map(([k, arr]) => `<section><h2>${esc(fmtDate(k + "-01", { day: undefined }))}</h2><div class="agenda-list">${arr.map((c) => { const n = nextDl(c); return `<a class="agenda-item" href="#c-${c.key}"><div class="dateblock"><div class="d"${daysUntil(n) > 14 ? ' style="color:var(--ink)"' : ""}>${dlDay(n)}</div><div class="m">${esc(fmtDate(n, { month: "short", day: undefined, year: undefined }))}</div></div><div style="min-width:0"><div class="t">${esc(c.title)}</div><div class="p">${esc(progShort(c))} · ${esc(c.id)} · ${shortTime(n) ? esc(shortTime(n)) + " · " : ""}${leftSpan(n, "")}</div></div>${F.country ? stampHTML(c, F.country, true) : ""}</a>`; }).join("")}</div></section>`).join("") : `<p class="empty">${esc(t("noneInWindow"))}</p>`}</div>
+    <p class="fine" style="margin-top:20px">${esc(t("remindersNote"))}</p></div>`;
+  app.querySelectorAll("[data-w]").forEach((b) => b.addEventListener("click", () => { dlWindow = b.dataset.w; renderDeadlines(); }));
+}
+async function renderUpdates() {
+  const app = document.getElementById("app");
+  const when = (iso) => new Intl.DateTimeFormat(loc(), { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+  if (!CHANGES) { app.innerHTML = `<div class="wrap page"><h1>${esc(t("updTitle"))}</h1><p class="loading">…</p></div>`; try { CHANGES = await getJSON("data/changes.json"); } catch (err) { CHANGES = { events: [] }; } if (lastRoute !== "updates") return; }
+  const ev = CHANGES.events || [];
+  const groups = []; ev.forEach((e) => { const g = groups[groups.length - 1]; if (g && g.at === e.at) g.items.push(e); else groups.push({ at: e.at, items: [e] }); });
+  const link = (e) => { const c = CALLS.find((x) => x.id === e.id); return c && isOpen(c) ? `<a href="#c-${c.key}">${esc(e.title)}</a>` : esc(e.title); };
+  const detail = (e) => {
+    if (e.kind === "new") return `${esc(t("updNext"))}: ${esc(fmtDate(e.nextDeadline))}, ${esc(cardTime(e.nextDeadline))}`;
+    if (e.kind === "closed") return esc(e.reason === "deadline passed" ? t("updPassed") : t("updDelisted"));
+    const ch = e.changes || {}; const out = [];
+    if (ch.deadlines) out.push(`${esc(t("updDeadlines"))}: ${esc(ch.deadlines[0].map((d) => fmtDate(d)).join(", ") || "–")} → ${esc(ch.deadlines[1].map((d) => fmtDate(d)).join(", ") || "–")}`);
+    if (ch.topicBudget) out.push(`${esc(t("updBudget"))}: ${ch.topicBudget[0] ? esc(money(ch.topicBudget[0], "EUR")) : "–"} → ${ch.topicBudget[1] ? esc(money(ch.topicBudget[1], "EUR")) : "–"}`);
+    if (ch.title) out.push(`${esc(t("updTitleCh"))}: ${esc(ch.title[0])} → ${esc(ch.title[1])}`);
+    if (ch.eligibility) { const ks = Object.keys(ch.eligibility); out.push(`${esc(t("updElig", ks.length))}: ${ks.map((k) => `${esc(nm(IDX.countries[k]) || k)} ${esc(t("elShort" + ch.eligibility[k][0]))} → ${esc(t("elShort" + ch.eligibility[k][1]))}`).join("; ")}`); }
+    return out.join("<br>");
+  };
+  app.innerHTML = `<div class="wrap page"><h1>${esc(t("updTitle"))}</h1><p class="lede">${esc(t("updLede"))}</p>
+    <p class="fine">${esc(t("updAuto", when(META.generated)))}</p>
+    ${groups.length ? groups.map((g) => `<section><h2>${esc(t("updAt"))} ${esc(when(g.at))}</h2><ul class="updates">${g.items.map((e) => `<li><div class="k ${e.kind}">${esc(t({ new: "updNew", changed: "updChanged", closed: "updClosed" }[e.kind]))}</div><div><div class="t">${link(e)}</div><div class="d"><span class="mono">${esc(e.id)}</span> · ${esc((P[e.programme] && P[e.programme].short) || e.programme)}</div><div class="d">${detail(e)}</div></div></li>`).join("")}</ul></section>`).join("") : `<p class="empty">${esc(t("updNone"))}</p>`}</div>`;
+}
+function renderSaved() {
+  const app = document.getElementById("app");
+  const list = sortList(CALLS.filter((c) => SAVED.has(c.key)));
+  app.innerHTML = `<div class="wrap page"><h1>${esc(t("savedTitle"))}</h1><p class="lede">${esc(t("savedLede"))}</p><div class="cards">${list.length ? list.map(card).join("") : `<div class="empty">${esc(t("savedEmpty"))}</div>`}</div><p class="fine" style="margin-top:20px">${esc(t("remindersNote"))}</p></div>`;
+  app.querySelectorAll("[data-save]").forEach((b) => { setSaveBtn(b); b.addEventListener("click", () => { toggleSave(b.dataset.save); renderSaved(); }); });
+}
+function renderAbout() {
+  const app = document.getElementById("app"); const k = META.counts;
+  const st = { Y: 0, P: 0, N: 0, C: 0 }; CALLS.forEach((c) => Object.values(c.eligibility).forEach(([s]) => st[s]++));
+  app.innerHTML = `<div class="wrap page prose"><h1>${esc(lang === "sr" ? "O podacima" : "About the data")}</h1>
+  <p class="lede">Where the calls come from, how eligibility is decided, and what is not known.</p>
+  <h2>Sources</h2>
+  <p>Every call comes from an official source and links to the call's own page. Last import: ${esc(new Date(META.generated).toUTCString())}.</p>
+  <ul>${(META.sources || []).map((s) => `<li><b>${esc(s.name)}</b>: ${(k.bySource && k.bySource[s.key]) || 0} calls published${s.ok === false ? ` (the last update failed; data from ${esc(s.fetchedAt ? new Date(s.fetchedAt).toUTCString() : "an earlier import")} is shown)` : ""}.</li>`).join("")}</ul>
+  <h2>What was checked</h2>
+  <ul><li>EU grant topics: the Portal search returned ${k.searchResults} rows, ${k.unique} unique calls. Every topic is checked against its own topic details; status and deadlines are taken from there, not from the search index.${k.topicPageMissing ? ` ${k.topicPageMissing} topics had no topic details and are not shown.` : ""} ${k.grantTopicsPast != null ? k.grantTopicsPast : ""} topics marked “Open” had no deadline left or were not open on their topic page; they are not shown.</li>
+  <li>Calls run by EU-funded projects (financial support to third parties) are listed on the Portal, but their Portal address is shared by several calls. Such a call is published only when an organiser link in the Portal record opens a live page that shows this call (its title, or most of its distinctive title words, appear on the page). Links to forms, video meetings and login pages are not accepted.</li>
+  <li>Other sources (Interreg, EEA and Norway Grants, ERA-LEARN, UKRI): only calls the source lists as open or upcoming, with a deadline after the import, are published. The call page named by the source is opened at least once a day and must load; pages on other sites must show the call.</li>
+  <li>Deadlines: EU grant topics close at 17:00:00 Brussels time on the listed date (the Portal topic page renders them that way). Other calls close at the time the source states. When a source gives only a date, the call is kept open until 23:59 Brussels time that day and the page says the time is not stated: check the exact time on the call page. Times are converted to your local time when it differs.</li>
+  <li>The page checks the clock every 20 seconds, so a call disappears at its deadline even if the page stays open, and it loads new imports while open.</li>
+  <li>If an EU grant topic's official text limits participation in a way Eligible Calls has not reviewed yet, non-EU countries are shown as “Not available from the source” until it is reviewed.</li>
+  <li>Not published: ${k.uniqueByType && k.uniqueByType["2"] != null ? k.uniqueByType["2"] : "some"} EU external action calls. The Portal page shows no data and the PROSPECT page needs an EU Login, so the link could not be confirmed.</li></ul>
+  <h2>How eligibility is decided</h2>
+  <ol><li><b>The call's own text first.</b> Where the official conditions limit participation to named countries (for example some EuroHPC and EIC calls), that rule decides.</li>
+  <li><b>Programme strands next.</b> From the Commission's lists of participating countries: for example, some countries take part in Digital Europe only for objectives 1, 2, 4 and 5, in Creative Europe only for the Culture strand, or in CERV for all strands except Union Values.</li>
+  <li><b>Programme participation.</b> Whether the country is on the official list for that programme.</li>
+  <li><b>Other sources: what the source states.</b> Interreg calls: countries in the programme area are “eligible with a condition” (only organisations in the eligible regions), others are not eligible. EEA and Norway Grants: the beneficiary country publishing the call is eligible. European partnership joint calls: countries whose funding organisation takes part are “eligible with a condition” (national funding rules apply). UKRI: UK organisations that meet UKRI's rules; other countries are not eligible where the call page says so.</li>
+  <li><b>Otherwise: “Not available from the source”.</b> Never “Eligible” by default. This applies when the Portal data does not state the eligible countries and only refers to a call document (for example the Chips Joint Undertaking calls and programmes without a published list of participating countries). A Joint Undertaking call whose conditions point to Annex B of the Horizon Europe General Annexes uses the Horizon Europe list.</li></ol>
+  <p>Across ${CALLS.length} calls and ${TAX.countries.length} countries: ${st.Y} eligible, ${st.P} eligible with a condition, ${st.N} not eligible, ${st.C} to be checked in the call document.</p>
+  <p>Programme-level rules do not cover everything. Calls can add conditions such as a minimum consortium, restrictions on entities controlled from outside the EU, or security rules in the call document. These are listed under “Call-specific conditions” when they appear in the official text.</p>
+  <h2>What Eligible Calls adds</h2>
+  <p>Sector and applicant-type tags are assigned by Eligible Calls from the programme structure and call text, to make search possible. They are marked as derived and are not eligibility rules.</p>
+  <h2>Updating</h2>
+  <p>A scheduled job reads all sources every 2 hours, re-checks the topic details of new or changed EU calls and the call pages of the other sources, rebuilds the data and publishes it. If one source fails, its last good data is kept for up to 3 days (calls still close at their deadlines). New, changed and closed calls are listed on the <a href="#updates">Updates</a> page. Last import: ${esc(new Date(META.generated).toUTCString())}.</p>
+  <p>The lists of participating countries are checked weekly for new versions. A new list is read and encoded by hand before eligibility answers change.</p>
+  <h2>The assistant</h2>
+  <p>The assistant answers only from the calls on this site. It picks the calls closest to your description by keyword, then an open-source language model (Llama on Cloudflare Workers AI, or GPT-OSS on Groq when the first is busy) writes the answer. Your messages and any attached text are sent to that service to write the answer and are not stored by Eligible Calls. It runs within free daily limits, so it may pause until the next day. Its answers are guidance; the official call documents decide.</p>
+  <p>${esc(t("remindersNote"))}</p></div>`;
+}
+
+/* ---------- project-match assistant ----------
+   On the public site it calls /api/chat (Cloudflare Pages Function: Workers AI, Groq as fallback).
+   In the claude.ai preview, where /api is absent, it falls back to the viewer's Claude through the `sample` capability. */
+const CHAT = { mode: null, sample: null, toolsOk: false, turns: [], doc: null, ctl: null, busy: false, health: null };
+const CFG = window.KONKURSI_CONFIG || {};
+const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const MAMMOTH = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js";
+const loadScript = (src) => new Promise((res, rej) => { if (document.querySelector(`script[src="${src}"]`)) return res(); const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("load " + src)); document.head.appendChild(s); });
+let DOC_MAX = 8000;
+
+const CI18N = {
+  en: {
+    open: "Ask the assistant", heroAsk: "Or describe your project and let the assistant find matching calls", title: "Project match assistant", sub: "Describe your project or attach your application. The assistant matches it against the open calls on this site.",
+    ph: "Describe your project…", send: "Send", stop: "Stop", attach: "Attach PDF, DOCX or TXT", remove: "Remove",
+    thinking: "Reading the open calls…", tool: (n) => `Checking ${n}…`, searching: (q) => `Searching calls for “${q}”…`,
+    unavailable: "The assistant is not available right now. Search and filters work as usual.",
+    resting: (time) => `The assistant has used today's free capacity and is back at ${time} (your time). Search and filters work as usual.`,
+    visitorLimit: (n, time) => `You have used today's ${n} questions. More from ${time} (your time).`,
+    verify: "Could not confirm that this is a person and not a bot. Reload the page and try again.",
+    interrupted: "The answer stopped early. Send the question again.",
+    privacy: "Messages and attached text are sent to Cloudflare Workers AI or Groq to write the answer. Eligible Calls does not store them.",
+    declined: "The assistant needs permission to use Claude on your account. Reload the page to be asked again.",
+    limited: "Too many requests right now. Wait a moment and send again.", failed: "Something went wrong. Try sending again.", refused: "The assistant could not answer that request. Try rephrasing it.",
+    cut: "The answer was cut short. Ask for a shorter answer or one call at a time.",
+    extracting: "Reading the document…", docTooLong: (n) => `Only the first ${n.toLocaleString()} characters are used.`, docFail: "Could not read this file. Try PDF, DOCX or TXT, or paste the text.",
+    starters: ["I'm an NGO in Serbia working on gender-based violence prevention. What can we apply for?", "Which open calls fit an independent film production company from Croatia?", "We are a small AI startup in Germany. What should we apply for first, and by when?"],
+    context: "Using your filters", none: "no filters set", disclaimer: "Answers are based only on the calls shown on this site. Always confirm in the official call documents.", clear: "New conversation",
+  },
+  sr: {
+    open: "Pitaj asistenta", heroAsk: "Ili opišite projekat i neka asistent pronađe odgovarajuće pozive", title: "Asistent za izbor poziva", sub: "Opišite projekat ili priložite prijavu. Asistent ga poredi sa otvorenim pozivima na ovom sajtu.",
+    ph: "Opišite svoj projekat…", send: "Pošalji", stop: "Zaustavi", attach: "Priloži PDF, DOCX ili TXT", remove: "Ukloni",
+    thinking: "Čitam otvorene pozive…", tool: (n) => `Proveravam ${n}…`, searching: (q) => `Pretražujem pozive za „${q}“…`,
+    unavailable: "Asistent trenutno nije dostupan. Pretraga i filteri rade normalno.",
+    resting: (time) => `Asistent je potrošio današnji besplatni kapacitet i ponovo radi od ${time} (po vašem vremenu). Pretraga i filteri rade normalno.`,
+    visitorLimit: (n, time) => `Iskoristili ste današnjih ${n} pitanja. Nova od ${time} (po vašem vremenu).`,
+    verify: "Nije potvrđeno da ste osoba, a ne bot. Osvežite stranicu i pokušajte ponovo.",
+    interrupted: "Odgovor je prekinut. Pošaljite pitanje ponovo.",
+    privacy: "Poruke i priloženi tekst šalju se servisima Cloudflare Workers AI ili Groq radi pisanja odgovora. Eligible Calls ih ne čuva.",
+    declined: "Asistentu je potrebna dozvola da koristi Claude na vašem nalogu. Osvežite stranicu da biste ponovo dobili pitanje.",
+    limited: "Previše zahteva trenutno. Sačekajte malo i pošaljite ponovo.", failed: "Nešto nije u redu. Pokušajte ponovo.", refused: "Asistent nije mogao da odgovori na ovaj zahtev. Preformulišite pitanje.",
+    cut: "Odgovor je prekinut. Tražite kraći odgovor ili jedan poziv po pitanju.",
+    extracting: "Čitam dokument…", docTooLong: (n) => `Koristi se samo prvih ${n.toLocaleString()} znakova.`, docFail: "Ne mogu da pročitam ovaj fajl. Probajte PDF, DOCX ili TXT, ili nalepite tekst.",
+    starters: ["Udruženje smo iz Srbije i bavimo se prevencijom rodno zasnovanog nasilja. Na šta možemo da konkurišemo?", "Koji otvoreni pozivi odgovaraju nezavisnoj filmskoj produkciji iz Hrvatske?", "Mali smo AI startap iz Nemačke. Na šta da konkurišemo prvo i do kada?"],
+    context: "Koristim vaše filtere", none: "filteri nisu izabrani", disclaimer: "Odgovori se zasnivaju samo na pozivima prikazanim na ovom sajtu. Uvek proverite zvaničnu dokumentaciju poziva.", clear: "Novi razgovor",
+  },
+};
+const ct = (k, ...a) => { const v = (CI18N[lang][k] ?? CI18N.en[k]); return typeof v === "function" ? v(...a) : v; };
+
+function brusselsNowText() { return new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: DL_TZ, timeZoneName: "short" }).format(new Date()); }
+function hoursLeft(iso) { return Math.round(msLeft(iso) / 36e5); }
+function catalogLine(c) {
+  const n = nextDl(c); const later = c.deadlines.filter((x) => x > n);
+  const f = c.funding || {};
+  const money = f.maxPerGrant ? `per project ${f.minPerGrant ? "EUR " + f.minPerGrant + "–" : "up to "}EUR ${f.maxPerGrant}` : f.topicBudget ? `topic budget EUR ${f.topicBudget}${f.expectedGrants ? " for ~" + f.expectedGrants + " grants" : ""}` : "funding not stated";
+  const el = F.country ? ` | eligibility(${F.country}): ${elig(c, F.country).s}` : "";
+  const desc = (c.description || "").replace(/\s+/g, " ").slice(0, 220);
+  return `${c.id} | ${c.title} | ${progShort(c)}${c.callTitle && c.callTitle !== c.title ? " / " + c.callTitle : ""} | next deadline ${dlPlain(n)} (${hoursLeft(n)} h from now)${later.length ? " +later cut-offs " + later.join(",") : ""} | ${money} | ${(IDX.types[c.type] || {}).en || c.type} | partnership: ${(IDX.partnership[c.partnership] || {}).en || c.partnership} | sectors: ${c.sectors.join(",")} | applicants(derived): ${c.applicants.join(",")}${el} | ${desc}`;
+}
+function profileText() {
+  const parts = [];
+  if (F.country) parts.push("based in " + nm(IDX.countries[F.country]) + " (" + F.country + ")");
+  const ag = groupMatch(TAX.applicantGroups, "applicants", F.applicants); if (ag) parts.push("applying as " + IDX.applicantGroups[ag].en);
+  const sg = groupMatch(TAX.sectorGroups, "sectors", F.sectors); if (sg) parts.push("sector: " + IDX.sectorGroups[sg].en);
+  return parts.join("; ");
+}
+function rulesTurn() {
+  const open = CALLS.filter(isOpen).sort((a, b) => nextDl(a).localeCompare(nextDl(b)));
+  const countryCodes = TAX.countries.map((c) => c.id + "=" + c.en).join(", ");
+  return [
+    "You are the Eligible Calls project-match assistant. Eligible Calls lists open EU funding calls imported from the EU Funding & Tenders Portal. You help applicants find which open calls fit their project and what to do next.",
+    "",
+    "RULES",
+    "- Recommend ONLY calls from the OPEN CALLS list below, by their exact ID. Never invent calls, programmes, amounts, deadlines, eligibility rules, URLs or partners. If something is not in the data, say it is not in the data and point to the official call page.",
+    "- Current time: " + brusselsNowText() + ". Each deadline is given with its time: EU Portal grant topics close at 17:00 Brussels time; calls from other organisers close at the time they state, and when only a date is known, say so and tell the user to check the exact time on the call page. A call whose deadline has passed is closed. Give the exact deadline and how much time is left. Flag deadlines under 14 days as very tight and say whether a realistic application is still possible.",
+    "- Eligibility status codes: Y eligible, P eligible with a condition, N not eligible, C not available from the source data (the Portal data refers to a call document). They come from the Commission's official lists of participating countries and the call's own text. Never upgrade C or P to Y. If the user's country is unknown and it matters, ask for it.",
+    "- Before you strongly recommend a call, open it with get_call_details to read its official conditions and description, and use the country argument to get the exact eligibility reason.",
+    "- Sector and applicant tags are derived by Eligible Calls and are hints only. Judge fit from the call's title, description and conditions.",
+    "- The data imported on " + new Date(META.generated).toUTCString() + " is the only source you have. You cannot browse the web.",
+    "- This is guidance, not a legal eligibility decision. The official call documents prevail.",
+    "- Reply in the language the user writes in (Serbian Latin script if they write Serbian).",
+    "",
+    "WHEN THE USER DESCRIBES A PROJECT OR ATTACHES AN APPLICATION",
+    "1. Restate the project in two or three lines (what, who applies, where based, budget, timing). List any missing facts that change the answer.",
+    "2. Give a ranked shortlist of at most 5 matching calls. For each: ID and title, why it fits, eligibility for their country (status and reason), next deadline with time left, funding, partnership requirement, main gap or risk.",
+    "3. Recommend a course of action: which call to target first and why, what to adapt in the project to fit it, partners needed, documents to prepare, and a dated plan counted back from the deadline.",
+    "4. If nothing fits well, say so plainly and explain what would need to change. Do not stretch a weak match.",
+    "Use short headings and bullet lists. Write call IDs exactly as given so the page can link them.",
+    "",
+    "USER PROFILE FROM THE SITE FILTERS: " + (profileText() || "none set"),
+    "COUNTRY CODES: " + countryCodes,
+    "",
+    "OPEN CALLS (" + open.length + "), one per line: ID | title | programme / call | next deadline | funding | type | partnership | sectors | applicants | eligibility for the user's country when known | description excerpt",
+    ...open.map(catalogLine),
+    CHAT.doc ? "\nATTACHED PROJECT DOCUMENT \"" + CHAT.doc.name + "\"" + (CHAT.doc.truncated ? " (first " + DOC_MAX + " characters)" : "") + ":\n<<<\n" + CHAT.doc.text + "\n>>>" : "",
+  ].join("\n");
+}
+function callDetails(id, country) {
+  const c = CALLS.find((x) => x.id === String(id).trim());
+  if (!c) throw new Error("No call with ID " + id + " in the data. Use an ID from the OPEN CALLS list.");
+  const n = nextDl(c);
+  const out = {
+    id: c.id, title: c.title, programme: c.programmeName, call: c.callId + " " + (c.callTitle || ""), status: n ? "open" : "closed",
+    deadlines: c.deadlines.map((d) => ({ date: d.slice(0, 10), time: dlPlain(d).slice(11), hoursLeft: hoursLeft(d), passed: msLeft(d) <= 0 })),
+    typesOfAction: c.typesOfAction, funding: c.funding, partnership: c.partnership, partnershipNote: c.partnershipNote,
+    callSpecificNotes: c.notes, officialUrl: c.url,
+    conditions: (c.conditions || "").slice(0, 7000) + (c.conditionsTruncated ? " [excerpt: full text on official page]" : ""),
+    description: (c.description || "").slice(0, 7000) + (c.descriptionTruncated ? " [excerpt: full text on official page]" : ""),
+  };
+  const cc = country ? String(country).toUpperCase().trim() : F.country;
+  if (cc && c.eligibility[cc]) { const e = elig(c, cc); out.eligibility = { country: cc, status: e.s, reason: e.note }; }
+  const groups = { Y: [], P: [], C: [], N: [] }; Object.entries(c.eligibility).forEach(([k, [s]]) => groups[s].push(k)); out.eligibilityByStatus = groups;
+  return out;
+}
+function searchCalls(q) {
+  const words = norm(q).split(/\s+/).filter((w) => w.length > 2);
+  if (!words.length) throw new Error("Give at least one search word longer than two letters.");
+  return CALLS.filter(isOpen).map((c) => { const h = norm([c.title, c.callTitle, c.description, c.conditions, (c.keywords || []).join(" "), (c.tags || []).join(" ")].join(" ")); return { c, s: words.reduce((a, w) => a + (h.split(w).length - 1), 0) }; })
+    .filter((x) => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 15).map((x) => ({ id: x.c.id, title: x.c.title, hits: x.s, nextDeadline: dlPlain(nextDl(x.c)) }));
+}
+
+/* safe rendering: escape, then a small markdown subset; call IDs become links */
+let ID_RE = null;
+function renderMd(src) {
+  if (!ID_RE) ID_RE = new RegExp("\\b(" + CALLS.map((c) => c.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length).join("|") + ")\\b", "g");
+  const inline = (s) => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\((https:\/\/ec\.europa\.eu\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(ID_RE, (m) => { const c = CALLS.find((x) => x.id === m); return c ? `<a href="#c-${c.key}" class="cid">${m}</a>` : m; });
+  const lines = src.split("\n"); let html = "", list = null;
+  const close = () => { if (list) { html += `</${list}>`; list = null; } };
+  for (const raw of lines) {
+    const l = raw.trimEnd();
+    let m;
+    if (!l.trim()) { close(); continue; }
+    if ((m = l.match(/^#{1,4}\s+(.*)/))) { close(); html += `<h4>${inline(m[1])}</h4>`; continue; }
+    if ((m = l.match(/^\s*[-*•]\s+(.*)/))) { if (list !== "ul") { close(); html += "<ul>"; list = "ul"; } html += `<li>${inline(m[1])}</li>`; continue; }
+    if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (list !== "ol") { close(); html += "<ol>"; list = "ol"; } html += `<li>${inline(m[1])}</li>`; continue; }
+    close(); html += `<p>${inline(l)}</p>`;
+  }
+  close(); return html;
+}
+
+function chatEls() { return { panel: document.getElementById("chatPanel"), log: document.getElementById("chatLog"), box: document.getElementById("chatBox"), send: document.getElementById("chatSend"), file: document.getElementById("chatFile"), doc: document.getElementById("chatDoc"), note: document.getElementById("chatNote"), ctx: document.getElementById("chatCtx") }; }
+function chatStatic() {
+  const e = chatEls(); if (!e.panel) return;
+  document.querySelectorAll("[data-ci18n]").forEach((el) => (el.textContent = ct(el.dataset.ci18n)));
+  e.box.placeholder = ct("ph");
+  document.getElementById("chatAttachBtn").setAttribute("aria-label", ct("attach")); document.getElementById("chatAttachBtn").title = ct("attach");
+  e.ctx.textContent = ct("context") + ": " + (profileText() || ct("none"));
+  if (!CHAT.turns.length) renderStarters();
+  renderDocChip();
+  const pv = document.getElementById("chatPrivacy"); if (pv) pv.textContent = CHAT.mode === "api" ? ct("privacy") : "";
+}
+function renderStarters() {
+  const e = chatEls();
+  e.log.innerHTML = `<div class="chat-empty"><p>${esc(ct("sub"))}</p><div class="starters">${ct("starters").map((s, i) => `<button type="button" class="starter" data-st="${i}">${esc(s)}</button>`).join("")}</div></div>`;
+  e.log.querySelectorAll("[data-st]").forEach((b) => b.addEventListener("click", () => { e.box.value = ct("starters")[+b.dataset.st]; e.box.focus(); autosize(); }));
+}
+function renderDocChip() {
+  const e = chatEls();
+  e.doc.hidden = !CHAT.doc;
+  if (CHAT.doc) e.doc.innerHTML = `<span>📄 ${esc(CHAT.doc.name)} · ${CHAT.doc.words.toLocaleString()} words${CHAT.doc.truncated ? " · " + esc(ct("docTooLong", DOC_MAX)) : ""}</span><button type="button" class="linkbtn" id="chatDocRm">${esc(ct("remove"))}</button>`;
+  const rm = document.getElementById("chatDocRm"); if (rm) rm.addEventListener("click", () => { CHAT.doc = null; renderDocChip(); });
+}
+function autosize() { const b = chatEls().box; b.style.height = "auto"; b.style.height = Math.min(b.scrollHeight, 220) + "px"; }
+function addMsg(role, html) { const e = chatEls(); if (!CHAT.turns.length && e.log.querySelector(".chat-empty")) e.log.innerHTML = ""; const d = document.createElement("div"); d.className = "msg " + role; d.innerHTML = html; e.log.appendChild(d); e.log.scrollTop = e.log.scrollHeight; return d; }
+function setBusy(b) { CHAT.busy = b; const e = chatEls(); e.send.textContent = b ? ct("stop") : ct("send"); e.send.classList.toggle("stop", b); e.box.disabled = false; }
+function openChat() { const e = chatEls(); e.panel.hidden = false; document.body.classList.add("chat-open"); chatStatic(); setTimeout(() => e.box.focus(), 50); }
+function closeChat() { chatEls().panel.hidden = true; document.body.classList.remove("chat-open"); }
+
+async function readDoc(file) {
+  const e = chatEls(); e.note.textContent = ct("extracting");
+  try {
+    let text = ""; const name = file.name; const ext = name.split(".").pop().toLowerCase();
+    if (ext === "pdf" || file.type === "application/pdf") {
+      await loadScript(PDFJS_WORKER); await loadScript(PDFJS);
+      const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+      for (let p = 1; p <= pdf.numPages && text.length < DOC_MAX + 2000; p++) { const pg = await pdf.getPage(p); const tc = await pg.getTextContent(); text += tc.items.map((i) => i.str).join(" ") + "\n\n"; }
+    } else if (ext === "docx") {
+      await loadScript(MAMMOTH);
+      text = (await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
+    } else if (["txt", "md", "rtf", "csv"].includes(ext) || file.type.startsWith("text/")) {
+      text = await file.text();
+    } else throw new Error("type");
+    text = text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+    if (!text) throw new Error("empty");
+    CHAT.doc = { name, text: text.slice(0, DOC_MAX), truncated: text.length > DOC_MAX, words: text.split(/\s+/).length };
+    e.note.textContent = "";
+  } catch (err) { CHAT.doc = null; e.note.textContent = ct("docFail"); }
+  renderDocChip();
+}
+
+const hhmm = (iso) => new Intl.DateTimeFormat(loc(), { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+function chatError(code, info) {
+  const e = chatEls();
+  e.note.classList.remove("info");
+  if (code === "cancelled") return;
+  if (code === "resting") { e.note.textContent = ct("resting", hhmm(info.resetAt)); e.note.classList.add("info"); }
+  else if (code === "visitor_limit") { e.note.textContent = ct("visitorLimit", info.limit, hhmm(info.resetAt)); e.note.classList.add("info"); }
+  else if (code === "verification") e.note.textContent = ct("verify");
+  else if (code === "interrupted") e.note.textContent = ct("interrupted");
+  else if (code === "rate_limited") e.note.textContent = ct("limited");
+  else if (code === "refused") e.note.textContent = ct("refused");
+  else if (code === "prompt_too_large" || code === "too_large") e.note.textContent = ct("docTooLong", DOC_MAX);
+  else if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(code)) { e.note.textContent = code === "not_granted" ? ct("declined") : ct("unavailable"); CHAT.sample = null; CHAT.mode = null; }
+  else if (code === "disabled") { e.note.textContent = ct("unavailable"); CHAT.mode = null; }
+  else e.note.textContent = ct("failed");
+}
+
+/* Turnstile (bot check) on the public site, when a site key is configured */
+const TS = { ready: null, id: null, token: null };
+function setupTurnstile() {
+  if (TS.ready || !CFG.turnstileSiteKey) return;
+  TS.ready = new Promise((res) => { window.__konkursiTs = res; });
+  loadScript("https://challenges.cloudflare.com/turnstile/v0/api.js?onload=__konkursiTs&render=explicit").catch(() => {});
+  TS.ready.then(() => { TS.id = window.turnstile.render("#chatTs", { sitekey: CFG.turnstileSiteKey, appearance: "interaction-only", size: "flexible", "refresh-expired": "auto", callback: (tok) => { TS.token = tok; } }); });
+}
+async function turnstileToken() {
+  if (!TS.ready) return "";
+  await Promise.race([TS.ready, new Promise((r) => setTimeout(r, 8000))]);
+  for (let i = 0; i < 80 && !TS.token; i++) await new Promise((r) => setTimeout(r, 250));
+  return TS.token || "";
+}
+function resetTurnstile() { if (TS.id != null && window.turnstile) { TS.token = null; try { window.turnstile.reset(TS.id); } catch (err) {} } }
+
+async function sendApi(bubble) {
+  const body = {
+    messages: CHAT.turns, lang,
+    profile: { country: F.country || null, sectors: F.sectors, applicants: F.applicants, text: profileText() },
+    doc: CHAT.doc ? { name: CHAT.doc.name, text: CHAT.doc.text } : null,
+    turnstile: await turnstileToken(),
+  };
+  const r = await fetch("api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: CHAT.ctl.signal });
+  resetTurnstile();
+  if (!r.ok || !(r.headers.get("content-type") || "").includes("event-stream")) {
+    const j = await r.json().catch(() => ({}));
+    throw Object.assign(new Error(j.error || "failed"), { code: j.error || "failed", info: j });
+  }
+  const reader = r.body.getReader(); const dec = new TextDecoder();
+  let buf = "", text = "", done = false;
+  const e = chatEls();
+  for (;;) {
+    const { value, done: end } = await reader.read();
+    if (end) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf("\n\n")) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 2);
+      if (!line.startsWith("data:")) continue;
+      let ev; try { ev = JSON.parse(line.slice(5)); } catch (err) { continue; }
+      if (ev.d) { text += ev.d; bubble.innerHTML = renderMd(text); e.log.scrollTop = e.log.scrollHeight; }
+      else if (ev.done) done = true;
+      else if (ev.error) throw Object.assign(new Error(ev.error), { code: ev.error, text });
+    }
+  }
+  if (!done) throw Object.assign(new Error("interrupted"), { code: "interrupted", text });
+  return { text, truncated: false };
+}
+
+async function sendSample(bubble, status) {
+  const tools = CHAT.toolsOk ? [
+    { name: "get_call_details", description: "Returns the official details of one open call: deadlines (with their time), funding, types of action, partnership, call-specific notes, the official conditions text, the description, the official URL, and eligibility for a country (status and reason) plus all countries grouped by status. Use before recommending a call.",
+      inputSchema: { type: "object", properties: { id: { type: "string", description: "Exact call ID from the OPEN CALLS list" }, country: { type: "string", description: "Two-letter country code of the applicant, optional" } }, required: ["id"] },
+      execute: (inp) => { status(ct("tool", String(inp.id))); return callDetails(inp.id, inp.country); } },
+    { name: "search_calls", description: "Full-text search over the titles, descriptions and conditions of all open calls. Returns up to 15 call IDs with hit counts. Use when the catalog excerpts are not enough to find relevant calls.",
+      inputSchema: { type: "object", properties: { query: { type: "string", description: "Keywords, e.g. 'film distribution festival'" } }, required: ["query"] },
+      execute: (inp) => { status(ct("searching", String(inp.query))); return searchCalls(String(inp.query)); } },
+  ] : undefined;
+  const e = chatEls();
+  const input = [{ role: "user", content: rulesTurn() }, ...CHAT.turns];
+  const opts = { signal: CHAT.ctl.signal, onText: ({ text }) => { bubble.innerHTML = renderMd(text); e.log.scrollTop = e.log.scrollHeight; } };
+  if (tools) opts.tools = tools; else opts.cache = false;
+  return CHAT.sample(input, opts);
+}
+
+async function sendChat() {
+  const e = chatEls();
+  if (CHAT.busy) { CHAT.ctl?.abort(); return; }
+  const text = e.box.value.trim();
+  if (!text && !CHAT.doc) return;
+  if (!CHAT.mode) { e.note.textContent = ct("unavailable"); return; }
+  const userText = text || (lang === "sr" ? "Analiziraj priloženi projekat i predloži najbolje pozive i plan." : "Analyse the attached project and recommend the best calls and a plan.");
+  addMsg("user", `<p>${esc(userText)}</p>${CHAT.doc ? `<p class="fine">📄 ${esc(CHAT.doc.name)}</p>` : ""}`);
+  e.box.value = ""; autosize(); e.note.textContent = ""; e.note.classList.remove("info");
+  CHAT.turns.push({ role: "user", content: userText });
+  while (CHAT.turns.length > 10) CHAT.turns.splice(0, 2);
+  const bubble = addMsg("assistant", `<p class="thinking">${esc(ct("thinking"))}</p>`);
+  const status = (s) => { if (bubble.querySelector(".thinking")) bubble.querySelector(".thinking").textContent = s; };
+  CHAT.ctl = new AbortController(); setBusy(true);
+  try {
+    const res = CHAT.mode === "api" ? await sendApi(bubble) : await sendSample(bubble, status);
+    bubble.innerHTML = renderMd(res.text) + (res.truncated ? `<p class="fine">${esc(ct("cut"))}</p>` : "");
+    CHAT.turns.push({ role: "assistant", content: res.text });
+  } catch (err) {
+    const code = err && err.name === "AbortError" ? "cancelled" : (err && err.code) || "failed";
+    if (err && err.text) bubble.innerHTML = renderMd(err.text); else bubble.remove();
+    CHAT.turns.pop();
+    chatError(code, (err && err.info) || {});
+  } finally { setBusy(false); e.log.scrollTop = e.log.scrollHeight; }
+}
+
+async function apiHealth() {
+  const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 4000);
+  try {
+    const r = await fetch("api/health", { cache: "no-store", signal: ctl.signal });
+    if (!r.ok || !(r.headers.get("content-type") || "").includes("json")) return null;
+    const j = await r.json(); return j && j.ok ? j : null;
+  } catch (err) { return null; } finally { clearTimeout(tm); }
+}
+
+async function initChat() {
+  const e = chatEls(); if (!e.panel) return;
+  document.addEventListener("click", (ev) => { if (ev.target.closest && ev.target.closest("[data-chat-open]")) openChat(); });
+  document.getElementById("chatClose").addEventListener("click", closeChat);
+  document.getElementById("chatClear").addEventListener("click", () => { CHAT.ctl?.abort(); CHAT.turns = []; CHAT.doc = null; chatStatic(); });
+  e.send.addEventListener("click", sendChat);
+  e.box.addEventListener("input", autosize);
+  e.box.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); sendChat(); } });
+  document.getElementById("chatAttachBtn").addEventListener("click", () => e.file.click());
+  e.file.addEventListener("change", () => { if (e.file.files[0]) readDoc(e.file.files[0]); e.file.value = ""; });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !e.panel.hidden) closeChat(); });
+  chatStatic();
+  const h = await apiHealth();
+  if (h) {
+    CHAT.health = h; DOC_MAX = 8000;
+    if (h.chat || h.resting) { CHAT.mode = "api"; if (h.turnstile) setupTurnstile(); }
+    if (h.resting) chatError("resting", h);
+    else if (!h.chat) e.note.textContent = ct("unavailable");
+    chatStatic();
+    return;
+  }
+  try { CHAT.sample = window.claude && window.claude.use ? await window.claude.use("sample") : null; } catch (err) { CHAT.sample = null; }
+  if (CHAT.sample) { CHAT.mode = "sample"; DOC_MAX = 40000; try { const lim = await CHAT.sample.limits(); CHAT.toolsOk = !!lim.tools; } catch (err) { CHAT.toolsOk = false; } }
+  else e.note.textContent = ct("unavailable");
+}
+
+/* ---------- live clock: countdowns tick, closed calls drop out at 17:00 Brussels ---------- */
+let openSig = "";
+const sigNow = () => CALLS ? CALLS.filter(isOpen).map((c) => c.key + "@" + nextDl(c)).join("|") : "";
+/* Data age in the hero: "Updated 2 hours ago". Over 12 hours (imports run every 4) it turns terracotta. */
+function updateAge() {
+  if (!META) return;
+  const min = Math.max(0, Math.floor((Date.now() - Date.parse(META.generated)) / 6e4));
+  const txt = min < 2 ? t("updatedNow") : min < 60 ? t("updatedAgo", min, "m") : min < 48 * 60 ? t("updatedAgo", Math.floor(min / 60), "h") : t("updatedAgo", Math.floor(min / 1440), "d");
+  const stale = min >= 12 * 60;
+  document.querySelectorAll("[data-age]").forEach((el) => { el.textContent = "· " + txt + (stale ? " · " + t("staleNote") : ""); el.classList.toggle("stale", stale); });
+}
+function tick() {
+  if (!CALLS) return;
+  updateAge();
+  document.querySelectorAll("[data-dl]").forEach((el) => { const v = leftText(el.dataset.dl); if (el.textContent !== v) el.textContent = v; });
+  const sig = sigNow();
+  if (openSig && sig !== openSig) {
+    const y = window.scrollY;
+    const typing = document.activeElement && document.getElementById("app").contains(document.activeElement) && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+    if (lastRoute === "home" && typing) { renderResults(); renderFilters(); document.querySelectorAll(".soon-item [data-dl]").forEach((el) => { if (msLeft(el.dataset.dl) <= 0) el.closest(".soon-item").remove(); }); }
+    else if (lastRoute === "home") renderHome(); else route();
+    applyLang(); updateSavedCount(); window.scrollTo(0, y);
+  }
+  openSig = sig;
+}
+setInterval(tick, 20000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) tick(); });
+
+/* ---------- router ---------- */
+let lastRoute = "home", homeScroll = 0;
+function route() {
+  const h = decodeURIComponent(location.hash.slice(1)); let r = "home";
+  if (h.startsWith("c-")) { r = "detail"; renderDetail(h.slice(2)); }
+  else if (h.startsWith("p-")) { r = "programmes"; renderProgramme(h.slice(2)); }
+  else if (h === "programmes") { r = "programmes"; renderProgrammes(); }
+  else if (h === "deadlines") { r = "deadlines"; renderDeadlines(); }
+  else if (h === "saved") { r = "saved"; renderSaved(); }
+  else if (h === "updates") { r = "updates"; renderUpdates(); }
+  else if (h === "about") { r = "about"; renderAbout(); }
+  else renderHome();
+  document.querySelectorAll("nav.main a").forEach((a) => { if (a.dataset.route === r) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  if (r === "home" && lastRoute === "detail" && homeScroll) window.scrollTo(0, homeScroll); else if (r !== "home" || lastRoute !== "home") window.scrollTo(0, 0);
+  lastRoute = r;
+}
+window.addEventListener("scroll", () => { if (lastRoute === "home") homeScroll = window.scrollY; }, { passive: true });
+function applyLang() {
+  document.documentElement.lang = lang === "sr" ? "sr-Latn" : "en";
+  document.querySelectorAll("[data-i18n]").forEach((el) => (el.textContent = t(el.dataset.i18n)));
+  document.getElementById("footText").textContent = t("foot");
+  if (META) {
+    const ageH = Math.floor((Date.now() - Date.parse(META.generated)) / 36e5);
+    document.getElementById("footData").textContent = t("footData", new Intl.DateTimeFormat(loc(), { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Brussels", timeZoneName: "short" }).format(new Date(META.generated)));
+    updateAge();
+  }
+  document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.lang === lang));
+  chatStatic();
+}
+document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => { lang = b.dataset.lang; store.set("lang", lang); applyLang(); route(); }));
+document.querySelectorAll('[data-nav="home"], nav.main a[data-route="home"]').forEach((a) => a.addEventListener("click", (e) => { if (location.hash === "" || location.hash === "#") { e.preventDefault(); route(); } }));
+/* Light / dark: follows the system until the visitor picks one; the choice is kept on this device. */
+const darkNow = () => document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+function syncThemeBtn() { const b = document.getElementById("themeBtn"); if (b) { const d = darkNow(); b.setAttribute("aria-label", d ? (lang === "sr" ? "Svetla tema" : "Switch to light theme") : (lang === "sr" ? "Tamna tema" : "Switch to dark theme")); b.title = b.getAttribute("aria-label"); } }
+document.getElementById("themeBtn").addEventListener("click", () => { const next = darkNow() ? "light" : "dark"; document.documentElement.dataset.theme = next; store.set("theme", next); syncThemeBtn(); Wave.refresh(); });
+if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", syncThemeBtn);
+lang = store.get("lang", "en") === "sr" ? "sr" : "en";
+syncThemeBtn();
+load().then(() => { applyLang(); updateSavedCount(); window.addEventListener("hashchange", route); route(); openSig = sigNow(); initChat(); })
+  .catch((err) => { document.getElementById("app").innerHTML = `<div class="wrap page"><h1>Could not load the data files</h1><p>${esc(err.message)}</p></div>`; });
+})();
+</script>
+</body>
+</html>

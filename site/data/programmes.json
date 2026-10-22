@@ -189,7 +189,7 @@
     ]
    },
    "note": "",
-   "openCalls": 369
+   "openCalls": 368
   },
   {
    "id": "EURATOM",
@@ -380,7 +380,7 @@
     ]
    },
    "note": "",
-   "openCalls": 4
+   "openCalls": 2
   },
   {
    "id": "DIGITAL",
@@ -1979,7 +1979,7 @@
    "countries": null,
    "source": "interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page",
    "note": "Calls from interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page. Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 31
+   "openCalls": 28
   },
   {
    "id": "EEANORWAY",

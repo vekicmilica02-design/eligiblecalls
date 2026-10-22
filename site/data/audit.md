@@ -1,7 +1,7 @@
-# Import audit — 2026-10-22T01:02:31.000Z
+# Import audit — 2026-10-22T02:52:32.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1199 rows, 1107 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-22 03:02 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 269
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-22 04:52 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 269
 - Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -17,7 +17,7 @@
 - Duplicates across sources removed: 3 (FSTP-15721; FSTP-15661; FSTP-16501)
 - Published: 603
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 0 new, 5 changed, 0 closed
+- Changes since the previous import: 0 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 369

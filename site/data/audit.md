@@ -1,8 +1,8 @@
-# Import audit — 2026-10-22T02:52:32.000Z
+# Import audit — 2026-10-22T04:52:13.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1199 rows, 1107 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-22 04:52 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 269
-- Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
+- Search results (types grant/cfp/cascade, status Open): 1200 rows, 1108 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-22 06:52 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 269
+- Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
 - EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 172, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 49, published 44

@@ -2024,6 +2024,17 @@
    "source": "EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology)",
    "note": "Calls from EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology). Eligible countries are taken from the source where it states them; otherwise check each call.",
    "openCalls": 11
+  },
+  {
+   "id": "ESA",
+   "name": "European Space Agency: Business Applications and Space Solutions",
+   "short": "ESA Space Solutions",
+   "summary": "",
+   "list": null,
+   "countries": null,
+   "source": "ESA Business Applications funding (business.esa.int)",
+   "note": "Calls from ESA Business Applications funding (business.esa.int). Eligible countries are taken from the source where it states them; otherwise check each call.",
+   "openCalls": 9
   }
  ]
 }

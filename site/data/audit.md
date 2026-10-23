@@ -1,11 +1,11 @@
-# Import audit — 2026-10-22T22:49:09.000Z
+# Import audit — 2026-10-23T01:07:19.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1202 rows, 1110 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-23 00:49 Brussels, deadlines counted at 17:00 Brussels): 420, of which forthcoming: 270
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-23 03:07 Brussels, deadlines counted at 17:00 Brussels): 420, of which forthcoming: 270
 - Not published by design: EU external action calls 20 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 171, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 51, published 41
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 171, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 49, published 43
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 33, noFutureDeadline 1, linkNotVerified 4, published 28
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 24, noFutureDeadline 9, linkNotVerified 0, published 15
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 31, horizonTopic 8, noFutureDeadline 17, linkNotVerified 0, published 6
@@ -15,9 +15,9 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 5 (FSTP-15441; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 606
+- Published: 608
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 0 new, 0 changed, 1 closed
+- Changes since the previous import: 2 new, 1 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 367
@@ -33,9 +33,9 @@
 - PARTNERSHIPS: 6
 - OTHER: 6
 - I3: 4
+- EURATOM: 4
 - EUBA: 3
 - ISF: 2
-- EURATOM: 2
 - JTM: 2
 - ESF: 1
 - SOCPL: 1
@@ -48,7 +48,7 @@
 - N: 5214
 - Y: 16427
 - P: 190
-- C: 4833
+- C: 4921
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

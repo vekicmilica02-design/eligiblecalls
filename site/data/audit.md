@@ -1,7 +1,7 @@
-# Import audit — 2026-10-25T20:46:21.000Z
+# Import audit — 2026-10-25T22:43:54.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1201 rows, 1109 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-25 21:46 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 269
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-25 23:43 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 269
 - Not published by design: EU external action calls 21 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -14,13 +14,13 @@
 - ESA Business Applications funding (business.esa.int): OK · listed 13, noClosingDate 4, noFutureDeadline 0, published 9
 
 - Dropped at build: 2
-- Duplicates across sources removed: 3 (FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 611
+- Duplicates across sources removed: 4 (FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
+- Published: 610
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 0 new, 0 changed, 0 closed
+- Changes since the previous import: 0 new, 0 changed, 1 closed
 
 ## Calls by programme
-- HORIZON: 369
+- HORIZON: 368
 - UKRI: 82
 - INTERREG: 31
 - DIGITAL: 24
@@ -48,7 +48,7 @@
 - N: 5340
 - Y: 16427
 - P: 196
-- C: 4921
+- C: 4877
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

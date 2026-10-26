@@ -1,11 +1,11 @@
-# Import audit — 2026-10-25T22:43:54.000Z
+# Import audit — 2026-10-26T01:14:49.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1201 rows, 1109 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-25 23:43 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 269
+- Search results (types grant/cfp/cascade, status Open): 1204 rows, 1110 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-26 02:14 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 269
 - Not published by design: EU external action calls 21 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 171, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 49, published 43
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 174, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 50, published 45
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 33, noFutureDeadline 1, linkNotVerified 1, published 31
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 24, noFutureDeadline 9, linkNotVerified 0, published 15
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 31, horizonTopic 8, noFutureDeadline 17, linkNotVerified 0, published 6
@@ -15,16 +15,16 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 4 (FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 610
+- Published: 612
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 0 new, 0 changed, 1 closed
+- Changes since the previous import: 2 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 368
 - UKRI: 82
 - INTERREG: 31
-- DIGITAL: 24
-- CREA: 18
+- DIGITAL: 25
+- CREA: 19
 - EEANORWAY: 15
 - EIT: 12
 - CERV: 11
@@ -48,7 +48,7 @@
 - N: 5340
 - Y: 16427
 - P: 196
-- C: 4877
+- C: 4965
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

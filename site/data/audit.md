@@ -1,11 +1,11 @@
-# Import audit — 2026-10-27T10:56:03.000Z
+# Import audit — 2026-10-27T13:09:04.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1205 rows, 1111 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-27 11:56 Brussels, deadlines counted at 17:00 Brussels): 419, of which forthcoming: 265
+- Search results (types grant/cfp/cascade, status Open): 1206 rows, 1111 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-27 14:09 Brussels, deadlines counted at 17:00 Brussels): 419, of which forthcoming: 264
 - Not published by design: EU external action calls 21 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 174, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 50, published 45
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 175, noFutureDeadline 69, noOrganiserLink 11, linkNotVerified 50, published 45
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 33, noFutureDeadline 1, linkNotVerified 1, published 31
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 24, noFutureDeadline 9, linkNotVerified 0, published 15
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 31, horizonTopic 8, noFutureDeadline 17, linkNotVerified 0, published 6
@@ -17,7 +17,7 @@
 - Duplicates across sources removed: 4 (FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
 - Published: 615
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 0 new, 0 changed, 0 closed
+- Changes since the previous import: 0 new, 1 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 368

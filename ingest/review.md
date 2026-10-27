@@ -11,6 +11,15 @@ After checking the call document, either add a rule to CALL_RULES in build.py or
 - Pursuant to Article 12(5a) of the Cyber Solidarity Act amending Article 12 of Regulation (EU) 2021/694, Article 12(5) of Regulation (EU) 2021/694 shall not apply if the conditions stipulated in Article 12(5a) are cumulatively met
 - Until the mapping is completed and in line with the relevant provisions of the Cyber Solidarity Act, participation to the calls funded under this topic will be therefore subject to the restrictions of Article 12(5), as specified in Appendix 3 of this Work Programme
 
+## HORIZON-BRIDGING-2027-01-10
+- For this reason, participation is limited to legal entities established in Member States, Iceland and Norway and associated countries
+
+## HORIZON-BRIDGING-2027-01-12
+- For this reason, participation is limited to legal entities established in Member States, Iceland and Norway and associated countries
+
+## HORIZON-BRIDGING-2027-01-13
+- For this reason, participation is limited to legal entities established in Member States, Iceland and Norway and the following additional associated countries : Canada, Israel, Republic of Korea, New-Zealand, United Kingdom, Switzerland and Japan
+
 ## HORIZON-CL4-2027-01-MAT-PROD-02
 - Examples of advanced manufacturing technologies and machinery include, but are not restricted to:
  - Innovative additive manufacturing;
@@ -46,15 +55,6 @@ After checking the call document, either add a rule to CALL_RULES in build.py or
 
 ## HORIZON-JU-EUROHPC-2026-SPT-10-01
 - 5 of the HE Regulation, the Governing Board has decided that in order to achieve the expected outcomes, and safeguard the Union’s strategic assets, interests, autonomy, or security participation is limited to legal entities established in Member States or Participating States of the EuroHPC JU [ At the moment of the adoption of the Amendment No 5, the Participating States of EuroHPC JU are Albania, Austria, Belgium, Bulgaria, Croatia, Cyprus, Czechia, Denmark, Estonia, Finland, France, Germany, 
-
-## HORIZON-BRIDGING-2027-01-10
-- For this reason, participation is limited to legal entities established in Member States, Iceland and Norway and associated countries
-
-## HORIZON-BRIDGING-2027-01-12
-- For this reason, participation is limited to legal entities established in Member States, Iceland and Norway and associated countries
-
-## HORIZON-BRIDGING-2027-01-13
-- For this reason, participation is limited to legal entities established in Member States, Iceland and Norway and the following additional associated countries : Canada, Israel, Republic of Korea, New-Zealand, United Kingdom, Switzerland and Japan
 
 ## HORIZON-CL3-2027-02-CS-ECCC-01
 - Other Eligible Conditions

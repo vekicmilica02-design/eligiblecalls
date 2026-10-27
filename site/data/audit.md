@@ -1,7 +1,7 @@
-# Import audit — 2026-10-26T22:53:21.000Z
+# Import audit — 2026-10-27T01:08:52.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1204 rows, 1110 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-26 23:53 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 269
+- Search results (types grant/cfp/cascade, status Open): 1205 rows, 1111 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-27 02:08 Brussels, deadlines counted at 17:00 Brussels): 419, of which forthcoming: 269
 - Not published by design: EU external action calls 21 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -15,7 +15,7 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 4 (FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 614
+- Published: 615
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
 - Changes since the previous import: 1 new, 0 changed, 0 closed
 
@@ -27,7 +27,7 @@
 - CREA: 19
 - EEANORWAY: 15
 - EIT: 12
-- CERV: 11
+- CERV: 12
 - ESA: 9
 - EDF: 9
 - PARTNERSHIPS: 6
@@ -45,8 +45,8 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- N: 5340
-- Y: 16427
+- N: 5357
+- Y: 16454
 - P: 196
 - C: 5053
 

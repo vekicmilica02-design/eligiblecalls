@@ -1,11 +1,11 @@
-# Import audit — 2026-10-28T07:20:23.000Z
+# Import audit — 2026-10-28T09:07:20.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1204 rows, 1109 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-28 08:20 Brussels, deadlines counted at 17:00 Brussels): 419, of which forthcoming: 263
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-28 10:07 Brussels, deadlines counted at 17:00 Brussels): 419, of which forthcoming: 263
 - Not published by design: EU external action calls 20 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 174, noFutureDeadline 69, noOrganiserLink 11, linkNotVerified 53, published 41
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 174, noFutureDeadline 69, noOrganiserLink 11, linkNotVerified 50, published 44
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 33, noFutureDeadline 1, linkNotVerified 1, published 31
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 24, noFutureDeadline 9, linkNotVerified 0, published 15
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 31, horizonTopic 8, noFutureDeadline 17, linkNotVerified 0, published 6
@@ -13,17 +13,17 @@
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 17, noFutureDeadline 0, linkNotVerified 0, published 12
 - ESA Business Applications funding (business.esa.int): OK · listed 13, noClosingDate 4, noFutureDeadline 0, published 9
 
-- Dropped at build: 0
+- Dropped at build: 2
 - Duplicates across sources removed: 4 (FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 611
+- Published: 612
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 0 new, 0 changed, 0 closed
+- Changes since the previous import: 1 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 367
 - UKRI: 82
 - INTERREG: 31
-- DIGITAL: 24
+- DIGITAL: 25
 - CREA: 19
 - EEANORWAY: 15
 - EIT: 12
@@ -47,7 +47,7 @@
 ## Eligibility answers (calls × countries)
 - Y: 16451
 - N: 5229
-- C: 5009
+- C: 5053
 - P: 195
 
 ## Calls with call-specific country rules
@@ -64,3 +64,5 @@
 - EUBA-EFSA-2026-PLANTS-01
 
 ## Dropped
+- FSTP-12447: ['URL is not call-specific']
+- FSTP-12621: ['URL is not call-specific']

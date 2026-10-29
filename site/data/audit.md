@@ -1,7 +1,7 @@
-# Import audit — 2026-10-29T09:09:06.000Z
+# Import audit — 2026-10-29T11:02:34.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1202 rows, 1105 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-29 10:09 Brussels, deadlines counted at 17:00 Brussels): 415, of which forthcoming: 249
+- Search results (types grant/cfp/cascade, status Open): 1203 rows, 1106 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-29 12:02 Brussels, deadlines counted at 17:00 Brussels): 416, of which forthcoming: 249
 - Not published by design: EU external action calls 20 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -15,9 +15,9 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 4 (FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 605
+- Published: 606
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 2 new, 0 changed, 0 closed
+- Changes since the previous import: 1 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 363
@@ -31,8 +31,8 @@
 - ESA: 9
 - EDF: 9
 - PARTNERSHIPS: 6
+- OTHER: 5
 - I3: 4
-- OTHER: 4
 - EUBA: 3
 - ISF: 2
 - EURATOM: 2
@@ -45,7 +45,7 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4833
+- C: 4877
 - N: 5297
 - Y: 16294
 - P: 196

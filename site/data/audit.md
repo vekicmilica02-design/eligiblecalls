@@ -1,11 +1,11 @@
-# Import audit — 2026-10-30T01:22:30.000Z
+# Import audit — 2026-10-30T03:05:07.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1203 rows, 1106 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-30 02:22 Brussels, deadlines counted at 17:00 Brussels): 415, of which forthcoming: 249
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-30 04:05 Brussels, deadlines counted at 17:00 Brussels): 415, of which forthcoming: 249
 - Not published by design: EU external action calls 20 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 177, noFutureDeadline 69, noOrganiserLink 12, linkNotVerified 53, published 43
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 177, noFutureDeadline 69, noOrganiserLink 12, linkNotVerified 51, published 45
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 33, noFutureDeadline 2, linkNotVerified 0, published 31
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 23, noFutureDeadline 9, linkNotVerified 0, published 14
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 31, horizonTopic 8, noFutureDeadline 18, linkNotVerified 0, published 5
@@ -15,9 +15,9 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 4 (FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 602
+- Published: 604
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 0 new, 0 changed, 1 closed
+- Changes since the previous import: 2 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 363
@@ -33,9 +33,9 @@
 - PARTNERSHIPS: 5
 - OTHER: 5
 - I3: 4
+- EURATOM: 4
 - EUBA: 3
 - ISF: 2
-- EURATOM: 2
 - JTM: 2
 - SOCPL: 1
 - PPPA: 1
@@ -44,7 +44,7 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4830
+- C: 4918
 - N: 5171
 - P: 196
 - Y: 16291

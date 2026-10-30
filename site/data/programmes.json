@@ -2023,7 +2023,7 @@
    "countries": null,
    "source": "EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology)",
    "note": "Calls from EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 13
+   "openCalls": 10
   },
   {
    "id": "ESA",

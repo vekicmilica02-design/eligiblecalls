@@ -1,7 +1,7 @@
-# Import audit — 2026-10-30T15:10:31.000Z
+# Import audit — 2026-10-30T17:00:33.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1202 rows, 1105 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-30 16:10 Brussels, deadlines counted at 17:00 Brussels): 416, of which forthcoming: 250
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-30 18:00 Brussels, deadlines counted at 17:00 Brussels): 416, of which forthcoming: 250
 - Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -10,14 +10,14 @@
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 23, noFutureDeadline 9, linkNotVerified 0, published 14
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 31, horizonTopic 8, noFutureDeadline 18, linkNotVerified 0, published 5
 - UKRI Funding Finder (ukri.org): OK · listed 144, inviteOnly 6, noFutureDeadline 60, published 78
-- EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 18, noFutureDeadline 0, linkNotVerified 0, published 13
+- EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 15, noFutureDeadline 0, linkNotVerified 0, published 10
 - ESA Business Applications funding (business.esa.int): OK · listed 13, noClosingDate 4, noFutureDeadline 0, published 9
 
 - Dropped at build: 2
 - Duplicates across sources removed: 4 (FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 605
+- Published: 602
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 0 new, 0 changed, 0 closed
+- Changes since the previous import: 0 new, 0 changed, 3 closed
 
 ## Calls by programme
 - HORIZON: 363
@@ -26,8 +26,8 @@
 - DIGITAL: 26
 - CREA: 19
 - EEANORWAY: 14
-- EIT: 13
 - CERV: 12
+- EIT: 10
 - ESA: 9
 - EDF: 9
 - OTHER: 6
@@ -44,9 +44,9 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4962
 - N: 5171
 - P: 196
+- C: 4830
 - Y: 16291
 
 ## Calls with call-specific country rules

@@ -1,8 +1,8 @@
-# Import audit — 2026-10-30T10:59:36.000Z
+# Import audit — 2026-10-30T13:16:30.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1202 rows, 1105 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-30 11:59 Brussels, deadlines counted at 17:00 Brussels): 415, of which forthcoming: 249
-- Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-10-30 14:16 Brussels, deadlines counted at 17:00 Brussels): 416, of which forthcoming: 250
+- Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
 - EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 177, noFutureDeadline 69, noOrganiserLink 12, linkNotVerified 51, published 45
@@ -15,9 +15,9 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 4 (FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 604
+- Published: 605
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 0 new, 0 changed, 0 closed
+- Changes since the previous import: 1 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 363
@@ -30,8 +30,8 @@
 - CERV: 12
 - ESA: 9
 - EDF: 9
+- OTHER: 6
 - PARTNERSHIPS: 5
-- OTHER: 5
 - I3: 4
 - EURATOM: 4
 - EUBA: 3
@@ -44,7 +44,7 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4918
+- C: 4962
 - N: 5171
 - P: 196
 - Y: 16291

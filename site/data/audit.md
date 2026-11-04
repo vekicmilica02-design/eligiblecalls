@@ -1,29 +1,29 @@
-# Import audit — 2026-11-04T00:40:27.000Z
+# Import audit — 2026-11-04T18:03:44.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1195 rows, 1109 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-04 01:40 Brussels, deadlines counted at 17:00 Brussels): 417, of which forthcoming: 249
-- Not published by design: EU external action calls 17 (the call page needs EU Login and could not be verified)
+- Search results (types grant/cfp/cascade, status Open): 1199 rows, 1112 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-04 19:03 Brussels, deadlines counted at 17:00 Brussels): 417, of which forthcoming: 248
+- Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 170, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 47, published 44
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 172, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 47, published 46
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 31, noFutureDeadline 2, linkNotVerified 0, published 29
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 23, noFutureDeadline 9, linkNotVerified 0, published 14
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 10, linkNotVerified 0, published 5
-- UKRI Funding Finder (ukri.org): OK · listed 147, inviteOnly 6, noFutureDeadline 60, published 81
+- UKRI Funding Finder (ukri.org): OK · listed 143, inviteOnly 6, noFutureDeadline 60, published 77
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 15, noFutureDeadline 0, linkNotVerified 0, published 10
 - ESA Business Applications funding (business.esa.int): OK · listed 13, noClosingDate 4, noFutureDeadline 0, published 9
 
 - Dropped at build: 2
-- Duplicates across sources removed: 6 (FSTP-16981; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 601
+- Duplicates across sources removed: 6 (FSTP-16961; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
+- Published: 599
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 1 new, 0 changed, 3 closed
+- Changes since the previous import: 6 new, 2 changed, 8 closed
 
 ## Calls by programme
 - HORIZON: 360
-- UKRI: 81
+- UKRI: 77
 - INTERREG: 29
-- DIGITAL: 26
+- DIGITAL: 27
 - CREA: 19
 - EEANORWAY: 14
 - CERV: 12
@@ -33,8 +33,8 @@
 - OTHER: 6
 - PARTNERSHIPS: 5
 - I3: 4
+- EUBA: 4
 - EURATOM: 4
-- EUBA: 3
 - PPPA: 2
 - ISF: 2
 - JTM: 2
@@ -44,10 +44,10 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- Y: 16293
-- N: 5219
-- C: 4743
+- N: 5132
 - P: 189
+- C: 4787
+- Y: 16248
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

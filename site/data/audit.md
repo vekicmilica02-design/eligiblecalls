@@ -1,11 +1,11 @@
-# Import audit — 2026-11-03T19:14:45.000Z
+# Import audit — 2026-11-04T00:40:27.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1197 rows, 1109 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-03 20:14 Brussels, deadlines counted at 17:00 Brussels): 417, of which forthcoming: 249
+- Search results (types grant/cfp/cascade, status Open): 1195 rows, 1109 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-04 01:40 Brussels, deadlines counted at 17:00 Brussels): 417, of which forthcoming: 249
 - Not published by design: EU external action calls 17 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 172, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 47, published 46
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 170, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 47, published 44
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 31, noFutureDeadline 2, linkNotVerified 0, published 29
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 23, noFutureDeadline 9, linkNotVerified 0, published 14
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 10, linkNotVerified 0, published 5
@@ -14,13 +14,13 @@
 - ESA Business Applications funding (business.esa.int): OK · listed 13, noClosingDate 4, noFutureDeadline 0, published 9
 
 - Dropped at build: 2
-- Duplicates across sources removed: 6 (FSTP-16961; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 603
+- Duplicates across sources removed: 6 (FSTP-16981; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
+- Published: 601
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 1 new, 0 changed, 2 closed
+- Changes since the previous import: 1 new, 0 changed, 3 closed
 
 ## Calls by programme
-- HORIZON: 362
+- HORIZON: 360
 - UKRI: 81
 - INTERREG: 29
 - DIGITAL: 26
@@ -44,9 +44,9 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4831
 - Y: 16293
 - N: 5219
+- C: 4743
 - P: 189
 
 ## Calls with call-specific country rules

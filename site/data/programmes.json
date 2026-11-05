@@ -189,7 +189,7 @@
     ]
    },
    "note": "",
-   "openCalls": 360
+   "openCalls": 340
   },
   {
    "id": "EURATOM",
@@ -953,7 +953,7 @@
     ]
    },
    "note": "",
-   "openCalls": 12
+   "openCalls": 7
   },
   {
    "id": "SMP",
@@ -2012,7 +2012,7 @@
    "countries": null,
    "source": "UKRI Funding Finder (ukri.org)",
    "note": "Calls from UKRI Funding Finder (ukri.org). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 77
+   "openCalls": 76
   },
   {
    "id": "EIT",

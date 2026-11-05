@@ -1,11 +1,11 @@
-# Import audit — 2026-11-05T16:32:18.000Z
+# Import audit — 2026-11-05T23:42:22.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1173 rows, 1086 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-05 17:32 Brussels, deadlines counted at 17:00 Brussels): 392, of which forthcoming: 248
-- Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-06 00:42 Brussels, deadlines counted at 17:00 Brussels): 392, of which forthcoming: 248
+- Not published by design: EU external action calls 17 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 171, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 45, published 47
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 172, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 45, published 48
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 29, noFutureDeadline 2, linkNotVerified 0, published 27
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 23, noFutureDeadline 9, linkNotVerified 0, published 14
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 11, linkNotVerified 0, published 4
@@ -15,12 +15,12 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 6 (FSTP-16981; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 569
+- Published: 570
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 3 new, 2 changed, 29 closed
+- Changes since the previous import: 1 new, 1 changed, 0 closed
 
 ## Calls by programme
-- HORIZON: 340
+- HORIZON: 341
 - UKRI: 76
 - INTERREG: 27
 - DIGITAL: 27
@@ -44,7 +44,7 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4743
+- C: 4787
 - Y: 15149
 - N: 4965
 - P: 179

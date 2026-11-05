@@ -1,7 +1,7 @@
-# Import audit — 2026-11-04T23:45:17.000Z
+# Import audit — 2026-11-05T06:58:13.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1198 rows, 1112 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-05 00:45 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 248
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-05 07:58 Brussels, deadlines counted at 17:00 Brussels): 418, of which forthcoming: 248
 - Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -11,13 +11,13 @@
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 11, linkNotVerified 0, published 4
 - UKRI Funding Finder (ukri.org): OK · listed 143, inviteOnly 6, noFutureDeadline 60, published 77
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 15, noFutureDeadline 0, linkNotVerified 0, published 10
-- ESA Business Applications funding (business.esa.int): OK · listed 13, noClosingDate 4, noFutureDeadline 1, published 8
+- ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 
 - Dropped at build: 2
 - Duplicates across sources removed: 6 (FSTP-16981; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 596
+- Published: 595
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 2 new, 0 changed, 5 closed
+- Changes since the previous import: 0 new, 0 changed, 1 closed
 
 ## Calls by programme
 - HORIZON: 360
@@ -29,7 +29,7 @@
 - CERV: 12
 - EIT: 10
 - EDF: 9
-- ESA: 8
+- ESA: 7
 - OTHER: 7
 - I3: 4
 - PARTNERSHIPS: 4
@@ -46,7 +46,7 @@
 ## Eligibility answers (calls × countries)
 - Y: 16227
 - N: 5031
-- C: 4787
+- C: 4743
 - P: 179
 
 ## Calls with call-specific country rules

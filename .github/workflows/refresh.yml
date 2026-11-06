@@ -1,12 +1,18 @@
 name: Refresh calls
 
 on:
+  # The 2-hour refresh is started by the Cloudflare Worker "eligiblecalls-refresh" (cron "17 */2 * * *",
+  # worker/refresh-timer.js), because GitHub delays or skips scheduled runs under load.
+  # The daily schedule below is a fallback in case the Worker stops (for example an expired token).
   schedule:
-    - cron: "17 */2 * * *"   # every 2 hours (UTC), off the hour to avoid queue peaks. About 3 minutes a run,
-                             # about 1,100 Actions minutes a month: inside the 2,000 free minutes of a private repository.
-                             # Hourly ("17 * * * *") needs about 2,200 minutes: only for a public repository.
+    - cron: "53 4 * * *"     # daily fallback
     - cron: "41 6 * * 1"     # Mondays: also check the lists of participating countries
   workflow_dispatch:
+    inputs:
+      lists:
+        description: "Also check the lists of participating countries"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -86,7 +92,7 @@ jobs:
           fi
 
       - name: Check lists of participating countries (weekly)
-        if: github.event.schedule == '41 6 * * 1' || github.event_name == 'workflow_dispatch'
+        if: github.event.schedule == '41 6 * * 1' || inputs.lists == true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#fffcf3" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#232323" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fffcf3" id="themeColor">
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <title>Eligible Calls</title>
-<script>try { var th = JSON.parse(localStorage.getItem("konkursi.theme")); if (th === "dark" || th === "light") document.documentElement.dataset.theme = th; } catch (e) {}</script>
+<script>/* Light by default; dark only when the visitor picked it with the theme button (kept on this device). */
+var th = "light"; try { if (JSON.parse(localStorage.getItem("konkursi.theme")) === "dark") th = "dark"; } catch (e) {}
+document.documentElement.dataset.theme = th; if (th === "dark") document.getElementById("themeColor").content = "#232323";</script>
 <meta name="description" content="Open EU funding calls from the Funding & Tenders Portal, with eligibility checked for your country.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1631,10 +1632,10 @@ function applyLang() {
 }
 document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => { lang = b.dataset.lang; store.set("lang", lang); applyLang(); route(); }));
 document.querySelectorAll('[data-nav="home"], nav.main a[data-route="home"]').forEach((a) => a.addEventListener("click", (e) => { if (location.hash === "" || location.hash === "#") { e.preventDefault(); route(); } }));
-/* Light / dark: follows the system until the visitor picks one; the choice is kept on this device. */
+/* Light / dark: light by default; the visitor's choice is kept on this device. */
 const darkNow = () => document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
 function syncThemeBtn() { const b = document.getElementById("themeBtn"); if (b) { const d = darkNow(); b.setAttribute("aria-label", d ? (lang === "sr" ? "Svetla tema" : "Switch to light theme") : (lang === "sr" ? "Tamna tema" : "Switch to dark theme")); b.title = b.getAttribute("aria-label"); } }
-document.getElementById("themeBtn").addEventListener("click", () => { const next = darkNow() ? "light" : "dark"; document.documentElement.dataset.theme = next; store.set("theme", next); syncThemeBtn(); Wave.refresh(); });
+document.getElementById("themeBtn").addEventListener("click", () => { const next = darkNow() ? "light" : "dark"; document.documentElement.dataset.theme = next; store.set("theme", next); document.getElementById("themeColor").content = next === "dark" ? "#232323" : "#fffcf3"; syncThemeBtn(); Wave.refresh(); });
 if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", syncThemeBtn);
 lang = store.get("lang", "en") === "sr" ? "sr" : "en";
 syncThemeBtn();

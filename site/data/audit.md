@@ -1,14 +1,14 @@
-# Import audit — 2026-11-06T18:17:26.000Z
+# Import audit — 2026-11-06T20:17:30.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1174 rows, 1087 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-06 19:17 Brussels, deadlines counted at 17:00 Brussels): 392, of which forthcoming: 248
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-06 21:17 Brussels, deadlines counted at 17:00 Brussels): 392, of which forthcoming: 248
 - Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
 - EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 172, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 45, published 48
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 29, noFutureDeadline 2, linkNotVerified 1, published 26
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 24, noFutureDeadline 9, linkNotVerified 0, published 15
-- ERA-LEARN call calendar (European partnerships' joint calls): FAILED (RuntimeError: call calendar unavailable), kept last good data from 2026-11-06T16:18:51.000Z · listed 21, horizonTopic 6, noFutureDeadline 11, linkNotVerified 0, published 4
+- ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 11, linkNotVerified 0, published 4
 - UKRI Funding Finder (ukri.org): OK · listed 140, inviteOnly 3, noFutureDeadline 60, published 77
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 15, noFutureDeadline 0, linkNotVerified 0, published 10
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7

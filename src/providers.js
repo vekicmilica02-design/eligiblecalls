@@ -1,5 +1,7 @@
 // LLM providers. Each returns { stream: AsyncIterable<string>, usage: () => {in, out} | null }.
 // Workers AI is the main provider (free daily allocation), Groq the fallback (free tier).
+// Groq's free limits apply per model, so the fallback is a chain of Groq models, each with its own
+// daily token counter.
 
 export const NEURONS_PER_M = {
   // Cloudflare Workers AI pricing page, neurons per million tokens (input, output)
@@ -7,6 +9,33 @@ export const NEURONS_PER_M = {
   "@cf/mistralai/mistral-small-3.1-24b-instruct": [31876, 50488],
   "@cf/openai/gpt-oss-120b": [31818, 68182],
 };
+
+// Groq free-tier limits per model (tokens per day, tokens per minute), from console.groq.com
+// Settings > Limits as summarised in August 2026. Check them there if Groq changes its plans.
+// Order = fallback order: strongest first, smallest last.
+export const GROQ_FREE = [
+  { model: "openai/gpt-oss-120b", tpd: 200000, tpm: 8000 },
+  { model: "openai/gpt-oss-20b", tpd: 200000, tpm: 8000 },
+  { model: "llama-3.3-70b-versatile", tpd: 100000, tpm: 12000 },
+  { model: "llama-3.1-8b-instant", tpd: 500000, tpm: 6000 },
+];
+
+// The Groq chain for this deployment, with a daily budget at 95% of each limit.
+//   GROQ_MODELS = "model:tpd:tpm,model:tpd:tpm"  replaces the chain
+//   GROQ_MODEL (+ GROQ_DAILY_TOKENS)              one model only (earlier setting, still honoured)
+export function groqModels(env) {
+  if (env.GROQ_MODELS) {
+    return String(env.GROQ_MODELS).split(",").map((x) => x.trim()).filter(Boolean).map((x) => {
+      const [model, tpd, tpm] = x.split(":");
+      return { model, budget: Math.floor(0.95 * (+tpd || 100000)), tpm: +tpm || 6000 };
+    });
+  }
+  if (env.GROQ_MODEL) {
+    const known = GROQ_FREE.find((m) => m.model === env.GROQ_MODEL);
+    return [{ model: env.GROQ_MODEL, budget: +env.GROQ_DAILY_TOKENS || Math.floor(0.95 * (known ? known.tpd : 100000)), tpm: known ? known.tpm : 6000 }];
+  }
+  return GROQ_FREE.map((m) => ({ model: m.model, budget: Math.floor(0.95 * m.tpd), tpm: m.tpm }));
+}
 
 export class ProviderError extends Error {
   constructor(code, status, detail) { super(code); this.code = code; this.status = status; this.detail = detail; }
@@ -69,9 +98,8 @@ export async function workersAI(env, messages, maxTokens) {
   return { provider: "workers-ai", model, stream: gen(), usage: () => usage };
 }
 
-export async function groq(env, messages, maxTokens, fetchImpl = fetch) {
+export async function groq(env, messages, maxTokens, fetchImpl = fetch, model = "openai/gpt-oss-120b") {
   if (!env.GROQ_API_KEY) throw new ProviderError("not_configured");
-  const model = env.GROQ_MODEL || "openai/gpt-oss-120b";
   const base = { model, messages, stream: true, max_tokens: maxTokens, temperature: 0.3 };
   const extra = /gpt-oss/.test(model) ? { reasoning_effort: "low", include_reasoning: false } : {};
   const call = (payload) => fetchImpl("https://api.groq.com/openai/v1/chat/completions", {
@@ -83,7 +111,10 @@ export async function groq(env, messages, maxTokens, fetchImpl = fetch) {
   if (r.status === 400 && Object.keys(extra).length) r = await call(base); // older API without the reasoning options
   if (!r.ok) {
     const detail = (await r.text().catch(() => "")).slice(0, 300);
-    throw new ProviderError(r.status === 429 ? "quota" : "provider_error", r.status, detail);
+    // 429 names the limit hit: tokens/requests per day (TPD, RPD) or per minute (TPM, RPM).
+    // 413: the request alone is larger than the model's per-minute limit.
+    const code = r.status === 429 ? (/per day|\bTPD\b|\bRPD\b/i.test(detail) ? "quota" : "busy") : r.status === 413 ? "busy" : "provider_error";
+    throw new ProviderError(code, r.status, detail);
   }
   let usage = null;
   async function* gen() {

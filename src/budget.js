@@ -3,12 +3,20 @@
 export const utcDay = (now) => new Date(now).toISOString().slice(0, 10);
 export const nextReset = (now) => { const d = new Date(now); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1); };
 
+// Provider keys: "workers-ai", and "groq:<model>" for each model of the Groq chain. Rows written before the
+// chain existed use "groq" for openai/gpt-oss-120b; groqTokens() counts them for that model.
 export async function getUsage(db, day) {
   const out = { "workers-ai": { neurons: 0, tokens: 0, requests: 0 }, groq: { neurons: 0, tokens: 0, requests: 0 } };
   if (!db) return out;
   const { results } = await db.prepare("SELECT provider, neurons, tokens, requests FROM usage WHERE day = ?").bind(day).all();
   for (const r of results || []) out[r.provider] = { neurons: r.neurons, tokens: r.tokens, requests: r.requests };
   return out;
+}
+
+export const groqKey = (model) => "groq:" + model;
+export function groqTokens(usage, model) {
+  const u = usage[groqKey(model)];
+  return (u ? u.tokens : 0) + (model === "openai/gpt-oss-120b" && usage.groq ? usage.groq.tokens : 0);
 }
 
 export async function addUsage(db, day, provider, neurons, tokens) {

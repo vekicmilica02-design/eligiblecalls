@@ -1,7 +1,7 @@
 // POST /api/chat handler. Shared by the Pages Function and the local test server.
 import { cleanRequest, buildMessages, estTokens, LIMITS } from "./core.js";
-import { workersAI, groq, neurons, ProviderError } from "./providers.js";
-import { utcDay, nextReset, getUsage, addUsage, visitorHit, visitorHash } from "./budget.js";
+import { workersAI, groq, groqModels, neurons, ProviderError } from "./providers.js";
+import { utcDay, nextReset, getUsage, addUsage, groqKey, groqTokens, visitorHit, visitorHash } from "./budget.js";
 
 let INDEX = null;
 async function loadIndex(env, url) {
@@ -47,35 +47,54 @@ export async function handleChat({ request, env, waitUntil = (p) => p, now = Dat
 
   const usage = await getUsage(db, day);
   const neuronBudget = num(env.DAILY_NEURON_BUDGET, 9000);
-  const groqBudget = num(env.GROQ_DAILY_TOKENS, 190000);
   const wModel = env.AI_MODEL || "@cf/meta/llama-4-scout-17b-16e-instruct";
+  // Fallback chain: Workers AI, then each Groq model with daily tokens left. A Groq model whose
+  // per-minute limit is smaller than the request gets the same question with fewer matching calls
+  // (built only when that model is actually tried, to keep CPU time low).
   const order = [];
-  if (env.AI && usage["workers-ai"].neurons + neurons(wModel, tokIn, maxOut) <= neuronBudget) order.push("workers-ai");
-  if (env.GROQ_API_KEY && usage.groq.tokens + tokIn + maxOut <= groqBudget) order.push("groq");
+  if (env.AI && usage["workers-ai"].neurons + neurons(wModel, tokIn, maxOut) <= neuronBudget) order.push({ provider: "workers-ai", built, maxOut });
+  if (env.GROQ_API_KEY) {
+    for (const g of groqModels(env)) {
+      if (groqTokens(usage, g.model) + Math.min(tokIn + maxOut, 0.9 * g.tpm) <= g.budget) order.push({ provider: "groq", model: g.model, budget: g.budget, tpm: g.tpm, built, maxOut });
+    }
+  }
+  const fit = (o) => {
+    let t = tokIn;
+    for (const limit of [5, 3]) {
+      if (t + o.maxOut <= 0.9 * o.tpm) return true;
+      o.built = buildMessages(index, req, now, { limit }); o.maxOut = Math.min(maxOut, 800);
+      t = estTokens(o.built.messages.map((m) => m.content).join("\n"));
+    }
+    return t + o.maxOut <= 0.9 * o.tpm;
+  };
   if (!order.length) return json({ error: "resting", resetAt: new Date(nextReset(now)).toISOString() }, 503);
 
   const perVisitor = num(env.DAILY_VISITOR_LIMIT, 10);
   const count = await visitorHit(db, day, await visitorHash(ip, day, env.HASH_SALT || "eligiblecalls"));
   if (count > perVisitor) return json({ error: "visitor_limit", limit: perVisitor, resetAt: new Date(nextReset(now)).toISOString() }, 429);
 
-
-  let run = null, lastErr = null;
-  for (const p of order) {
+  let run = null, used = null, lastErr = null, busy = false;
+  for (const o of order) {
+    if (o.provider === "groq" && !fit(o)) continue;
     try {
-      run = p === "workers-ai" ? await workersAI(env, built.messages, maxOut) : await groq(env, built.messages, maxOut, fetchImpl);
+      run = o.provider === "workers-ai" ? await workersAI(env, o.built.messages, o.maxOut) : await groq(env, o.built.messages, o.maxOut, fetchImpl, o.model);
+      used = o;
       break;
     } catch (e) {
       lastErr = e;
-      if (p === "workers-ai" && e instanceof ProviderError && e.code === "quota") {
-        // free allocation used up outside our counter: mark the budget as spent for today
-        waitUntil(addUsage(db, day, "workers-ai", neuronBudget, 0).catch(() => {}));
-      }
+      const code = e instanceof ProviderError ? e.code : "";
+      if (code === "busy") busy = true;
+      // Allowance used up outside our counter: mark it as spent for today.
+      if (code === "quota" && o.provider === "workers-ai") waitUntil(addUsage(db, day, "workers-ai", neuronBudget, 0).catch(() => {}));
+      if (code === "quota" && o.provider === "groq") waitUntil(addUsage(db, day, groqKey(o.model), 0, o.budget).catch(() => {}));
     }
   }
   if (!run) {
+    if (busy) return json({ error: "rate_limited" }, 429);
     const quota = lastErr instanceof ProviderError && lastErr.code === "quota";
     return json({ error: quota ? "resting" : "provider_error", resetAt: quota ? new Date(nextReset(now)).toISOString() : undefined }, 503);
   }
+  const usageKey = run.provider === "groq" ? groqKey(run.model) : run.provider;
 
   const enc = new TextEncoder();
   const { readable, writable } = new TransformStream();
@@ -84,7 +103,7 @@ export async function handleChat({ request, env, waitUntil = (p) => p, now = Dat
   const pump = (async () => {
     let out = "";
     try {
-      await send({ meta: { provider: run.provider, country: built.country, calls: built.hits } });
+      await send({ meta: { provider: run.provider, model: run.model, country: used.built.country, calls: used.built.hits } });
       // Small batches instead of one event per token: fewer writes, less CPU time.
       let buf = "";
       for await (const t of run.stream) {
@@ -97,9 +116,9 @@ export async function handleChat({ request, env, waitUntil = (p) => p, now = Dat
       try { await send({ error: "interrupted" }); } catch {}
     } finally {
       try { await w.close(); } catch {}
-      const u = run.usage() || { in: tokIn, out: estTokens(out) };
+      const u = run.usage() || { in: estTokens(used.built.messages.map((m) => m.content).join("\n")), out: estTokens(out) };
       const n = run.provider === "workers-ai" ? neurons(run.model, u.in, u.out) : 0;
-      await addUsage(db, day, run.provider, n, u.in + u.out).catch(() => {});
+      await addUsage(db, day, usageKey, n, u.in + u.out).catch(() => {});
     }
   })();
   waitUntil(pump);
@@ -114,7 +133,7 @@ export async function handleHealth({ env, now = Date.now() }) {
   const wModel = env.AI_MODEL || "@cf/meta/llama-4-scout-17b-16e-instruct";
   const est = neurons(wModel, 5000, LIMITS.maxOutput);
   const wOk = !!env.AI && (!usage || usage["workers-ai"].neurons + est <= num(env.DAILY_NEURON_BUDGET, 9000));
-  const gOk = !!env.GROQ_API_KEY && (!usage || usage.groq.tokens + 6000 <= num(env.GROQ_DAILY_TOKENS, 190000));
+  const gOk = !!env.GROQ_API_KEY && groqModels(env).some((g) => !usage || groqTokens(usage, g.model) + Math.min(6000, 0.9 * g.tpm) <= g.budget);
   return json({
     ok: true,
     chat: env.CHAT_ENABLED !== "false" && (wOk || gOk),

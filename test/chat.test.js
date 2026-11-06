@@ -133,12 +133,57 @@ await t("falls back to Groq when the Workers AI allocation is used up", async ()
   const body = JSON.parse(log.find((x) => String(x.url).includes("groq")).init.body);
   assert.equal(body.model, "openai/gpt-oss-120b"); assert.equal(body.stream, true);
   const rows = Object.fromEntries(e.DB._db.prepare("SELECT * FROM usage").all().map((r) => [r.provider, r]));
-  assert.equal(rows["workers-ai"].neurons, 9000); assert.equal(rows.groq.tokens, 3200);
+  assert.equal(rows["workers-ai"].neurons, 9000); assert.equal(rows["groq:openai/gpt-oss-120b"].tokens, 3200);
+});
+
+const TPD = (m) => `Rate limit reached for model \`${m}\` in organization \`org_x\` service tier \`on_demand\` on tokens per day (TPD): Limit 200000, Used 199500, Requested 5000.`;
+const TPM = (m) => `Rate limit reached for model \`${m}\` in organization \`org_x\` service tier \`on_demand\` on tokens per minute (TPM): Limit 8000, Used 6000, Requested 5000.`;
+const groqModelsCalled = (log) => log.filter((x) => String(x.url).includes("groq")).map((x) => JSON.parse(x.init.body).model);
+
+await t("Groq chain: a model with its daily budget spent is skipped (old 'groq' rows count for gpt-oss-120b)", async () => {
+  const e = env({ AI: undefined, GROQ_API_KEY: "test" }); const log = []; const waits = [];
+  e.DB._db.prepare("INSERT INTO usage VALUES ('2026-09-30','groq',0,189000,40)").run();
+  const res = await handleChat({ request: req({ messages: [{ role: "user", content: "AI startup" }] }), env: e, now: NOW, waitUntil: (p) => waits.push(p), fetchImpl: mockFetch(log) });
+  const ev = await readSSE(res); await Promise.all(waits);
+  assert.equal(ev[0].meta.model, "openai/gpt-oss-20b");
+  assert.deepEqual(groqModelsCalled(log), ["openai/gpt-oss-20b"]);
+  const rows = Object.fromEntries(e.DB._db.prepare("SELECT * FROM usage").all().map((r) => [r.provider, r]));
+  assert.equal(rows["groq:openai/gpt-oss-20b"].tokens, 3200);
+});
+
+await t("Groq chain: a per-day 429 marks that model spent and moves on", async () => {
+  const e = env({ AI: undefined, GROQ_API_KEY: "test" }); const log = []; const waits = [];
+  const res = await handleChat({ request: req({ messages: [{ role: "user", content: "AI startup" }] }), env: e, now: NOW, waitUntil: (p) => waits.push(p),
+    fetchImpl: mockFetch(log, { groqByModel: { "openai/gpt-oss-120b": [429, TPD("openai/gpt-oss-120b")] } }) });
+  const ev = await readSSE(res); await Promise.all(waits);
+  assert.equal(ev[0].meta.model, "openai/gpt-oss-20b");
+  const rows = Object.fromEntries(e.DB._db.prepare("SELECT * FROM usage").all().map((r) => [r.provider, r]));
+  assert.equal(rows["groq:openai/gpt-oss-120b"].tokens, 190000);
+});
+
+await t("Groq chain: per-minute 429s everywhere give 'rate_limited', not 'resting'", async () => {
+  const e = env({ AI: undefined, GROQ_API_KEY: "test" }); const log = [];
+  const all = Object.fromEntries(["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"].map((m) => [m, [429, TPM(m)]]));
+  const res = await handleChat({ request: req({ messages: [{ role: "user", content: "AI startup" }] }), env: e, now: NOW, fetchImpl: mockFetch(log, { groqByModel: all }) });
+  assert.equal(res.status, 429); assert.equal((await res.json()).error, "rate_limited");
+  assert.equal(groqModelsCalled(log).length, 4);
+  assert.equal(e.DB._db.prepare("SELECT COUNT(*) n FROM usage").get().n, 0);
+});
+
+await t("Groq chain: the smallest model gets fewer calls so the request fits its per-minute limit", async () => {
+  const e = env({ AI: undefined, GROQ_API_KEY: "test" }); const log = []; const waits = [];
+  e.DB._db.prepare("INSERT INTO usage VALUES ('2026-09-30','groq:openai/gpt-oss-120b',0,190000,40),('2026-09-30','groq:openai/gpt-oss-20b',0,190000,40),('2026-09-30','groq:llama-3.3-70b-versatile',0,95000,20)").run();
+  const res = await handleChat({ request: req({ messages: [{ role: "user", content: "Research and innovation projects in digital health, AI, climate and energy" }] }), env: e, now: NOW, waitUntil: (p) => waits.push(p), fetchImpl: mockFetch(log) });
+  const ev = await readSSE(res); await Promise.all(waits);
+  assert.equal(ev[0].meta.model, "llama-3.1-8b-instant");
+  const body = JSON.parse(log.find((x) => String(x.url).includes("groq")).init.body);
+  const tok = Math.ceil(body.messages.map((m) => m.content).join("\n").length / 3.6);
+  assert.ok(tok + body.max_tokens <= 0.9 * 6000, `request ${tok} + ${body.max_tokens} tokens`);
 });
 
 await t("rests when both budgets are spent", async () => {
   const e = env({ GROQ_API_KEY: "test" });
-  e.DB._db.prepare("INSERT INTO usage VALUES ('2026-09-30','workers-ai',8990,0,50),('2026-09-30','groq',0,189000,40)").run();
+  e.DB._db.prepare("INSERT INTO usage VALUES ('2026-09-30','workers-ai',8990,0,50),('2026-09-30','groq',0,189000,40),('2026-09-30','groq:openai/gpt-oss-20b',0,190000,40),('2026-09-30','groq:llama-3.3-70b-versatile',0,95000,20),('2026-09-30','groq:llama-3.1-8b-instant',0,475000,90)").run();
   const res = await handleChat({ request: req({ messages: [{ role: "user", content: "x project" }] }), env: e, now: NOW, fetchImpl: mockFetch() });
   assert.equal(res.status, 503);
   const j = await res.json(); assert.equal(j.error, "resting"); assert.equal(j.resetAt, "2026-10-01T00:00:00.000Z");

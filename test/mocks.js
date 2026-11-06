@@ -43,11 +43,14 @@ export function mockAI(mode = "ok", seen = []) {
   } };
 }
 
-export function mockFetch(log = [], { groqStatus = 200, turnstileOk = true } = {}) {
+// groqByModel: { "<model>": [status, "error message"] } to fail chosen models of the Groq chain.
+export function mockFetch(log = [], { groqStatus = 200, turnstileOk = true, groqByModel = {} } = {}) {
   return async (url, init) => {
     log.push({ url, init });
     if (String(url).includes("turnstile")) return new Response(JSON.stringify({ success: turnstileOk }));
     if (String(url).includes("groq.com")) {
+      const model = JSON.parse(init.body).model;
+      if (groqByModel[model]) return new Response(JSON.stringify({ error: { message: groqByModel[model][1] } }), { status: groqByModel[model][0] });
       if (groqStatus !== 200) return new Response('{"error":{"message":"rate limit"}}', { status: groqStatus });
       return new Response(sseStream([{ choices: [{ delta: { content: "From Groq." } }] }, { choices: [{ delta: {} }], x_groq: { usage: { prompt_tokens: 3000, completion_tokens: 200 } } }]), { headers: { "content-type": "text/event-stream" } });
     }

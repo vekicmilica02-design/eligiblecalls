@@ -17,5 +17,5 @@ database_id = "PASTE-YOUR-D1-DATABASE-ID"
 AI_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct"
 DAILY_NEURON_BUDGET = "9000"
 DAILY_VISITOR_LIMIT = "10"
-GROQ_DAILY_TOKENS = "190000"
+# GROQ_MODELS = "openai/gpt-oss-120b:200000:8000,openai/gpt-oss-20b:200000:8000,llama-3.3-70b-versatile:100000:12000,llama-3.1-8b-instant:500000:6000"
 # Secrets (set with: npx wrangler pages secret put NAME): GROQ_API_KEY, TURNSTILE_SECRET, HASH_SALT

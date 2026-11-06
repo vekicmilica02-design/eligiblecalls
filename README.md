@@ -57,11 +57,11 @@ Nothing, within these free limits (checked 1 October 2026):
 | Pages Functions (Workers free) | 100,000 requests a day, 10 ms CPU per request | 2 requests per assistant message |
 | D1 | 5 GB, 5 million rows read and 100,000 written a day | a few rows per message |
 | Workers AI | 10,000 neurons a day | about 180 neurons per message, so about 50 messages a day |
-| Groq (fallback) | for openai/gpt-oss-120b: 30 requests a minute, 1,000 a day, 8,000 tokens a minute, 200,000 tokens a day | about 6,000 tokens per message, so about 30 messages a day, one a minute |
+| Groq (fallback) | limits per model (August 2026): gpt-oss-120b and gpt-oss-20b 200,000 tokens a day, 8,000 a minute; llama-3.3-70b-versatile 100,000 a day, 12,000 a minute; llama-3.1-8b-instant 500,000 a day, 6,000 a minute | 3,500 to 7,000 tokens per message; the four models in turn give about 150 to 200 messages a day, a few a minute |
 
 CPU time: the free plan allows 10 ms of CPU per request. Measured locally, an assistant request uses about 1 ms when the Worker is already running and about 9 ms on a cold start, which is close to the limit. If the Pages project's Functions logs show "Exceeded CPU time limit" for `/api/chat`, Workers Paid raises the limit.
 
-So the assistant handles roughly 50 to 80 messages a day for free. When both allowances are used, it says it is resting until 00:00 UTC (02:00 Brussels in summer, 01:00 in winter). Search and filters keep working. Each visitor can send 10 messages a day (`DAILY_VISITOR_LIMIT`).
+So the assistant handles roughly 200 messages a day for free (about 50 on Workers AI, 150 or more on the Groq chain). When all allowances are used, it says it is resting until 00:00 UTC (02:00 Brussels in summer, 01:00 in winter). Search and filters keep working. Each visitor can send 10 messages a day (`DAILY_VISITOR_LIMIT`).
 
 When you outgrow it: Workers Paid is $5 a month and Workers AI then costs $0.011 per 1,000 neurons beyond the free 10,000 a day, about $0.002 per assistant message. 1,000 messages a day would be about $55 a month on top of the $5. Nothing else changes until the site has far more visitors.
 
@@ -108,7 +108,10 @@ The previous project **calldar** (calldar.pages.dev, repository vekicmilica02-de
 
 1. Create a free account at console.groq.com → **API Keys → Create**.
 2. Add it to the Pages project as a **secret** named `GROQ_API_KEY`, then redeploy.
-Optional: `GROQ_MODEL` (default `openai/gpt-oss-120b`), `GROQ_DAILY_TOKENS` (default 190000).
+
+Groq's free limits apply per model, so the assistant uses a chain of Groq models after Workers AI: openai/gpt-oss-120b, openai/gpt-oss-20b, llama-3.3-70b-versatile, llama-3.1-8b-instant (`GROQ_FREE` in `src/providers.js`). Each model has its own daily counter in D1 (provider `groq:<model>`), stopped at 95% of its daily limit. A model whose per-minute limit is smaller than the request gets the question with 5 or 3 matching calls instead of 8. When Groq answers that a daily limit is reached, that model is marked spent until 00:00 UTC; when it answers that a per-minute limit is reached, the next model is tried, and if all are busy the visitor sees "Too many requests right now". The later models write weaker answers than gpt-oss-120b. Check the limits in the Groq console (Settings → Limits) if Groq changes its plans.
+
+Optional: `GROQ_MODELS` replaces the chain, as `model:tokens_per_day:tokens_per_minute` separated by commas. `GROQ_MODEL` (with `GROQ_DAILY_TOKENS`) uses a single model, as before.
 
 ### 5. Your own domain (eligiblecalls.com)
 

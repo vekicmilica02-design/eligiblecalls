@@ -1,7 +1,7 @@
-# Import audit — 2026-11-07T11:23:05.000Z
+# Import audit — 2026-11-07T12:17:28.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1176 rows, 1088 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-07 12:23 Brussels, deadlines counted at 17:00 Brussels): 392, of which forthcoming: 248
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-07 13:17 Brussels, deadlines counted at 17:00 Brussels): 392, of which forthcoming: 248
 - Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -13,17 +13,17 @@
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 15, noFutureDeadline 0, linkNotVerified 0, published 10
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 
-- Dropped at build: 0
+- Dropped at build: 1
 - Duplicates across sources removed: 6 (FSTP-16961; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 571
+- Published: 570
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 1 new, 0 changed, 1 closed
+- Changes since the previous import: 0 new, 0 changed, 1 closed
 
 ## Calls by programme
 - HORIZON: 343
 - UKRI: 77
 - INTERREG: 26
-- DIGITAL: 25
+- DIGITAL: 24
 - CREA: 19
 - EEANORWAY: 15
 - EIT: 10
@@ -44,7 +44,7 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4834
+- C: 4790
 - Y: 15150
 - N: 4963
 - P: 177
@@ -63,3 +63,4 @@
 - EUBA-EFSA-2026-PLANTS-01
 
 ## Dropped
+- FSTP-11265: ['URL is not call-specific']

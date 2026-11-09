@@ -1,7 +1,7 @@
-# Import audit — 2026-11-09T07:58:33.000Z
+# Import audit — 2026-11-09T08:17:26.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1179 rows, 1090 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-09 08:58 Brussels, deadlines counted at 17:00 Brussels): 392, of which forthcoming: 248
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-09 09:17 Brussels, deadlines counted at 17:00 Brussels): 392, of which forthcoming: 248
 - Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -14,7 +14,7 @@
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 
 - Dropped at build: 2
-- Duplicates across sources removed: 6 (FSTP-16961; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
+- Duplicates across sources removed: 6 (FSTP-16981; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
 - Published: 574
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
 - Changes since the previous import: 1 new, 0 changed, 1 closed

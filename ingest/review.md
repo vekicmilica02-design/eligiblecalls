@@ -129,6 +129,10 @@ After checking the call document, either add a rule to CALL_RULES in build.py or
  Eligible countries of establishment and restricted participation 
  In accordance with Article 48(2) of the Horizon Europe Regulation, participation is limited to SMEs, including start-ups, and small mid-caps 199 established in the Union, in Ukraine, or in an EEA member associated to Horizon Europe
 
+## HORIZON-EIC-2027-STEP
+- Eligible countries
+ In accordance with Article 48(2) of the Horizon Europe Regulation ,participation is limited to SMEs, including start-ups, and small mid-caps 196 established in the Union, in Ukraine, or in an EEA member associated to Horizon Europe
+
 ## HORIZON-EURATOM-2027-02-01
 - ]], participation is limited to legal entities established in Member States and in countries associated to the Euratom Research and Training Programme (Ukraine and Switzerland)
 

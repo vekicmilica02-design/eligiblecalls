@@ -1,7 +1,7 @@
-# Import audit — 2026-11-10T06:17:29.000Z
+# Import audit — 2026-11-10T08:17:27.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1182 rows, 1091 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-10 07:17 Brussels, deadlines counted at 17:00 Brussels): 393, of which forthcoming: 247
+- Search results (types grant/cfp/cascade, status Open): 1183 rows, 1092 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-10 09:17 Brussels, deadlines counted at 17:00 Brussels): 394, of which forthcoming: 248
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -15,12 +15,12 @@
 
 - Dropped at build: 0
 - Duplicates across sources removed: 6 (FSTP-16961; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-16641; FSTP-16501)
-- Published: 573
-- Calls with an unreviewed participation restriction (non-EU set to 'check'): 37
-- Changes since the previous import: 0 new, 0 changed, 0 closed
+- Published: 574
+- Calls with an unreviewed participation restriction (non-EU set to 'check'): 38
+- Changes since the previous import: 1 new, 0 changed, 0 closed
 
 ## Calls by programme
-- HORIZON: 344
+- HORIZON: 345
 - UKRI: 78
 - INTERREG: 26
 - DIGITAL: 25
@@ -44,10 +44,10 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- Y: 15151
-- N: 5006
+- Y: 15178
+- N: 5007
 - P: 177
-- C: 4878
+- C: 4894
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

@@ -1,16 +1,16 @@
-# Import audit — 2026-11-10T20:17:30.000Z
+# Import audit — 2026-11-10T22:17:28.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1184 rows, 1093 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-10 21:17 Brussels, deadlines counted at 17:00 Brussels): 395, of which forthcoming: 249
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-10 23:17 Brussels, deadlines counted at 17:00 Brussels): 395, of which forthcoming: 249
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
 - EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 178, noFutureDeadline 69, noOrganiserLink 10, linkNotVerified 49, published 50
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 29, noFutureDeadline 2, linkNotVerified 1, published 26
-- EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 24, noFutureDeadline 9, linkNotVerified 0, published 15
+- EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 23, noFutureDeadline 9, linkNotVerified 0, published 14
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 11, linkNotVerified 0, published 4
 - UKRI Funding Finder (ukri.org): OK · listed 141, inviteOnly 3, noFutureDeadline 59, published 79
-- EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 18, noFutureDeadline 0, linkNotVerified 1, published 12
+- EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 18, noFutureDeadline 0, linkNotVerified 0, published 13
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 
 - Dropped at build: 2
@@ -25,8 +25,8 @@
 - DIGITAL: 27
 - INTERREG: 26
 - CREA: 19
-- EEANORWAY: 15
-- EIT: 11
+- EEANORWAY: 14
+- EIT: 12
 - EDF: 8
 - OTHER: 8
 - CERV: 7
@@ -44,9 +44,9 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- N: 5037
-- Y: 15221
-- C: 4954
+- C: 4995
+- N: 4997
+- Y: 15220
 - P: 176
 
 ## Calls with call-specific country rules

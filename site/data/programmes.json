@@ -1717,7 +1717,7 @@
     ]
    },
    "note": "",
-   "openCalls": 3
+   "openCalls": 2
   },
   {
    "id": "JUST",
@@ -2001,7 +2001,7 @@
    "countries": null,
    "source": "ERA-LEARN call calendar (European partnerships' joint calls)",
    "note": "Calls from ERA-LEARN call calendar (European partnerships' joint calls). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 4
+   "openCalls": 3
   },
   {
    "id": "UKRI",

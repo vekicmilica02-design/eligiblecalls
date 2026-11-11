@@ -1,7 +1,7 @@
-# Import audit — 2026-11-11T10:17:28.000Z
+# Import audit — 2026-11-11T12:15:30.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1180 rows, 1092 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-11 11:17 Brussels, deadlines counted at 17:00 Brussels): 395, of which forthcoming: 249
+- Search results (types grant/cfp/cascade, status Open): 1181 rows, 1093 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-11 13:15 Brussels, deadlines counted at 17:00 Brussels): 396, of which forthcoming: 250
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -9,19 +9,19 @@
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 29, noFutureDeadline 2, linkNotVerified 1, published 26
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 23, noFutureDeadline 9, linkNotVerified 0, published 14
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 12, linkNotVerified 0, published 3
-- UKRI Funding Finder (ukri.org): OK · listed 141, inviteOnly 3, noFutureDeadline 59, published 79
+- UKRI Funding Finder (ukri.org): OK · listed 139, inviteOnly 3, noFutureDeadline 59, published 77
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 18, noFutureDeadline 0, linkNotVerified 0, published 13
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 
 - Dropped at build: 2
-- Duplicates across sources removed: 9 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16981; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 575
+- Duplicates across sources removed: 9 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
+- Published: 574
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 39
-- Changes since the previous import: 1 new, 0 changed, 1 closed
+- Changes since the previous import: 2 new, 0 changed, 3 closed
 
 ## Calls by programme
-- HORIZON: 345
-- UKRI: 79
+- HORIZON: 346
+- UKRI: 77
 - DIGITAL: 27
 - INTERREG: 26
 - CREA: 19
@@ -44,10 +44,10 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4907
-- N: 4997
-- Y: 15220
+- N: 4998
+- Y: 15263
 - P: 176
+- C: 4819
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

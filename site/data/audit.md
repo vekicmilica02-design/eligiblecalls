@@ -1,7 +1,7 @@
-# Import audit — 2026-11-11T12:15:30.000Z
+# Import audit — 2026-11-11T12:17:26.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1181 rows, 1093 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-11 13:15 Brussels, deadlines counted at 17:00 Brussels): 396, of which forthcoming: 250
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-11 13:17 Brussels, deadlines counted at 17:00 Brussels): 396, of which forthcoming: 250
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -14,10 +14,10 @@
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 
 - Dropped at build: 2
-- Duplicates across sources removed: 9 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
+- Duplicates across sources removed: 9 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16981; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
 - Published: 574
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 39
-- Changes since the previous import: 2 new, 0 changed, 3 closed
+- Changes since the previous import: 1 new, 0 changed, 1 closed
 
 ## Calls by programme
 - HORIZON: 346

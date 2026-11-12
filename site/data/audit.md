@@ -1,12 +1,12 @@
-# Import audit — 2026-11-12T04:17:27.000Z
+# Import audit — 2026-11-12T06:17:28.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1183 rows, 1095 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-12 05:17 Brussels, deadlines counted at 17:00 Brussels): 397, of which forthcoming: 251
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-12 07:17 Brussels, deadlines counted at 17:00 Brussels): 397, of which forthcoming: 251
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
 - EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 175, noFutureDeadline 69, noOrganiserLink 9, linkNotVerified 47, published 50
-- interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 29, noFutureDeadline 3, linkNotVerified 1, published 25
+- interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 28, noFutureDeadline 2, linkNotVerified 1, published 25
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 23, noFutureDeadline 9, linkNotVerified 0, published 14
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 12, linkNotVerified 0, published 3
 - UKRI Funding Finder (ukri.org): OK · listed 137, inviteOnly 3, noFutureDeadline 59, published 75

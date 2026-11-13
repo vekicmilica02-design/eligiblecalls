@@ -13,9 +13,16 @@ export function mockD1() {
     bind: (...a) => stmt(sql, a),
     all: async () => ({ results: db.prepare(sql).all(...args) }),
     first: async () => db.prepare(sql).get(...args) || null,
-    run: async () => { db.prepare(sql).run(...args); return { success: true }; },
+    run: async () => { const r = db.prepare(sql).run(...args); return { success: true, meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) } }; },
   });
-  return { prepare: (sql) => stmt(sql), _db: db };
+  // D1 batch: statements run in one transaction, all or nothing.
+  const batch = async (list) => {
+    db.exec("BEGIN");
+    try { const out = []; for (const s of list) out.push(/^\s*select/i.test(s._sql) ? await s.all() : await s.run()); db.exec("COMMIT"); return out; }
+    catch (e) { db.exec("ROLLBACK"); throw e; }
+  };
+  const wrap = (sql, args) => Object.assign(stmt(sql, args), { _sql: sql, bind: (...a) => wrap(sql, a) });
+  return { prepare: (sql) => wrap(sql, []), batch, _db: db };
 }
 
 export function mockAssets() {

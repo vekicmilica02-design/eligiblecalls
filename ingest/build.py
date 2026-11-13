@@ -103,6 +103,17 @@ PROGRAMMES = {
    "summary":"Interregional innovation investments under the ERDF.",
    "list":{"url":LISTS.format("i3","i3"),"version":"V1.0 – 15.11.2021"},
    "countries":{c:["Y",""] for c in EU27}, "complete":True},
+ "ERASMUS": {"fp":"43353764","name":"Erasmus+","short":"Erasmus+",
+   "summary":"EU programme for education, training, youth and sport. Calls on the Funding & Tenders Portal are the centrally managed actions (EACEA); most mobility and partnership actions are run by the national agencies.",
+   "list":{"url":"https://erasmus-plus.ec.europa.eu/programme-guide/part-a/eligible-countries","version":"V1 – 12.11.2025 (Programme Guide 2026)","kind":"erasmus-guide"},
+   "countries":{**{c:["Y",""] for c in EU27},
+                **{c:["Y","Third country associated to Erasmus+ (Programme Guide, Part A)."] for c in ["IS","LI","NO","MK","RS","TR"]},
+                **{c:["P","Third country not associated to Erasmus+ (Region 1, Western Balkans): can take part only in some actions, as set per action in Part B of the Programme Guide; usually as a partner, not as the applicant."] for c in ["AL","BA","XK","ME"]},
+                **{c:["P","Third country not associated to Erasmus+ (Region 2, Neighbourhood East): can take part only in some actions, as set per action in Part B of the Programme Guide."] for c in ["UA","MD","AM"]},
+                "GE":["P","Third country not associated to Erasmus+ (Region 2): some actions only, as set per action in Part B of the Programme Guide. Georgian authorities are not eligible under any action."],
+                **{c:["P","Third country not associated to Erasmus+ (Region 14): some actions only, as set per action in Part B of the Programme Guide."] for c in ["CH","FO"]},
+                "GB":["P","Region 14 under the 2026 Programme Guide. The UK's association to Erasmus+ was announced on 15 April 2026 for projects funded from the 2027 call: check the call document."]},
+   "complete":True},
  "JUST": {"fp":"43252386","name":"Justice Programme","short":"Justice",
    "summary":"Judicial cooperation, training of justice professionals and access to justice.",
    "list":{"url":LISTS.format("just","just"),"version":"V11.0 – 15.09.2025"},
@@ -250,6 +261,10 @@ def extra_eligibility(rec):
         elif spec.get("jointCall"):
             out[c] = (("P", "A funding organisation from this country takes part in the call (ERA-LEARN). Applicants are funded by their national funder under its own rules: check the national annex.")
                       if c in el else ("C", "No funding organisation from this country is listed for the call on ERA-LEARN. Partners from such countries can often join with their own funding. Check the call."))
+        elif spec.get("erasmus"):
+            if c in el: out[c] = ("Y", "EU Member State or third country associated to Erasmus+: the applicant applies to the national agency of its own country." + qs)
+            elif c in (spec.get("partners") or []): out[c] = ("P", "Third country not associated to Erasmus+: can take part as a partner only (not as applicant), if it brings essential added value (Programme Guide, Part B).")
+            else: out[c] = ("N", "Not an EU Member State or a third country associated to Erasmus+ for this action (Programme Guide, Part A and Part B).")
         elif spec.get("ukri"):
             if c == "GB": out[c] = ("Y", "UK organisations that meet UKRI's eligibility rules can apply." + qs)
             elif spec.get("norway") and c == "NO": out[c] = ("P", "Under the UKRI and Research Council of Norway Money Follows Cooperation agreement, a project co-lead can be based in a Norwegian institution." + qs)
@@ -325,6 +340,8 @@ def applicants_for(rec, fulltext):
 def partnership_for(rec):
     types = " ".join(rec.get("actionTypes") or [])
     cid = rec["id"]
+    if rec.get("erasmusAction") == "KA210": return "consortium", "At least two organisations from two different EU Member States or third countries associated to Erasmus+ (Programme Guide, Small-scale Partnerships)."
+    if rec.get("erasmusAction") == "KA220": return "consortium", "At least three organisations from three different EU Member States or third countries associated to Erasmus+ (Programme Guide, Cooperation Partnerships)."
     if rec["type"] != "1": return "unspecified", ""
     if "PRIZE" in cid: return "individual", ""
     if cid.startswith("ERC-") or "ACCELERATOR" in cid or "EIC-2026-DEFENCE" in cid: return "alone", ""
@@ -433,6 +450,7 @@ for r in RECS:
         "place": r.get("geoNames") if t == "2" else None,
         "sectors": sectors_for(r, prog), "applicants": apps, "applicantNote": app_note,
         "partnership": part, "partnershipNote": part_note, "type": type_for(r),
+        **({"erasmusAction": r["erasmusAction"], "guideYear": r.get("guideYear")} if r.get("erasmusAction") else {}),
         "eligibility": emap, "reasons": reasons, "notes": notes,
         "ruleSource": ("call" if r["id"] in CALL_RULES else ("programme-list" if prog in PROGRAMMES and t == "1" else ("source" if t in ("8", "x") and (r.get("countries") or {}).get("eligible") is not None else "none"))),
         "source": r.get("sourceName") or "EU Funding & Tenders Portal (search API + topic details)", "sourceKey": r.get("source") or "portal",

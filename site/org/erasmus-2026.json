@@ -1,0 +1,247 @@
+{
+ "programme": "Erasmus+",
+ "guideYear": 2026,
+ "callYear": 2026,
+ "guideVersion": "Version 1 of 12.11.2025",
+ "guideUrl": "https://erasmus-plus.ec.europa.eu/erasmus-programme-guide",
+ "countriesUrl": "https://erasmus-plus.ec.europa.eu/programme-guide/part-a/eligible-countries",
+ "nationalAgenciesUrl": "https://erasmus-plus.ec.europa.eu/about-erasmus/contacts/national-agencies",
+ "retrieved": "2026-11-13",
+ "notice": "Preliminary self-assessment aid. Evaluators score against the official guide of the call year; the guide prevails.",
+ "actions": [
+  {
+   "id": "KA210",
+   "name": {
+    "en": "Small-scale Partnerships",
+    "sr": "Partnerstva malog obima"
+   },
+   "fields": [
+    "school",
+    "vet",
+    "adult",
+    "youth"
+   ],
+   "managedBy": "national-agency",
+   "rules": {
+    "applicantCountries": "EU27+ASSOC",
+    "minOrganisations": 2,
+    "minCountries": 2,
+    "minYearsEstablished": null,
+    "lumpSums": [
+     30000,
+     60000
+    ],
+    "durationMonths": [
+     6,
+     24
+    ]
+   },
+   "quotes": {
+    "applicant": "Any participating organisation established in an EU Member State or third country associated to the Programme can be the applicant.",
+    "partners": "A Small-scale Partnership is transnational and involves minimum two organisations from two different EU Member States or third countries associated to the Programme.",
+    "lumpSums": "There are two pre-defined lump sums grants : EUR 30 000 and EUR 60 000."
+   },
+   "url": "https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2/small-scale-partnerships",
+   "rounds": [
+    {
+     "deadline": "2026-03-05T12:00|Europe/Brussels",
+     "kind": "main",
+     "quote": "Applicants have to submit their grant application by 5 March at 12:00:00 (midday Brussels time) for projects starting between 1 September and 31 December of the same year."
+    },
+    {
+     "deadline": "2026-10-01T12:00|Europe/Brussels",
+     "kind": "optional",
+     "quote": "If the additional round is organised, applicants have to submit their grant application by 1 October at 12:00:00 (midday Brussels time ), for projects starting between 1 January and 31 August of the following year."
+    }
+   ],
+   "criteria": [
+    {
+     "id": "c1",
+     "name": "Relevance",
+     "max": 30,
+     "points": [
+      "the project proposal is relevant to the objectives and the priorities of the Action. In addition the proposal will be considered as highly relevant if:",
+      "it addresses the priority \"inclusion and diversity\"",
+      "In case of projects managed by the Erasmus+ National Agencies: if it addresses one or more \"European Priorities in the national context\", as announced by the National Agency",
+      "the proposal is relevant for the respect and promotion of shared EU values, such as respect for human dignity, freedom, democracy, equality, the rule of law and respect for human rights, as well as fighting any sort of discrimination",
+      "the profile, experience and activities of the participating organisations are relevant for the field of the application",
+      "the proposal brings added value at EU level by building capacity of organisations to engage in cross-border cooperation and networking"
+     ],
+     "min": 15
+    },
+    {
+     "id": "c2",
+     "name": "Quality of the project design and implementation",
+     "max": 30,
+     "points": [
+      "the project objectives are clearly defined, realistic and address the needs and goals of the participating organisations and the needs of their target groups",
+      "the activities are designed in an accessible and inclusive way and are open to people with fewer opportunities",
+      "the proposed methodology is clear, adequate and feasible:",
+      "the project work plan is clear, complete and effective, including appropriate phases for preparation, implementation and sharing project results",
+      "the project is cost-effective and allocates appropriate resources to each activity",
+      "the project incorporates the use of digital tools and learning methods to complement their physical activities, and to improve the cooperation with partner organisations",
+      "If applicable: the extent to which the project makes use of Erasmus+ online platforms (European Education Platform, EPALE, European Youth Portal, EU Youth Strategy Platform) as tools for preparation, implementation and follow-up of the project activities",
+      "The project is designed in an eco-friendly way and incorporates green practices in different project phases",
+      "The project encourages participation and civic engagement"
+     ],
+     "min": 15
+    },
+    {
+     "id": "c3",
+     "name": "Quality of the partnership and cooperation arrangements",
+     "max": 20,
+     "points": [
+      "the project involves an appropriate mix of participating organisations in terms of profile",
+      "the project involves newcomers and less experienced organisations to the Action",
+      "the proposed allocation of tasks demonstrates the commitment and active contribution of all participating organisations",
+      "the proposal includes effective mechanisms for coordination and communication between the participating organisations"
+     ],
+     "min": 10
+    },
+    {
+     "id": "c4",
+     "name": "Impact",
+     "max": 20,
+     "points": [
+      "the project proposal includes concrete and logical steps to integrate the project results in the regular work of participating organisation",
+      "the project has the potential to positively impact its participants and participating organisations, as well as the wider community",
+      "the project proposal includes an appropriate way to evaluate the project outcomes",
+      "the project proposal includes concrete and effective steps to make the results of the project known within the participating organisations, to share the results with other organisations and the public, and to publicly acknowledge the European Union funding"
+     ],
+     "min": 10
+    }
+   ],
+   "threshold": {
+    "total": 60,
+    "perCriterion": "half of each maximum, rounded up"
+   },
+   "tieBreak": "In cases where two or more applications have received the same total score (ex aequo cases), priority will be given to highest scores for \"relevance of the project\" and then “impact”."
+  },
+  {
+   "id": "KA220",
+   "name": {
+    "en": "Cooperation Partnerships",
+    "sr": "Partnerstva za saradnju"
+   },
+   "fields": [
+    "school",
+    "vet",
+    "adult",
+    "youth",
+    "higher"
+   ],
+   "managedBy": "national-agency",
+   "rules": {
+    "applicantCountries": "EU27+ASSOC",
+    "minOrganisations": 3,
+    "minCountries": 3,
+    "minYearsEstablished": 2,
+    "lumpSums": [
+     120000,
+     250000,
+     400000
+    ],
+    "durationMonths": [
+     12,
+     36
+    ]
+   },
+   "quotes": {
+    "applicant": "Any participating organisation established in an EU Member State or third country associated to the Programme can be the applicant/coordinator.",
+    "established": "In order to be eligible, applicant/coordinator organisations must have been legally established at least 2 years before the application deadline.",
+    "partners": "A Cooperation Partnership is a transnational project and must involve minimum three organisations from three different EU Member States or third countries associated to the Programme.",
+    "nonAssociated": "However, organisations from third countries not associated to the Programme (regions 1 to 3, with the exception of Belarus) can be involved as partners (not as applicants), if their participation brings an essential added value to the project and as long as the minimum participation from three organisations from three different EU Member States or third countries associated to the Programme is fulfilled."
+   },
+   "url": "https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2/cooperation-partnerships",
+   "rounds": [
+    {
+     "deadline": "2026-03-05T12:00|Europe/Brussels",
+     "kind": "main",
+     "quote": "Applicants have to submit their grant application by 5 March at 12:00:00 (midday Brussels time) for projects starting between 1 September and 31 December of the same year."
+    },
+    {
+     "deadline": "2026-10-01T12:00|Europe/Brussels",
+     "kind": "optional",
+     "quote": "If a second round is organised, applicants must submit their grant application by 1 October at 12:00:00 (midday Brussels time) for projects starting between 1 January and 31 August of the following year"
+    }
+   ],
+   "criteria": [
+    {
+     "id": "c1",
+     "name": "Relevance of the project",
+     "max": 25,
+     "points": [
+      "the proposal is relevant for objectives and priorities of the Action. In addition the proposal will be considered as highly relevant if:",
+      "it addresses the priority \"inclusion and diversity\"",
+      "In case of projects managed by the Erasmus+ National Agencies: if it addresses one or more \"European Priorities in the national context\", as announced by the National Agency",
+      "In case of projects submitted by ENGOs in the fields of education, training or youth to the European Education and Culture Executive Agency: the extent to which the applicant runs activities that support the implementation of EU policies in one of these sectors",
+      "the proposal is relevant for the respect and promotion of shared EU values, such as respect for human dignity, freedom, democracy, equality, the rule of law and respect for human rights, as well as fighting any sort of discrimination",
+      "the profile, experience and activities of the participating organisations are relevant for the field of the application",
+      "the proposal is based on a genuine and adequate needs analysis",
+      "the proposal is suitable for creating synergies between different fields of education, training, youth and sport or it has potentially a strong impact on one or more of those fields",
+      "the proposal is innovative",
+      "the proposal is complementary to other initiatives already carried out by the participating organisations",
+      "the proposal brings added value at EU level through results that would not be attained by activities carried out in a single country"
+     ],
+     "min": 13
+    },
+    {
+     "id": "c2",
+     "name": "Quality of the project design and implementation",
+     "max": 30,
+     "points": [
+      "the project objectives are clearly defined, realistic and address needs and goals of the participating organisations and the needs of their target groups",
+      "the proposed methodology is clear, adequate and feasible:",
+      "the project work plan is clear, complete and effective, including appropriate phases for preparation, implementation and sharing project results",
+      "the project is cost-effective and allocates appropriate resources to each activity",
+      "the project proposes appropriate quality control, monitoring and evaluation measures to ensure that the project implementation is of high quality, completed in time and on budget",
+      "the activities are designed in an accessible and inclusive way and are open to people with fewer opportunities",
+      "the project incorporates the use of digital tools and learning methods to complement their physical activities, and to improve the cooperation between partner organisations",
+      "If Erasmus+ online platforms and tools are available in the field(s) of the participating organisations: the extent to which the project makes use of Erasmus+ online platforms and tools, where relevant (European School Education Platform, including eTwinning, EPALE, European Youth Portal, YouthPass) as tools for preparation, implementation and follow-up of the project activities.",
+      "The project is designed in an eco-friendly way and incorporates green practices in different project phases",
+      "The project encourages participation and civic engagement",
+      "The project clearly describes both qualitative and quantitative indicators, that are realistic, feasible, and contribute to strengthening the overall quality of the project",
+      "If the project plans training, teaching or learning activities:",
+      "the extent to which these activities are appropriate for the project's objectives and involve the appropriate profile and number of participants",
+      "the quality of practical arrangements, management and support modalities in learning, teaching and training activities",
+      "the quality of arrangements for the recognition and validation of participants' learning outcomes, in line with European transparency and recognition tools and principles"
+     ],
+     "min": 15
+    },
+    {
+     "id": "c3",
+     "name": "Quality of the partnership and the cooperation arrangements",
+     "max": 20,
+     "points": [
+      "the project involves an appropriate mix of participating organisations in terms of profile, including grassroots organisations, past experience in the Programme and expertise to successfully complete all project objectives",
+      "for partnerships in the fields of education and training or youth submitted by European NGOs: the consortium includes partner organisations outside the applying European NGO, opening it up to cooperation beyond its national organisations/branches",
+      "the project involves newcomers and less experienced organisations to the Action",
+      "the proposed allocation of tasks demonstrates the commitment and active contribution of all participating organisations",
+      "the proposal includes effective mechanisms for coordination and communication between the participating organisations, as well as with other relevant stakeholders",
+      "If applicable, the extent to which the involvement of a participating organisation from a third country not associated to the Programme brings an essential added value to the project (if this condition is not fulfilled, the participating organisation from a third country not associated to the Programme will be excluded from the project proposal at assessment stage)"
+     ],
+     "min": 10
+    },
+    {
+     "id": "c4",
+     "name": "Impact",
+     "max": 25,
+     "points": [
+      "the project proposal includes concrete and logical steps to integrate the project results in the regular work of participating organisations",
+      "the project has the potential to positively impact its participants and participating organisations, as well as their wider communities",
+      "the expected project results have the potential to be used outside the organisations participating in the project during and after the project lifetime, and at local, regional, national or European level",
+      "the project proposal includes concrete and effective steps to make the results of the project known within the participating organisations, to share the results with other organisations and the public, and to publicly acknowledge the European Union funding",
+      "if relevant, the extent to which the proposal describes how the materials, documents and media produced will be made freely available and promoted through open licences, and does not contain disproportionate limitations",
+      "the project proposal includes concrete and effective steps to ensure the sustainability of the project, its capacity to continue having an impact and producing results after the EU grant has been used up."
+     ],
+     "min": 13
+    }
+   ],
+   "threshold": {
+    "total": 70,
+    "perCriterion": "half of each maximum, rounded up"
+   },
+   "tieBreak": "In cases where two or more applications have received the same total score (ex aequo cases), priority will be given to highest scores for \"relevance of the project\" and then “impact”."
+  }
+ ]
+}

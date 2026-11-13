@@ -27,8 +27,15 @@ for p in progs:
     try:
         r = requests.get(lst["url"], timeout=60, headers={"User-Agent": "eligiblecalls-ingest/1.0"})
         r.raise_for_status()
-        text = "\n".join((pg.extract_text() or "") for pg in PdfReader(io.BytesIO(r.content)).pages[:2])
-        got = norm(text)
+        if lst.get("kind") == "erasmus-guide":
+            # The Erasmus+ Programme Guide is an HTML page: "Version 1 of 12.11.2025" on the guide's main page.
+            g = requests.get("https://erasmus-plus.ec.europa.eu/erasmus-programme-guide", timeout=60, headers={"User-Agent": "eligiblecalls-ingest/1.0"})
+            g.raise_for_status()
+            m = re.search(r"Version\s+(\d+(?:\.\d+)?)\s+of\s+(\d{2}\.\d{2}\.\d{4})", g.text)
+            got = norm(f"V{m.group(1)} – {m.group(2)}") if m else None
+        else:
+            text = "\n".join((pg.extract_text() or "") for pg in PdfReader(io.BytesIO(r.content)).pages[:2])
+            got = norm(text)
     except Exception as e:
         rows.append(f"- {p['id']}: could not check ({type(e).__name__})")
         continue

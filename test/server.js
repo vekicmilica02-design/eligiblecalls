@@ -7,6 +7,7 @@ import http from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { handleChat, handleHealth } from "../src/chat.js";
+import { handleApi } from "../src/org/api.js";
 import { mockD1, mockAI, mockFetch, sseStream, ROOT } from "./mocks.js";
 
 const SITE = path.join(ROOT, "site");
@@ -30,6 +31,17 @@ function demoAI(seen) {
   return { run: async (model, input) => {
     seen.push(input);
     const sys = input.messages[0].content;
+    if (sys.startsWith("You extract facts about one organisation")) {
+      // Organisation extraction: propose the first line as the name and the first long sentence as the description, quoted.
+      const src = (input.messages[1].content.match(/<source>\n([\s\S]*)\n<\/source>/) || [, ""])[1];
+      const lines = src.split("\n").map((l) => l.replace(/^### PAGE \S+/, "").trim()).filter((l) => l.length > 3);
+      const sentence = (src.match(/[^.\n]{60,400}\./) || [""])[0].trim();
+      const fields = {};
+      if (lines[0] && lines[0].length < 120) fields.name = { value: lines[0], evidence: lines[0], confidence: "medium" };
+      if (sentence) fields.description = { value: sentence, evidence: sentence, confidence: "medium" };
+      fields.employees = { value: 12, evidence: "The organisation employs 12 people.", confidence: "high" }; // a quote that is not in the source
+      return sseStream([{ response: JSON.stringify({ fields }) }, { response: "", usage: { prompt_tokens: 3000, completion_tokens: 300 } }]);
+    }
     const blocks = [...sys.matchAll(/^### (\S+)\nTitle: (.*)\n.*\nNext deadline: (\S+)/gm)].slice(0, 3);
     const country = (sys.match(/APPLICANT: country (\w\w)/) || [])[1];
     const text = blocks.length
@@ -49,20 +61,37 @@ const env = {
   ...(process.env.AI_MODE === "off" ? {} : { AI: process.env.AI_MODE === "quota" ? mockAI("quota") : demoAI(seen) }),
   ...(process.env.GROQ === "1" ? { GROQ_API_KEY: "test" } : {}),
   DAILY_VISITOR_LIMIT: process.env.VISITOR_LIMIT || "50",
+  DEV_LOGIN_LINKS: "1", ADMIN_EMAILS: process.env.ADMIN_EMAILS || "",
+  ...(process.env.EMAIL_LOGIN === "1" ? { EMAIL_LOGIN: "1" } : {}),
+  // Google sign-in against a stand-in token endpoint: the browser test answers Google's page itself and
+  // passes {email, nonce} as the code (base64url JSON).
+  GOOGLE_CLIENT_ID: "local-test.apps.googleusercontent.com", GOOGLE_CLIENT_SECRET: "local",
+};
+const googleStub = async (url, init) => {
+  if (String(url) === "https://oauth2.googleapis.com/token") {
+    const code = new URLSearchParams(init.body).get("code");
+    const c = JSON.parse(Buffer.from(code, "base64url").toString());
+    const claims = { iss: "https://accounts.google.com", aud: env.GOOGLE_CLIENT_ID, exp: Math.floor(Date.now() / 1000) + 3600, sub: "local-" + c.email, email: c.email, email_verified: true, nonce: c.nonce };
+    return new Response(JSON.stringify({ id_token: "x." + Buffer.from(JSON.stringify(claims)).toString("base64url") + ".x" }), { headers: { "content-type": "application/json" } });
+  }
+  return fetch(url, init);
 };
 const nowFn = () => (process.env.NOW ? Date.parse(process.env.NOW) : Date.now());
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, "http://localhost");
+  const url = new URL(req.url, "http://" + (req.headers.host || "localhost"));
   try {
     if (url.pathname.startsWith("/api/")) {
       const chunks = []; for await (const c of req) chunks.push(c);
-      const request = new Request(url, { method: req.method, headers: { ...req.headers, "cf-connecting-ip": req.socket.remoteAddress }, body: req.method === "POST" ? Buffer.concat(chunks) : undefined });
+      const request = new Request(url, { method: req.method, headers: { ...req.headers, "cf-connecting-ip": req.socket.remoteAddress }, body: ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && chunks.length ? Buffer.concat(chunks) : undefined });
       let r;
       if (url.pathname === "/api/chat" && req.method === "POST") r = await handleChat({ request, env, now: nowFn(), fetchImpl: mockFetch() });
       else if (url.pathname === "/api/health") r = await handleHealth({ env, now: nowFn() });
+      else if (/^\/api\/(auth|orgs|admin)(\/|$)|^\/api\/me$/.test(url.pathname)) r = await handleApi({ request, env, now: nowFn(), fetchImpl: googleStub });
       else r = new Response("not found", { status: 404 });
-      res.writeHead(r.status, Object.fromEntries(r.headers));
+      const hs = Object.fromEntries([...r.headers].filter(([k]) => k !== "set-cookie"));
+      const sc = r.headers.getSetCookie(); if (sc.length) hs["set-cookie"] = sc;
+      res.writeHead(r.status, hs);
       if (r.body) for await (const c of r.body) res.write(c);
       return res.end();
     }

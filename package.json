@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node test/chat.test.js",
+    "test": "node test/chat.test.js && node test/org-rules.test.js && node test/org-api.test.js && python3 test/erasmus_na_test.py",
     "dev": "node test/server.js"
   }
 }

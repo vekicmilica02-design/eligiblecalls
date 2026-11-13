@@ -156,6 +156,18 @@ schema.sql                      D1 tables
 test/                           API tests, a local preview server, a sample import
 ```
 
+## Organization Intelligence
+
+Organisation accounts at `#org`: profile, document and website extraction, eligibility matching, Erasmus+ evaluation guidelines. Deployment steps: `DEPLOY-ORG-INTELLIGENCE.md`.
+
+- Front end: `site/org/app.js` (ES module, reads the page's data through `window.EC`), `site/org/org.css`. Shared logic: `site/org/schema.js` (profile fields), `site/org/rules.js` (hard checks and weighted score), `site/org/call_rules.js` (call-specific requirements, each with its official sentence).
+- API: `src/org/api.js` behind `functions/api/auth/[[path]].js`, `functions/api/me.js`, `functions/api/orgs/[[path]].js`, `functions/api/admin/[[path]].js`. Roles owner, editor, viewer.
+- Sign-in: Google (`/api/auth/google`, OpenID Connect code flow with PKCE, scope `openid email`). Sign-in by one-time e-mail link exists in `src/org/auth.js` but is off until `EMAIL_LOGIN = "1"` and a Resend sending domain (`RESEND_API_KEY`, `EMAIL_FROM`) are set.
+- AI: `src/org/extract.js` (document text and user-named web pages), through the assistant's providers and daily budgets (`src/org/ai.js`). Uploaded files are read in the browser and not stored; every proposed field carries a quote that is checked against the source.
+- Erasmus+: `python ingest/erasmus_guide.py` writes `site/org/erasmus-<year>.json` from the Programme Guide (award criteria parsed from the official pages, deadlines and eligibility quoted). `ingest/sources/erasmus_na.py` publishes the national-agency rounds (KA210, KA220) while their deadline is in the future. Run `GUIDE_YEAR=2027 python ingest/erasmus_guide.py` when the 2027 guide is out.
+- Settings on the Pages project: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (secret), `SITE_URL`, `ADMIN_EMAILS` (comma separated; these accounts can download `/api/admin/users.csv`). Optional: `ORG_AI_PER_USER` (default 20 AI actions per user per day), `ORG_BUDGET_SHARE` (default 0.6 of each daily AI budget), `MAX_ORGS_PER_USER` (default 10).
+- Local preview: `node test/server.js` signs in through a stand-in for Google's token endpoint (see `test/server.js`); `EMAIL_LOGIN=1 node test/server.js` shows e-mail sign-in links on the page instead of sending them.
+
 ## Local development
 
 Python 3.11+ and Node 22+.

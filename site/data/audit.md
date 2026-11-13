@@ -1,11 +1,11 @@
-# Import audit — 2026-11-13T16:17:30.000Z
+# Import audit — 2026-11-13T18:17:27.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1184 rows, 1095 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-13 17:17 Brussels, deadlines counted at 17:00 Brussels): 395, of which forthcoming: 250
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-13 19:17 Brussels, deadlines counted at 17:00 Brussels): 395, of which forthcoming: 250
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 178, noFutureDeadline 69, noOrganiserLink 9, linkNotVerified 49, published 51
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 178, noFutureDeadline 69, noOrganiserLink 9, linkNotVerified 48, published 52
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 28, noFutureDeadline 2, linkNotVerified 1, published 25
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 23, noFutureDeadline 9, linkNotVerified 0, published 14
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 12, linkNotVerified 0, published 3
@@ -15,9 +15,9 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 9 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16981; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 572
+- Published: 573
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 39
-- Changes since the previous import: 1 new, 0 changed, 1 closed
+- Changes since the previous import: 1 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 348
@@ -38,13 +38,14 @@
 - ISF: 2
 - JTM: 2
 - CEF: 1
+- I3: 1
 - JUST: 1
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
 - N: 4824
 - P: 170
-- C: 4951
+- C: 4995
 - Y: 15223
 
 ## Calls with call-specific country rules

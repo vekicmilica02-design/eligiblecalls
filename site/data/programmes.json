@@ -1720,6 +1720,198 @@
    "openCalls": 1
   },
   {
+   "id": "ERASMUS",
+   "name": "Erasmus+",
+   "short": "Erasmus+",
+   "summary": "EU programme for education, training, youth and sport. Calls on the Funding & Tenders Portal are the centrally managed actions (EACEA); most mobility and partnership actions are run by the national agencies.",
+   "list": {
+    "url": "https://erasmus-plus.ec.europa.eu/programme-guide/part-a/eligible-countries",
+    "version": "V1 – 12.11.2025 (Programme Guide 2026)",
+    "kind": "erasmus-guide",
+    "checked": "2026-09-30"
+   },
+   "countries": {
+    "AT": [
+     "Y",
+     ""
+    ],
+    "BE": [
+     "Y",
+     ""
+    ],
+    "BG": [
+     "Y",
+     ""
+    ],
+    "HR": [
+     "Y",
+     ""
+    ],
+    "CY": [
+     "Y",
+     ""
+    ],
+    "CZ": [
+     "Y",
+     ""
+    ],
+    "DK": [
+     "Y",
+     ""
+    ],
+    "EE": [
+     "Y",
+     ""
+    ],
+    "FI": [
+     "Y",
+     ""
+    ],
+    "FR": [
+     "Y",
+     ""
+    ],
+    "DE": [
+     "Y",
+     ""
+    ],
+    "GR": [
+     "Y",
+     ""
+    ],
+    "HU": [
+     "Y",
+     ""
+    ],
+    "IE": [
+     "Y",
+     ""
+    ],
+    "IT": [
+     "Y",
+     ""
+    ],
+    "LV": [
+     "Y",
+     ""
+    ],
+    "LT": [
+     "Y",
+     ""
+    ],
+    "LU": [
+     "Y",
+     ""
+    ],
+    "MT": [
+     "Y",
+     ""
+    ],
+    "NL": [
+     "Y",
+     ""
+    ],
+    "PL": [
+     "Y",
+     ""
+    ],
+    "PT": [
+     "Y",
+     ""
+    ],
+    "RO": [
+     "Y",
+     ""
+    ],
+    "SK": [
+     "Y",
+     ""
+    ],
+    "SI": [
+     "Y",
+     ""
+    ],
+    "ES": [
+     "Y",
+     ""
+    ],
+    "SE": [
+     "Y",
+     ""
+    ],
+    "IS": [
+     "Y",
+     "Third country associated to Erasmus+ (Programme Guide, Part A)."
+    ],
+    "LI": [
+     "Y",
+     "Third country associated to Erasmus+ (Programme Guide, Part A)."
+    ],
+    "NO": [
+     "Y",
+     "Third country associated to Erasmus+ (Programme Guide, Part A)."
+    ],
+    "CH": [
+     "P",
+     "Third country not associated to Erasmus+ (Region 14): some actions only, as set per action in Part B of the Programme Guide."
+    ],
+    "GB": [
+     "P",
+     "Region 14 under the 2026 Programme Guide. The UK's association to Erasmus+ was announced on 15 April 2026 for projects funded from the 2027 call: check the call document."
+    ],
+    "AL": [
+     "P",
+     "Third country not associated to Erasmus+ (Region 1, Western Balkans): can take part only in some actions, as set per action in Part B of the Programme Guide; usually as a partner, not as the applicant."
+    ],
+    "BA": [
+     "P",
+     "Third country not associated to Erasmus+ (Region 1, Western Balkans): can take part only in some actions, as set per action in Part B of the Programme Guide; usually as a partner, not as the applicant."
+    ],
+    "XK": [
+     "P",
+     "Third country not associated to Erasmus+ (Region 1, Western Balkans): can take part only in some actions, as set per action in Part B of the Programme Guide; usually as a partner, not as the applicant."
+    ],
+    "ME": [
+     "P",
+     "Third country not associated to Erasmus+ (Region 1, Western Balkans): can take part only in some actions, as set per action in Part B of the Programme Guide; usually as a partner, not as the applicant."
+    ],
+    "MK": [
+     "Y",
+     "Third country associated to Erasmus+ (Programme Guide, Part A)."
+    ],
+    "RS": [
+     "Y",
+     "Third country associated to Erasmus+ (Programme Guide, Part A)."
+    ],
+    "TR": [
+     "Y",
+     "Third country associated to Erasmus+ (Programme Guide, Part A)."
+    ],
+    "UA": [
+     "P",
+     "Third country not associated to Erasmus+ (Region 2, Neighbourhood East): can take part only in some actions, as set per action in Part B of the Programme Guide."
+    ],
+    "MD": [
+     "P",
+     "Third country not associated to Erasmus+ (Region 2, Neighbourhood East): can take part only in some actions, as set per action in Part B of the Programme Guide."
+    ],
+    "GE": [
+     "P",
+     "Third country not associated to Erasmus+ (Region 2): some actions only, as set per action in Part B of the Programme Guide. Georgian authorities are not eligible under any action."
+    ],
+    "AM": [
+     "P",
+     "Third country not associated to Erasmus+ (Region 2, Neighbourhood East): can take part only in some actions, as set per action in Part B of the Programme Guide."
+    ],
+    "FO": [
+     "P",
+     "Third country not associated to Erasmus+ (Region 14): some actions only, as set per action in Part B of the Programme Guide."
+    ]
+   },
+   "note": "",
+   "openCalls": 2
+  },
+  {
    "id": "JUST",
    "name": "Justice Programme",
    "short": "Justice",

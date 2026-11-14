@@ -35,10 +35,10 @@ const S = {
     upload: "Choose a document (PDF, DOCX or TXT)", reading: "Reading the document…", sending: (i, n) => `Analysing part ${i} of ${n}…`, scanned: "No text could be read from this file. It is probably a scanned image; OCR is not available yet. Upload a text PDF or a Word file, or type the facts in the profile.",
     tooLong: (n, max) => `The document is long: only the first ${max} parts (${n} characters) are analysed.`,
     webTitle: "Read from your website", webLede: "We read the page you name and up to two linked pages about the organisation (\"About us\", \"Mission\", \"Projects\"), on the same site, respecting robots.txt. Only facts that are quoted from those pages are proposed.", url: "Website or page address", readSite: "Read website",
-    review: "Review proposed fields", reviewLede: "Each value comes with the sentence it was taken from. Values whose quote was not found in the source are unchecked and marked; check them yourself.",
-    field: "Field", proposed: "Proposed value", current: "Current value", evidence: "Source quote", conf: "Confidence", found: "Quote found in source", notFound: "Quote NOT found in source",
+    review: "Review proposed fields", reviewLede: "Each value comes with the sentence it was taken from. Values that are not clearly supported by their quote, or that the profile already has, start unticked; check them yourself. Lists are added to what the profile already has.",
+    field: "Field", proposed: "Proposed value", current: "Current value", evidence: "Source quote", conf: "Confidence", found: "Quote found in source", notFound: "Quote NOT found in source", valueNotInQuote: "Quote found, but the value is not written in it", weakQuote: "Quote found, but it does not clearly state this value", adds: (v) => `Adds: ${v}`, alreadyHas: "Already in the profile", same: "Same as the profile",
     apply: "Apply selected to profile", discard: "Discard", applied: (n) => `${n} field(s) added to the profile.`, runs: "Earlier extractions", status: { review: "to review", applied: "applied", discarded: "discarded" }, del: "Delete", open: "Open",
-    confL: { high: "high", medium: "medium", low: "low" }, dropped: (n) => `${n} proposed value(s) were rejected because they were invalid or contained personal data.`,
+    confL: { high: "high", medium: "medium", low: "low" }, dropped: (n) => `${n} proposed value(s) were removed because they were invalid or contained personal data.`, noQuote: (n) => `${n} value(s) without a quote from the source were left out.`,
     matchTitle: "Eligibility matching", matchLede: (n, d) => `${n} open and forthcoming calls checked against your profile (data of ${d}). Rule-based: mandatory requirements first, then a weighted compatibility score.`,
     notice: "Compatibility is an estimate, not a legal eligibility decision and not a probability of funding. The official call documents prevail.",
     fStatus: "All statuses", fProg: "All programmes", fDl: "Any deadline", dl30: "Next 30 days", dl60: "Next 60 days", dl120: "Next 120 days", onlyHigh: "Only 75%+", sortScore: "Sort: compatibility", sortDl: "Sort: deadline",
@@ -56,13 +56,13 @@ const S = {
     dims: { orgType: "Organisation type and legal status", country: "Country and geographic eligibility", objectives: "Alignment with funding objectives", experience: "Experience and previous projects", targetGroups: "Target groups and beneficiaries", capacity: "Operational and administrative capacity", partnerships: "Partnerships and international cooperation" },
     evalTitle: "Evaluation guidelines: Erasmus+", evalLede: "Award criteria as published in the Erasmus+ Programme Guide. Eligibility (can we apply?) and quality (would evaluators score the proposal well?) are separate questions: an eligible organisation can still submit a weak proposal.",
     evalSoon: "The AI evaluation assistant, which scores a saved project idea against these criteria, comes with the project idea generator (next phase).",
-    guide: (y, v) => `Programme Guide ${y}, ${v}`, maxPts: (m, n) => `max ${m} points · minimum ${n}`, totalMin: (n) => `Proposals need at least ${n} points in total and at least half of the maximum in each criterion.`,
+    guide: (y, v) => `Programme Guide ${y}, ${v}`, guideNotice: "Preliminary self-assessment aid. Evaluators score against the official guide of the call year; the guide prevails.", maxPts: (m, n) => `max ${m} points · minimum ${n}`, totalMin: (n) => `Proposals need at least ${n} points in total and at least half of the maximum in each criterion.`,
     rounds: "Deadlines in this guide (national agencies)", optional: "if the national agency organises it", where: "Apply to the Erasmus+ national agency of your country.", na: "National agencies",
     ideasTitle: "Project ideas", ideasSoon: "The project idea generator is the next phase of this module. It will propose concepts that combine your profile with open calls, each linked to a real call.",
     reportsTitle: "Saved reports", reportsSoon: "Saving and exporting reports comes with the evaluation assistant (next phase). Assessments are recalculated live on the matching page.",
     settingsTitle: "Settings", members: "Members", invite: "Add a member by e-mail", role: "Role", roles: { owner: "Owner", editor: "Editor", viewer: "Viewer" }, add: "Add",
     invited: "Invited (not signed up yet)", remove: "Remove", leave: "Leave this organisation", versions: "Profile history", changedF: "Changed fields", by: "by",
-    account: "Your account", newsToggle: "News e-mails", deleteAccount: "Delete my account", deleteAccountNote: "Deletes your account, your sign-in sessions and the organisations where you are the only member.",
+    account: "Your account", newsToggle: "News e-mails", deleteAccount: "Delete my account", deleteAccountNote: "Deletes your account, your sign-in sessions and the organisations where you are the only member.", deleteAccountConfirm: "Yes, delete my account permanently", cancel: "Cancel", signedInAs: (e) => `Signed in as ${e}`,
     deleteOrg: "Delete this organisation", deleteOrgNote: (n) => `Deletes the profile, its history and all extraction results. Type the organisation name (${n}) to confirm.`, confirmDel: "Delete permanently",
     errors: { signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server." },
   },
@@ -91,10 +91,10 @@ const S = {
     upload: "Izaberite dokument (PDF, DOCX ili TXT)", reading: "Čitanje dokumenta…", sending: (i, n) => `Analiza dela ${i} od ${n}…`, scanned: "Iz ove datoteke nije moguće pročitati tekst. Verovatno je skenirana slika; OCR još nije dostupan. Otpremite tekstualni PDF ili Word datoteku, ili unesite podatke u profil.",
     tooLong: (n, max) => `Dokument je dugačak: analizira se samo prvih ${max} delova (${n} znakova).`,
     webTitle: "Čitanje sa vašeg sajta", webLede: "Čitamo stranicu koju navedete i najviše dve povezane stranice o organizaciji („O nama“, „Misija“, „Projekti“) na istom sajtu, uz poštovanje robots.txt. Predlažu se samo podaci citirani sa tih stranica.", url: "Adresa sajta ili stranice", readSite: "Pročitaj sajt",
-    review: "Pregled predloženih polja", reviewLede: "Uz svaku vrednost stoji rečenica iz koje je preuzeta. Vrednosti čiji citat nije pronađen u izvoru nisu označene; proverite ih sami.",
-    field: "Polje", proposed: "Predložena vrednost", current: "Trenutna vrednost", evidence: "Citat iz izvora", conf: "Pouzdanost", found: "Citat pronađen u izvoru", notFound: "Citat NIJE pronađen u izvoru",
+    review: "Pregled predloženih polja", reviewLede: "Uz svaku vrednost stoji rečenica iz koje je preuzeta. Vrednosti koje citat ne potvrđuje jasno, ili koje profil već ima, nisu označene; proverite ih sami. Liste se dodaju na ono što profil već ima.",
+    field: "Polje", proposed: "Predložena vrednost", current: "Trenutna vrednost", evidence: "Citat iz izvora", conf: "Pouzdanost", found: "Citat pronađen u izvoru", notFound: "Citat NIJE pronađen u izvoru", valueNotInQuote: "Citat je pronađen, ali vrednost u njemu nije napisana", weakQuote: "Citat je pronađen, ali ne navodi jasno ovu vrednost", adds: (v) => `Dodaje: ${v}`, alreadyHas: "Već postoji u profilu", same: "Isto kao u profilu",
     apply: "Primeni označeno na profil", discard: "Odbaci", applied: (n) => `Dodato polja u profil: ${n}.`, runs: "Ranija izdvajanja", status: { review: "za pregled", applied: "primenjeno", discarded: "odbačeno" }, del: "Obriši", open: "Otvori",
-    confL: { high: "visoka", medium: "srednja", low: "niska" }, dropped: (n) => `Odbijeno predloženih vrednosti: ${n} (neispravne ili sa ličnim podacima).`,
+    confL: { high: "visoka", medium: "srednja", low: "niska" }, dropped: (n) => `Uklonjeno predloženih vrednosti: ${n} (neispravne ili sa ličnim podacima).`, noQuote: (n) => `Izostavljeno vrednosti bez citata iz izvora: ${n}.`,
     matchTitle: "Provera podobnosti", matchLede: (n, d) => `${n} otvorenih i najavljenih poziva provereno u odnosu na vaš profil (podaci od ${d}). Provera po pravilima: prvo obavezni uslovi, zatim ponderisana ocena kompatibilnosti.`,
     notice: "Kompatibilnost je procena, a ne pravna odluka o podobnosti niti verovatnoća finansiranja. Merodavna su zvanična dokumenta poziva.",
     fStatus: "Svi statusi", fProg: "Svi programi", fDl: "Bilo koji rok", dl30: "Narednih 30 dana", dl60: "Narednih 60 dana", dl120: "Narednih 120 dana", onlyHigh: "Samo 75%+", sortScore: "Redosled: kompatibilnost", sortDl: "Redosled: rok",
@@ -112,13 +112,13 @@ const S = {
     dims: { orgType: "Tip i pravni status organizacije", country: "Država i geografska podobnost", objectives: "Usklađenost sa ciljevima poziva", experience: "Iskustvo i prethodni projekti", targetGroups: "Ciljne grupe i korisnici", capacity: "Operativni i administrativni kapacitet", partnerships: "Partnerstva i međunarodna saradnja" },
     evalTitle: "Kriterijumi ocenjivanja: Erasmus+", evalLede: "Kriterijumi za dodelu kako su objavljeni u Vodiču kroz program Erasmus+. Podobnost (smemo li da apliciramo?) i kvalitet (da li bi ocenjivači dobro ocenili predlog?) su odvojena pitanja: podobna organizacija i dalje može podneti slab predlog.",
     evalSoon: "AI asistent za ocenjivanje, koji sačuvanu projektnu ideju ocenjuje prema ovim kriterijumima, dolazi uz generator projektnih ideja (sledeća faza).",
-    guide: (y, v) => `Vodič kroz program ${y}, ${v}`, maxPts: (m, n) => `najviše ${m} bodova · najmanje ${n}`, totalMin: (n) => `Predlog mora imati najmanje ${n} bodova ukupno i najmanje polovinu maksimuma po svakom kriterijumu.`,
+    guide: (y, v) => `Vodič kroz program ${y}, ${String(v).replace(/^Version (\d+) of /, "verzija $1 od ")}`, guideNotice: "Pomoć za preliminarnu samoprocenu. Ocenjivači boduju prema zvaničnom vodiču za godinu poziva; vodič je merodavan.", maxPts: (m, n) => `najviše ${m} bodova · najmanje ${n}`, totalMin: (n) => `Predlog mora imati najmanje ${n} bodova ukupno i najmanje polovinu maksimuma po svakom kriterijumu.`,
     rounds: "Rokovi u ovom vodiču (nacionalne agencije)", optional: "ako ga nacionalna agencija organizuje", where: "Prijava se podnosi Erasmus+ nacionalnoj agenciji vaše zemlje.", na: "Nacionalne agencije",
     ideasTitle: "Projektne ideje", ideasSoon: "Generator projektnih ideja je sledeća faza ovog modula. Predlagaće koncepte koji spajaju vaš profil sa otvorenim pozivima, svaki vezan za stvaran poziv.",
     reportsTitle: "Sačuvani izveštaji", reportsSoon: "Čuvanje i izvoz izveštaja dolazi uz asistenta za ocenjivanje (sledeća faza). Procene se računaju uživo na stranici provere podobnosti.",
     settingsTitle: "Podešavanja", members: "Članovi", invite: "Dodajte člana preko e-mail adrese", role: "Uloga", roles: { owner: "Vlasnik", editor: "Urednik", viewer: "Posmatrač" }, add: "Dodaj",
     invited: "Pozvan (još nije registrovan)", remove: "Ukloni", leave: "Napusti ovu organizaciju", versions: "Istorija profila", changedF: "Izmenjena polja", by: "",
-    account: "Vaš nalog", newsToggle: "E-mail vesti", deleteAccount: "Obriši moj nalog", deleteAccountNote: "Briše vaš nalog, sesije prijave i organizacije u kojima ste jedini član.",
+    account: "Vaš nalog", newsToggle: "E-mail vesti", deleteAccount: "Obriši moj nalog", deleteAccountNote: "Briše vaš nalog, sesije prijave i organizacije u kojima ste jedini član.", deleteAccountConfirm: "Da, trajno obriši moj nalog", cancel: "Otkaži", signedInAs: (e) => `Prijavljeni ste kao ${e}`,
     deleteOrg: "Obriši ovu organizaciju", deleteOrgNote: (n) => `Briše profil, njegovu istoriju i sve rezultate izdvajanja. Upišite naziv organizacije (${n}) da potvrdite.`, confirmDel: "Trajno obriši",
     errors: { signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera protiv botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran kao međusajtni. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom." },
   },
@@ -257,7 +257,7 @@ function shell(id, sec, body) {
     </aside>
     <div class="oi-main">${body}</div></div>`;
   const sw = document.getElementById("oiSwitch"); if (sw) sw.addEventListener("change", () => go("org/" + sw.value + "/" + sec));
-  document.getElementById("oiOut").addEventListener("click", async () => { await api("POST", "/auth/logout").catch(() => {}); ST.me = undefined; ST.org = null; go("org"); });
+  bindAccount();
 }
 const afterRender = {};
 
@@ -307,10 +307,28 @@ function renderSignin(token) {
     catch (e) { document.getElementById("oiMsg").innerHTML = `<p class="note err">${esc(e.message === "link_invalid" ? T("linkInvalid") : errText(e))}</p><p><a href="#org">${esc(T("sendLink"))}</a></p>`; }
   });
 }
+// Sign out, and account deletion in two steps (the first click asks for confirmation).
+function bindAccount() {
+  const out = document.getElementById("oiOut");
+  if (out && !out.dataset.bound) out.dataset.bound = "1", out.addEventListener("click", async () => { await api("POST", "/auth/logout").catch(() => {}); ST.me = undefined; ST.org = null; go("org"); });
+  const del = document.getElementById("oiDelMe"), msg = document.getElementById("oiAccMsg");
+  if (!del || !msg || del.dataset.bound) return;
+  del.dataset.bound = "1";
+  del.addEventListener("click", () => {
+    msg.innerHTML = `<p class="note warn">${esc(T("deleteAccountNote"))}</p><div class="oi-row"><button type="button" class="btn" id="oiDelYes">${esc(T("deleteAccountConfirm"))}</button><button type="button" class="btn ghost" id="oiDelNo">${esc(T("cancel"))}</button></div>`;
+    document.getElementById("oiDelNo").addEventListener("click", () => { msg.innerHTML = ""; });
+    document.getElementById("oiDelYes").addEventListener("click", async () => {
+      try { await api("DELETE", "/me"); ST.me = undefined; ST.org = null; go("org"); }
+      catch (e) { msg.innerHTML = `<p class="note err">${esc(errText(e))}</p>`; }
+    });
+  });
+}
 function renderCreate() {
   app().innerHTML = `<div class="wrap"><form class="auth" id="oiCreate"><span class="eyebrow">${esc(T("title"))}</span><h1>${esc(T("createTitle"))}</h1><p>${esc(T("createLede"))}</p>
     <div class="fld"><label for="oiName">${esc(T("orgName"))}</label><input type="text" id="oiName" maxlength="200" required></div>
-    <div><button class="btn" type="submit">${esc(T("create"))}</button></div><div id="oiMsg" role="status"></div></form></div>`;
+    <div><button class="btn" type="submit">${esc(T("create"))}</button></div><div id="oiMsg" role="status"></div>
+    ${ST.me && ST.me.user ? `<p class="fine">${esc(T("signedInAs", ST.me.user.email))} · <button type="button" class="linkbtn" id="oiOut">${esc(T("signOut"))}</button>${ST.me.orgs.length ? "" : ` · <button type="button" class="linkbtn" id="oiDelMe">${esc(T("deleteAccount"))}</button>`}</p><div id="oiAccMsg" role="status"></div>` : ""}</form></div>`;
+  bindAccount();
   document.getElementById("oiCreate").addEventListener("submit", async (ev) => {
     ev.preventDefault();
     try { const r = await api("POST", "/orgs", { name: document.getElementById("oiName").value }); ST.me = undefined; go("org/" + r.id + "/profile"); }
@@ -451,13 +469,31 @@ function valueText(f, v) {
   if (f.kind === "bool") return v ? T("yes") : T("no");
   return String(v);
 }
+// List fields (areas, target groups, partner countries) are merged with what the profile has; other fields replace it.
+const isList = (k) => ["multi", "countries"].includes(FIELD[k].kind);
+function mergedValue(k, proposed, current) { return isList(k) ? [...new Set([...(current || []), ...(proposed || [])])] : proposed; }
+function newItems(k, proposed, current) { return isList(k) ? (proposed || []).filter((x) => !(current || []).includes(x)) : null; }
+const sameValue = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+function quoteLabel(e) { return e.note === "value_not_in_evidence" ? T("valueNotInQuote") : e.note === "weak_evidence" ? T("weakQuote") : e.found ? T("found") : T("notFound"); }
+function proposedText(k, e, current) {
+  const add = newItems(k, e.value, current);
+  if (add) return add.length ? (current && current.length ? T("adds", valueText(FIELD[k], add)) : valueText(FIELD[k], add)) : T("alreadyHas");
+  return sameValue(e.value, current) ? `${valueText(FIELD[k], e.value)} (${T("same")})` : valueText(FIELD[k], e.value);
+}
+function preTicked(k, e, current) {
+  if (!e.found || e.confidence === "low" || e.note) return false;
+  const add = newItems(k, e.value, current);
+  return add ? add.length > 0 : !sameValue(e.value, current);
+}
 function reviewHTML(rv) {
   const p = ST.org.profile, rows = Object.entries(rv.fields).filter(([k]) => FIELD[k]);
+  const removed = (rv.dropped || []).filter((d) => d.why === "personal_data" || d.why === "invalid_value").length;
+  const noQuote = (rv.dropped || []).filter((d) => d.why === "no_evidence").length;
   return `<div class="oi-card"><h2>${esc(T("review"))}: ${esc(rv.sourceName || "")}</h2><p class="fine">${esc(T("reviewLede"))}</p>
-    ${rv.dropped && rv.dropped.length ? `<p class="note">${esc(T("dropped", rv.dropped.length))}</p>` : ""}
+    ${removed ? `<p class="note">${esc(T("dropped", removed))}</p>` : ""}${noQuote ? `<p class="fine">${esc(T("noQuote", noQuote))}</p>` : ""}
     <div class="tw"><table class="oi-t"><thead><tr><th></th><th>${esc(T("field"))}</th><th>${esc(T("proposed"))}</th><th>${esc(T("current"))}</th><th>${esc(T("evidence"))}</th><th>${esc(T("conf"))}</th></tr></thead><tbody>
-    ${rows.map(([k, e]) => `<tr><td><input type="checkbox" data-take="${k}"${e.found && e.confidence !== "low" && canEdit() ? " checked" : ""}${canEdit() ? "" : " disabled"} aria-label="${esc(fieldName(k))}"></td><td>${esc(fieldName(k))}</td><td>${esc(valueText(FIELD[k], e.value))}</td><td class="fine">${esc(valueText(FIELD[k], p[k]))}</td>
-      <td><p class="quote">${esc(e.evidence)}</p><span class="res ${e.found ? "pass" : "warn"}">${esc(e.found ? T("found") : T("notFound"))}</span>${e.sourceUrl ? ` · <a class="fine" href="${esc(e.sourceUrl)}" target="_blank" rel="noopener">${esc(new URL(e.sourceUrl).pathname)}</a>` : ""}</td><td>${esc(T("confL." + e.confidence))}</td></tr>`).join("")}
+    ${rows.map(([k, e]) => `<tr><td><input type="checkbox" data-take="${k}"${preTicked(k, e, p[k]) && canEdit() ? " checked" : ""}${canEdit() ? "" : " disabled"} aria-label="${esc(fieldName(k))}"></td><td>${esc(fieldName(k))}</td><td>${esc(proposedText(k, e, p[k]))}</td><td class="fine">${esc(valueText(FIELD[k], p[k]))}</td>
+      <td><p class="quote">${esc(e.evidence)}</p><span class="res ${e.found && !e.note ? "pass" : "warn"}">${esc(quoteLabel(e))}</span>${e.sourceUrl ? ` · <a class="fine" href="${esc(e.sourceUrl)}" target="_blank" rel="noopener">${esc(new URL(e.sourceUrl).pathname)}</a>` : ""}</td><td>${esc(T("confL." + e.confidence))}</td></tr>`).join("")}
     </tbody></table></div>
     ${canEdit() ? `<div class="oi-row"><button class="btn" id="oiApply" type="button">${esc(T("apply"))}</button><button class="btn ghost" id="oiDiscard" type="button">${esc(T("discard"))}</button><span id="oiApplyMsg" role="status"></span></div>` : ""}</div>`;
 }
@@ -483,7 +519,7 @@ afterRender.documents = () => {
       const prof = JSON.parse(JSON.stringify(ST.org.profile)); prof._meta = prof._meta || {};
       for (const k of take) {
         const e = rv.fields[k];
-        prof[k] = e.value;
+        prof[k] = mergedValue(k, e.value, prof[k]);
         prof._meta[k] = { source: rv.kind === "web" ? "web" : "document", sourceName: rv.sourceName, ...(e.sourceUrl ? { sourceUrl: e.sourceUrl } : {}), evidence: e.evidence, confidence: e.confidence, verified: true, at: new Date().toISOString() };
       }
       const m = document.getElementById("oiApplyMsg");
@@ -508,14 +544,14 @@ afterRender.documents = () => {
       let text = (await readFileText(f)).replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
       if (text.replace(/\s/g, "").length < 200) { prog.className = "note warn"; prog.textContent = T("scanned"); return; }
       const parts = splitText(text);
-      let runId = null, last = null;
+      let runId = null, last = null; const dropped = [];
       for (let i = 0; i < parts.length; i++) {
         prog.textContent = T("sending", i + 1, parts.length);
         last = await api("POST", `/orgs/${org.id}/extract`, { sourceName: f.name, text: parts[i], part: i + 1, parts: parts.length, runId });
-        runId = last.id;
+        runId = last.id; dropped.push(...(last.dropped || []));
       }
       prog.textContent = text.length > CHUNK * MAX_PARTS ? T("tooLong", CHUNK * MAX_PARTS, MAX_PARTS) : "";
-      ST.review = { id: last.id, kind: "document", sourceName: f.name, fields: last.fields, dropped: last.dropped };
+      ST.review = { id: last.id, kind: "document", sourceName: f.name, fields: last.fields, dropped };
       bindReview();
     } catch (e) { prog.className = "note err"; prog.textContent = e.message === "type" ? T("upload") : errText(e); }
     file.value = "";
@@ -612,7 +648,7 @@ async function secEvaluation() {
   if (!ST.guide) { const r = await fetch("org/erasmus-2026.json", { cache: "no-cache" }); ST.guide = await r.json(); }
   const g = ST.guide;
   return `<h1>${esc(T("evalTitle"))}</h1><p class="lede">${esc(T("evalLede"))}</p><p class="note">${esc(T("evalSoon"))}</p>
-    <p class="fine"><a href="${esc(g.guideUrl)}" target="_blank" rel="noopener">${esc(T("guide", g.guideYear, g.guideVersion))} ↗</a> · ${esc(g.notice)}</p>
+    <p class="fine"><a href="${esc(g.guideUrl)}" target="_blank" rel="noopener">${esc(T("guide", g.guideYear, g.guideVersion))} ↗</a> · ${esc(T("guideNotice"))}</p>
     ${g.actions.map((a) => `<section class="oi-card"><h2>${esc(a.id)} · ${esc(nm(a.name))}</h2>
       <p class="fine">${esc(T("where"))} <a href="${esc(g.nationalAgenciesUrl)}" target="_blank" rel="noopener">${esc(T("na"))} ↗</a> · <a href="${esc(a.url)}" target="_blank" rel="noopener">Programme Guide ↗</a></p>
       <p>${esc(T("totalMin", a.threshold.total))}</p>
@@ -646,14 +682,20 @@ async function secSettings() {
 afterRender.settings = () => {
   const org = ST.org, msg = document.getElementById("oiMemMsg");
   const act = async (fn) => { try { await fn(); EC.route(); } catch (e) { msg.innerHTML = `<p class="note err">${esc(errText(e))}</p>`; } };
-  document.querySelectorAll("[data-role]").forEach((s) => s.addEventListener("change", () => act(() => api("PATCH", `/orgs/${org.id}/members/${s.dataset.role}`, { role: s.value }))));
+  document.querySelectorAll("[data-role]").forEach((s) => {
+    const before = s.value;
+    s.addEventListener("change", async () => {
+      try { await api("PATCH", `/orgs/${org.id}/members/${s.dataset.role}`, { role: s.value }); EC.route(); }
+      catch (e) { s.value = before; msg.innerHTML = `<p class="note err">${esc(errText(e))}</p>`; }
+    });
+  });
   document.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => act(() => api("DELETE", `/orgs/${org.id}/members/${b.dataset.rm}`))));
   document.querySelectorAll("[data-rmi]").forEach((b) => b.addEventListener("click", () => act(() => api("DELETE", `/orgs/${org.id}/members/invites/${encodeURIComponent(b.dataset.rmi)}`))));
   const inv = document.getElementById("oiInvite");
   if (inv) inv.addEventListener("submit", (ev) => { ev.preventDefault(); act(() => api("POST", `/orgs/${org.id}/members`, { email: document.getElementById("oiInvEmail").value, role: document.getElementById("oiInvRole").value, lang: L() })); });
   document.getElementById("oiLeave").addEventListener("click", async () => { try { await api("POST", `/orgs/${org.id}/leave`); ST.me = undefined; ST.org = null; go("org"); } catch (e) { msg.innerHTML = `<p class="note err">${esc(errText(e))}</p>`; } });
   document.getElementById("oiNewsT").addEventListener("change", (e) => api("PATCH", "/me", { news: e.target.checked }).then(() => { ST.me.user.news = e.target.checked; }).catch(() => {}));
-  document.getElementById("oiDelMe").addEventListener("click", async () => { try { await api("DELETE", "/me"); ST.me = undefined; ST.org = null; go("org"); } catch (e) { document.getElementById("oiAccMsg").innerHTML = `<p class="note err">${esc(errText(e))}</p>`; } });
+  bindAccount();
   const dn = document.getElementById("oiDelName"), db = document.getElementById("oiDelOrg");
   if (dn) { dn.addEventListener("input", () => { db.disabled = dn.value.trim() !== org.name; }); db.addEventListener("click", async () => { await api("DELETE", `/orgs/${org.id}`); ST.me = undefined; ST.org = null; try { localStorage.removeItem("konkursi.org"); } catch {} go("org"); }); }
 };

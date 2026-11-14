@@ -23,32 +23,27 @@ const INDIVIDUAL_ONLY = new Set(["researcher", "student", "individual"]);
 
 // ---------- text ----------
 const STOP = new Set(("the and for with that this from are our we you your have has was were will can not but all any its into about what which who how when where why their they them also more most than then there these those such only other some very just over under onto via per i me my am is be been being do does did a an of to in on at by or as it if so no yes " +
-  "call calls topic project projects proposal proposals action actions programme program support funding fund eu european union expected outcome outcomes scope objective objectives activities activity applicant applicants " +
+  "call calls topic project projects proposal proposals action actions programme programmes program programs support supports supported funding fund funded eu european union expected outcome outcomes scope objective objectives activities activity applicant applicants " +
+  "non form forms make makes making help helps large small new based including include includes use used using well within across towards toward each one two three first level high key per year years way ways part parts work works working org organisation organisations organization organizations " +
   "i u na za sa se je su da od do po iz kao koji koja koje ili ali smo ste sam bi biti mi vi oni ona ono to taj ta te tu ovo ovaj ova kako sta šta gde kada zašto zasto koliko").split(/\s+/));
 export function norm(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "dj"); }
 export function terms(s) {
-  return norm(s).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP.has(w)).map((w) => (w.length > 5 ? w.slice(0, w.length - 2) : w));
+  return norm(s).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP.has(w) && !/^\d+$/.test(w)).map((w) => (w.length > 5 ? w.slice(0, w.length - 2) : w));
 }
 const callText = (c) => [c.title, c.callTitle, (c.keywords || []).join(" "), c.description, c.programmeName].join(" ");
 const profileText = (p) => [p.description, p.mission, p.objectives, p.expertise].filter(Boolean).join(" ");
 
-// Document frequencies over all calls, for weighting shared words (rare words count more). Built once per data load.
+// Word sets of every call and document frequencies over all calls (rare words count more). Built once per data load.
 export function buildDF(calls) {
-  const df = new Map(), per = new Map();
-  for (const c of calls) { const u = new Set(terms(callText(c))); per.set(c, u); for (const t of u) df.set(t, (df.get(t) || 0) + 1); }
-  const stats = { df, n: calls.length, top: new WeakMap(), text: new WeakMap() };
-  for (const [c, u] of per) stats.top.set(c, topTerms([...u], stats));
-  return stats;
+  const df = new Map(), sets = new WeakMap();
+  for (const c of calls) { const u = new Set(terms(callText(c))); sets.set(c, u); for (const t of u) df.set(t, (df.get(t) || 0) + 1); }
+  return { df, n: calls.length, sets, text: new WeakMap() };
 }
 const idfOf = (t, stats) => (stats ? Math.log(1 + stats.n / (1 + (stats.df.get(t) || 0))) : 1);
-// The call's 40 most distinctive words with their weights.
-function topTerms(list, stats) {
-  return [...new Set(list)].map((t) => [t, idfOf(t, stats)]).sort((x, y) => y[1] - x[1]).slice(0, 40);
-}
-function callTop(c, stats) {
-  if (stats && stats.top && stats.top.has(c)) return stats.top.get(c);
-  const v = topTerms(terms(callText(c)), stats);
-  if (stats && stats.top) stats.top.set(c, v);
+function callSet(c, stats) {
+  if (stats && stats.sets && stats.sets.has(c)) return stats.sets.get(c);
+  const v = new Set(terms(callText(c)));
+  if (stats && stats.sets) stats.sets.set(c, v);
   return v;
 }
 const termMemo = new Map();
@@ -57,13 +52,24 @@ function termSet(text) {
   if (!v) { v = new Set(terms(text)); if (termMemo.size > 200) termMemo.clear(); termMemo.set(text, v); }
   return v;
 }
-function overlap(aText, top) {
+// Share of the profile text's vocabulary that the call text also uses, each word weighted by how rare it is
+// across all calls. Words that occur in no call cannot match anything and are left out of the total.
+function coverage(aText, c, stats) {
   const a = termSet(aText);
-  if (!a.size || !top.length) return null;
-  let shared = 0, total = 0; const words = [];
-  for (const [t, w] of top) { total += w; if (a.has(t)) { shared += w; words.push(t); } }
-  return { ratio: total ? shared / total : 0, words: words.slice(0, 8) };
+  const callWords = callSet(c, stats);
+  let shared = 0, total = 0; const hits = [];
+  for (const t of a) {
+    if (stats && !stats.df.get(t)) continue;
+    const w = idfOf(t, stats);
+    total += w;
+    if (callWords.has(t)) { shared += w; hits.push([t, w]); }
+  }
+  if (!total) return null;
+  return { ratio: shared / total, words: hits.sort((x, y) => y[1] - x[1]).slice(0, 8).map(([t]) => t) };
 }
+// Coverage of 7% or less is what unrelated calls share through common words; 30% is a close thematic match.
+const TEXT_FLOOR = 0.07, TEXT_FULL = 0.3;
+const textScore = (ratio) => Math.max(0, Math.min(1, (ratio - TEXT_FLOOR) / (TEXT_FULL - TEXT_FLOOR)));
 
 // Target groups as they are written in (English) call texts.
 const GROUP_RE = {
@@ -111,24 +117,27 @@ function partnershipCheck(p, c, rule) {
 }
 
 // ---------- weighted dimensions (each 0..1, plus whether profile data was missing) ----------
+// Call sectors are derived from the call identifier (a whole Horizon cluster or mission shares them), so a shared
+// sector is weak evidence; the call's own text decides most of the thematic match.
 function dimObjectives(p, c, stats) {
   const areas = p.activityAreas || [];
   const cs = (c.sectors || []).filter((s) => s !== "other");
   const shared = cs.filter((s) => areas.includes(s));
-  const sect = !areas.length ? null : !cs.length ? 0.5 : shared.length ? Math.min(1, 0.6 + 0.2 * (shared.length - 1)) : 0;
-  const ov = overlap(profileText(p) + " " + areas.join(" "), callTop(c, stats));
-  const text = ov ? Math.min(1, ov.ratio * 3) : null; // a third of the call's distinctive words shared counts as full overlap
+  const sect = !areas.length ? null : !cs.length ? 0.3 : shared.length ? Math.min(1, 0.5 + 0.25 * (shared.length - 1)) : 0;
+  const ptext = profileText(p);
+  const ov = ptext ? coverage(ptext, c, stats) : null; // area names are scored by the sector match, not twice
+  const text = ov ? textScore(ov.ratio) : null;
   if (sect === null && text === null) return { s: 0.5, missing: ["activityAreas", "objectives"] };
-  const s = sect === null ? text : text === null ? sect : 0.6 * sect + 0.4 * text;
-  return { s, sharedSectors: shared, words: ov ? ov.words : [] };
+  const s = sect === null ? text : text === null ? 0.6 * sect : 0.3 * sect + 0.7 * text;
+  return { s, sect, text, sharedSectors: shared, words: ov && text > 0 ? ov.words : [] };
 }
 
 function dimExperience(p, c, stats) {
   const field = c.programme === "ERASMUS" ? (p.erasmus || p.euFunding) : p.euFunding;
   if (!field && !p.previousProjects) return { s: 0.5, missing: ["euFunding", "previousProjects"] };
   let s = { coordinator: 1, partner: 0.75, none: 0.35 }[field] ?? 0.5;
-  const ov = p.previousProjects ? overlap(p.previousProjects, callTop(c, stats)) : null;
-  if (ov) s = Math.min(1, s + Math.min(0.15, ov.ratio));
+  const ov = p.previousProjects ? coverage(p.previousProjects, c, stats) : null;
+  if (ov) s = Math.min(1, s + 0.15 * textScore(ov.ratio));
   return { s, role: field || null };
 }
 
@@ -142,24 +151,37 @@ function dimTargets(p, c, stats) {
     if (stats && stats.text) stats.text.set(c, mentioned);
   }
   const hit = groups.filter((g) => mentioned.includes(g));
-  return { s: hit.length >= 2 ? 1 : hit.length === 1 ? 0.7 : mentioned.length ? 0.2 : 0.5, matched: hit };
+  // A call that names none of the groups gives no support either way: below the middle, so silence never adds points.
+  return { s: hit.length >= 2 ? 1 : hit.length === 1 ? 0.7 : mentioned.length ? 0.1 : 0.3, matched: hit };
 }
 
+// Grant size per project: the stated maximum or typical amount, else the topic budget divided by the expected grants.
+function grantSize(f) {
+  if (f.maxPerGrant || f.approxPerGrant) return f.maxPerGrant || f.approxPerGrant;
+  if (f.topicBudget && f.expectedGrants) return f.topicBudget / f.expectedGrants;
+  return null;
+}
+// Staff needed per grant size; a volunteer counts as a tenth of an employee.
+const CAPACITY = {
+  small: [[1, 1], [0, 0.6]],
+  medium: [[5, 1], [2, 0.7], [0, 0.4]],
+  large: [[20, 1], [8, 0.7], [3, 0.4], [0, 0.2]],
+  xlarge: [[50, 1], [20, 0.6], [8, 0.3], [0, 0.1]],
+};
 function dimCapacity(p, c, now) {
   if (p.employees === undefined && p.volunteers === undefined) return { s: 0.5, missing: ["employees", "volunteers"] };
-  const staff = (p.employees || 0) + 0.3 * (p.volunteers || 0);
-  const f = c.funding || {};
-  const per = f.maxPerGrant || f.approxPerGrant || null;
-  const size = !per ? "medium" : per <= 60000 ? "small" : per <= 500000 ? "medium" : "large";
-  const table = { small: [[1, 1], [0, 0.6]], medium: [[5, 1], [2, 0.7], [0, 0.4]], large: [[20, 1], [8, 0.7], [3, 0.4], [0, 0.2]] }[size];
-  let s = table.find(([min]) => staff >= min)[1];
+  const staff = (p.employees || 0) + 0.1 * (p.volunteers || 0);
+  const per = grantSize(c.funding || {});
+  const size = !per ? "medium" : per <= 60000 ? "small" : per <= 500000 ? "medium" : per <= 2500000 ? "large" : "xlarge";
+  let s = CAPACITY[size].find(([min]) => staff >= min)[1];
   const age = p.yearEstablished ? new Date(now).getUTCFullYear() - p.yearEstablished : null;
   if (age !== null && age < 2) s = Math.max(0, s - 0.2);
-  return { s, size, staff: Math.round(staff * 10) / 10 };
+  return { s, size, staff: Math.round(staff * 10) / 10, perGrant: per };
 }
 
 function dimPartnerships(p, c, rule) {
-  if (c.partnership !== "consortium") return { s: 1 };
+  if (c.partnership === "alone") return { s: 1 };
+  if (c.partnership !== "consortium") return { s: 0.6 }; // not stated: the call document may still require partners
   if (!p.partnerCountries && !p.partnerships) return { s: 0.5, missing: ["partnerCountries"] };
   const have = (p.partnerCountries || []).filter((x) => x !== p.country).length;
   const need = rule && rule.minCountries ? rule.minCountries - 1 : 2;
@@ -195,8 +217,8 @@ export function assess(profile, call, { now = Date.now(), weights = null, stats 
   for (const k of Object.keys(DEFAULT_WEIGHTS)) { sum += (w[k] || 0) * dims[k].s; tot += w[k] || 0; }
   let score = tot ? Math.round((100 * sum) / tot) : 0;
   // Relevance cap: eligibility alone (type + country = 40% of the weights) must not make an unrelated call look
-  // compatible. With no thematic overlap the score stays at most 40 (very low); full overlap lifts the cap.
-  const capped = relevanceCap && !dims.objectives.missing ? Math.min(score, Math.round(40 + 100 * dims.objectives.s)) : score;
+  // compatible. With no thematic match the score stays at most 40 (low); a full match lifts the cap to 95.
+  const capped = relevanceCap && !dims.objectives.missing ? Math.min(score, Math.round(40 + 55 * dims.objectives.s)) : score;
   const capApplied = capped < score;
   score = capped;
 

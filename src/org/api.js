@@ -6,6 +6,7 @@ import { requestLink, verifyLink, currentUser, logout, cleanEmail, googleStart, 
 import { sendEmail, mailText } from "./email.js";
 import { cleanProfile, contextFrom, changedFields, completeness, FIELD } from "../../site/org/schema.js";
 import { extractFromText, researchUrl } from "./extract.js";
+import { generateIdeas, listIdeas, updateIdea } from "./ideas.js";
 
 export const ROLES = { viewer: 1, editor: 2, owner: 3 };
 
@@ -45,7 +46,7 @@ async function saveProfile(db, org, user, profile, baseVersion, note, now) {
 }
 
 async function deleteOrg(db, orgId) {
-  await db.batch(["profile_versions", "extractions", "org_invites", "org_members"].map((t) => db.prepare(`DELETE FROM ${t} WHERE org_id = ?`).bind(orgId))
+  await db.batch(["profile_versions", "extractions", "project_ideas", "org_invites", "org_members"].map((t) => db.prepare(`DELETE FROM ${t} WHERE org_id = ?`).bind(orgId))
     .concat([db.prepare("DELETE FROM organizations WHERE id = ?").bind(orgId)]));
 }
 
@@ -249,6 +250,22 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
     if (sub === "research" && M === "POST") {
       const m = await requireRole(db, orgId, user, "editor");
       return await researchUrl({ env, db, org: m, user, body, now, fetchImpl, waitUntil, url: request.url });
+    }
+
+    // ----- project ideas -----
+    if (sub === "ideas") {
+      if (M === "GET" && !parts[3]) { await requireRole(db, orgId, user, "viewer"); return json({ ideas: await listIdeas(db, orgId) }); }
+      const m = await requireRole(db, orgId, user, "editor");
+      if (M === "POST" && !parts[3]) {
+        const cur = await currentProfile(db, m);
+        return await generateIdeas({ env, db, org: m, user, profile: cur.profile, version: cur.version, body, now, fetchImpl, waitUntil, url: request.url });
+      }
+      if (M === "PATCH" && parts[3]) return await updateIdea(db, orgId, parts[3], body, now);
+      if (M === "DELETE" && parts[3]) {
+        await db.prepare("DELETE FROM project_ideas WHERE id = ? AND org_id = ?").bind(parts[3], orgId).run();
+        return json({ ok: true });
+      }
+      throw new HttpError(405, "method");
     }
 
     if (sub === "extractions") {

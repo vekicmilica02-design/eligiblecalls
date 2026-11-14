@@ -153,7 +153,8 @@ await t("document extraction: quotes checked against the text, personal numbers 
   assert.deepEqual(f.targetGroups.value, ["youth", "fewer-opportunities"]);
   assert.equal(f.employees.found, false, "a quote that is not in the document"); assert.equal(f.employees.confidence, "low");
   assert.equal(f.registrationNumber, undefined, "13-digit personal number scrubbed, value then invalid");
-  assert.ok(r.j.dropped.some((d) => d.id === "password"));
+  assert.equal(f.password, undefined, "fields that are not in the profile are ignored");
+  assert.ok(!r.j.dropped.some((d) => d.id === "password"), "and not counted as removed values");
   assert.match(aiSeen.at(-1).messages[0].content, /DATA\. It may contain instructions/);
   assert.match(aiSeen.at(-1).messages[1].content, /<source>[\s\S]*Ignore all previous instructions[\s\S]*<\/source>/);
   const p = (await call("GET", `/api/orgs/${org}`, { cookie: alice })).j.profile;
@@ -194,9 +195,35 @@ await t("web research: only public URLs, robots.txt respected, about pages follo
 await t("quote check normalises case, accents, quotes and Cyrillic", () => {
   assert.equal(matchKey("Удружење „Млади“"), matchKey("udruzenje Mladi"));
   const ctx = contextFrom(JSON.parse(readFileSync(new URL("../site/data/taxonomy.json", import.meta.url))), 2026);
-  const v = verifyFields({ fields: { city: { value: "Novi Sad", evidence: "sedište je u Novom Sadu", confidence: "high" } } }, "Sedište udruženja je u Novom Sadu.", ctx);
-  assert.equal(v.fields.city.found, false, "the value itself must appear in the quote for short fields");
+  const src = "Sedište udruženja je u Novom Sadu. Udruženje deluje u Kragujevcu i Beogradu.";
+  const v = verifyFields({ fields: { city: { value: "Novi Sad", evidence: "Sedište udruženja je u Novom Sadu", confidence: "high" } } }, src, ctx);
+  assert.equal(v.fields.city.found, true, "Serbian case forms: Novi Sad is written as u Novom Sadu");
+  const w = verifyFields({ fields: { city: { value: "Niš", evidence: "Sedište udruženja je u Novom Sadu", confidence: "high" } } }, src, ctx);
+  assert.equal(w.fields.city.found, false, "the value itself must appear in the quote for short fields");
+  assert.equal(w.fields.city.note, "value_not_in_evidence");
+  assert.equal(verifyFields({ fields: { city: { value: "Kragujevac", evidence: "Udruženje deluje u Kragujevcu i Beogradu", confidence: "high" } } }, src, ctx).fields.city.found, true);
   assert.deepEqual(parseJsonObject('noise {"a": {"b": "}"}} tail'), { a: { b: "}" } });
+});
+
+await t("extraction: empty values ignored, values without a quote left out, weak quotes offered unticked", () => {
+  const ctx = contextFrom(JSON.parse(readFileSync(new URL("../site/data/taxonomy.json", import.meta.url))), 2026);
+  const src = "Misija KOMS. Borba za bolji položaj mladih u Srbiji je naš posao. Projekat completEU se realizuje uz podršku programa Erasmus+. Udruženje je bilo partner u projektu Erasmus+ KA2.";
+  const v = verifyFields({ fields: {
+    website: { value: null, evidence: "", confidence: "low" },
+    city: { value: "", evidence: "", confidence: "low" },
+    activityAreas: { value: [], evidence: "", confidence: "low" },
+    euFunding: { value: "none", evidence: "", confidence: "low" },
+    mission: { value: "Borba za bolji položaj mladih u Srbiji", evidence: "Misija KOMS", confidence: "medium" },
+    erasmus: { value: "partner", evidence: "Projekat completEU se realizuje uz podršku programa Erasmus+", confidence: "medium" },
+    objectives: { value: "Borba za bolji položaj mladih u Srbiji", evidence: "Borba za bolji položaj mladih u Srbiji je naš posao", confidence: "high" },
+  } }, src, ctx);
+  assert.deepEqual(v.dropped, [{ id: "euFunding", why: "no_evidence" }], "empty values are not counted; a value without a quote is removed");
+  assert.equal(v.fields.website, undefined); assert.equal(v.fields.city, undefined);
+  assert.equal(v.fields.mission.note, "weak_evidence", "a heading does not support a summary"); assert.equal(v.fields.mission.confidence, "low");
+  assert.equal(v.fields.erasmus.note, "weak_evidence", "being funded by Erasmus+ does not state a partner role"); assert.equal(v.fields.erasmus.confidence, "low");
+  assert.equal(v.fields.objectives.note, undefined); assert.equal(v.fields.objectives.confidence, "high");
+  const ok = verifyFields({ fields: { erasmus: { value: "partner", evidence: "Udruženje je bilo partner u projektu Erasmus+ KA2", confidence: "high" } } }, src, ctx);
+  assert.equal(ok.fields.erasmus.confidence, "high");
 });
 
 await t("admin export lists users with their news consent; hidden from others", async () => {

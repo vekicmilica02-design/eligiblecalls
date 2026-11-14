@@ -43,8 +43,8 @@ export const FIELDS = [
   { id: "orgType", kind: "enum", options: ORG_TYPES, w: 6, req: true, en: "Organisation type", sr: "Tip organizacije" },
   { id: "country", kind: "country", w: 6, req: true, en: "Country of establishment", sr: "Država sedišta" },
   { id: "city", kind: "text", max: 120, w: 1, en: "City", sr: "Grad" },
-  { id: "registrationNumber", kind: "text", max: 60, w: 1, en: "Registration number (optional)", sr: "Matični broj (opciono)" },
-  { id: "oid", kind: "text", max: 20, w: 1, en: "Erasmus+ OID or EU PIC (optional)", sr: "Erasmus+ OID ili EU PIC (opciono)" },
+  { id: "registrationNumber", kind: "text", max: 60, w: 1, optional: true, en: "Registration number (optional)", sr: "Matični broj (opciono)" },
+  { id: "oid", kind: "text", max: 20, w: 1, optional: true, en: "Erasmus+ OID or EU PIC (optional)", sr: "Erasmus+ OID ili EU PIC (opciono)" },
   { id: "yearEstablished", kind: "year", w: 4, en: "Year of establishment", sr: "Godina osnivanja" },
   { id: "website", kind: "url", w: 2, en: "Website", sr: "Veb-sajt" },
   { id: "description", kind: "long", max: 3000, w: 6, en: "Organisation description", sr: "Opis organizacije" },
@@ -135,7 +135,7 @@ export function completeness(profile) {
   const p = profile || {};
   let have = 0, all = 0; const missing = [];
   for (const f of FIELDS) {
-    if (!f.w) continue;
+    if (!f.w || f.optional) continue; // optional fields never count as missing
     all += f.w;
     const v = p[f.id];
     if (v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length)) have += f.w; else missing.push(f);

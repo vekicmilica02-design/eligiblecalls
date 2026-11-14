@@ -59,17 +59,49 @@ export function extractionMessages(tax, sourceLabel, text) {
   return [{ role: "system", content: system }, { role: "user", content: user }];
 }
 
+// Short values that must appear in their quote. Serbian declines names ("Novi Sad" is "u Novom Sadu"), so words are
+// compared by their stem: the value word without its last one or two letters must start a word of the quote.
 const SHORT_VALUE_IN_EVIDENCE = new Set(["name", "city", "registrationNumber", "oid", "website", "yearEstablished", "employees", "volunteers"]);
+const stemOf = (w) => (w.length <= 3 ? w : w.length <= 5 ? w.slice(0, -1) : w.slice(0, -2));
+const words = (s) => matchKey(s).split(" ").filter(Boolean);
+export function valueInEvidence(value, evidence) {
+  const ev = words(evidence);
+  const want = words(value).filter((w) => w.length >= 3 || /\d/.test(w));
+  if (!want.length) return ev.length > 0;
+  return want.every((w) => (/\d/.test(w) ? ev.includes(w) : ev.some((e) => e.startsWith(stemOf(w)))));
+}
+// Share of a summary's content words that its quote contains (by stem). A summary of a heading or of an unrelated
+// sentence scores low.
+function support(value, evidence) {
+  const ev = words(evidence);
+  const want = [...new Set(words(value).filter((w) => w.length >= 5))];
+  if (!want.length) return 1;
+  return want.filter((w) => ev.some((e) => e.startsWith(stemOf(w)))).length / want.length;
+}
+const ROLE_WORDS = /\b(partner|koordinat|coordinat|nosilac|nosioc|lead|vodec|vodeci|podnosilac|applicant|beneficiar|korisnik)/;
+const NONE_WORDS = /\b(nije|nema|nemamo|nismo|never|nikada|bez|no experience|first time|prvi put|not yet|jos nije)\b/;
+// Fields where a quote can be found in the source and still not state the value; such fields are offered unticked.
+function weakEvidence(f, value, evidence) {
+  const ek = matchKey(evidence);
+  if (f.kind === "long") return words(evidence).length < 5 || support(String(value), evidence) < 0.35;
+  if (f.id === "euFunding" || f.id === "erasmus") return value === "none" ? !NONE_WORDS.test(ek) : !ROLE_WORDS.test(ek);
+  if (f.id === "eche") return !/\b(charter|povelj|eche)/.test(ek);
+  return false;
+}
+const isEmpty = (v) => v === undefined || v === null || (typeof v === "string" && !v.trim()) || (Array.isArray(v) && !v.length);
 
 // Check a model answer against the source. Returns {fields: {id: {value, evidence, confidence, found, note}}, dropped: [...]}.
+// Fields the model left empty are ignored; "dropped" lists only values that were removed (personal data, invalid
+// values, or no quote at all).
 export function verifyFields(answer, sourceText, ctx, sources = null) {
   const out = {}, dropped = [];
   const hay = matchKey(sourceText);
   const raw = answer && typeof answer.fields === "object" && answer.fields ? answer.fields : {};
   for (const [id, item] of Object.entries(raw)) {
     const f = FIELD[id];
-    if (!f || !EXTRACTABLE.includes(id) || !item || typeof item !== "object") { dropped.push({ id, why: "unknown_field" }); continue; }
+    if (!f || !EXTRACTABLE.includes(id) || !item || typeof item !== "object") continue;
     let value = item.value;
+    if (isEmpty(value)) continue;
     if (typeof value === "string") value = scrub(value);
     if (typeof value === "string" && value.replace(/\[removed\]/g, "").replace(/[^\p{L}\p{N}]/gu, "").length < 2) { dropped.push({ id, why: "personal_data" }); continue; }
     if (f.kind === "int" || f.kind === "year") value = typeof value === "string" ? value.replace(/[^\d]/g, "") : value;
@@ -77,12 +109,17 @@ export function verifyFields(answer, sourceText, ctx, sources = null) {
     if (!c.ok || c.value === null) { dropped.push({ id, why: "invalid_value" }); continue; }
     const evidence = scrub(String(item.evidence || "")).slice(0, 400);
     const ek = matchKey(evidence);
-    let found = ek.length >= 4 && hay.includes(ek);
+    if (ek.replace(/removed/g, "").trim().length < 4) { dropped.push({ id, why: "no_evidence" }); continue; }
+    let found = hay.includes(ek);
     let note = found ? null : "evidence_not_found";
-    if (found && SHORT_VALUE_IN_EVIDENCE.has(id) && !matchKey(evidence).includes(matchKey(String(c.value)).replace(/^https? /, "").replace(/ $/, ""))) {
-      if (id !== "website" || !matchKey(evidence).includes(matchKey(new URL(c.value).hostname.replace(/^www\./, "")))) { found = false; note = "value_not_in_evidence"; }
+    if (found && SHORT_VALUE_IN_EVIDENCE.has(id)) {
+      const ok = id === "website"
+        ? ek.includes(matchKey(new URL(c.value).hostname.replace(/^www\./, "")))
+        : valueInEvidence(String(c.value), evidence);
+      if (!ok) { found = false; note = "value_not_in_evidence"; }
     }
     let confidence = ["high", "medium", "low"].includes(item.confidence) ? item.confidence : "low";
+    if (found && weakEvidence(f, c.value, evidence)) { note = "weak_evidence"; confidence = "low"; }
     if (!found) confidence = "low";
     const entry = { value: c.value, evidence, confidence, found, ...(note ? { note } : {}) };
     if (sources && found) { const s = sources.find((x) => matchKey(x.text).includes(ek)); if (s) entry.sourceUrl = s.url; }

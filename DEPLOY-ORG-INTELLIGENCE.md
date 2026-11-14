@@ -19,6 +19,7 @@ Follow the steps in this order. Until steps 1 to 3 are done, the rest of the sit
 2. Paste the whole content of `migrations/0002_org.sql` and run it.
 3. Check: the **Tables** tab lists `users`, `sessions`, `organizations`, `org_members`, `org_invites`, `profile_versions`, `extractions`, `login_tokens`, `rate_limits`, `ai_usage` next to the existing `usage` and `visitor_usage`.
 4. Project ideas (phase 4): also run `migrations/0003_ideas.sql`, which adds the table `project_ideas`. Optional variable `ORG_IDEAS_PER_DAY` (default 5) limits idea generations per organisation per day.
+5. Premium access, proposal PDF, Erasmus+ evaluation and automatic profile filling: run `migrations/0004_access.sql`. It adds columns to `users` (`name`, `idea_runs`), `extractions` (`result`) and `project_ideas` (`proposal`, `evaluations`) and the tables `access_requests` and `app_settings`. The D1 console runs one statement at a time best: paste each `ALTER TABLE` line on its own, then the rest. Take a bookmark first (`/bookmark` in the console's Time Travel tab) so the database can be restored. `ALTER TABLE ... ADD COLUMN` fails if the column already exists, so run each line once.
 
 The migration only adds tables. Running it twice does nothing.
 
@@ -43,9 +44,11 @@ Workers & Pages → `eligiblecalls` → **Settings → Variables and Secrets** �
 | `GOOGLE_CLIENT_ID` | Text | the Client ID from step 2 |
 | `GOOGLE_CLIENT_SECRET` | Secret | the Client secret from step 2 |
 | `SITE_URL` | Text | `https://eligiblecalls.pages.dev` |
-| `ADMIN_EMAILS` | Text | the Google addresses that may download the user list, comma separated |
+| `ADMIN_EMAILS` | Text | the Google addresses that may download the user list and use the administration page (`#org/admin`), comma separated |
+| `RESEND_API_KEY` | Secret | API key from resend.com, for the e-mail to administrators when someone asks for premium access |
+| `EMAIL_FROM` | Text | sender, for example `Eligible Calls <onboarding@resend.dev>` (Resend's test sender delivers only to the address of the Resend account) or an address on a domain verified in Resend |
 
-Optional: `ORG_AI_PER_USER` (AI actions per user per day, default 20), `ORG_BUDGET_SHARE` (share of each daily AI allowance the module may use, default 0.6), `MAX_ORGS_PER_USER` (default 10).
+Optional: `ADMIN_NOTIFY_EMAILS` (where access requests are e-mailed, comma separated; default `ADMIN_EMAILS`), `ORG_AI_PER_USER` (AI actions per user per day, default 20), `ORG_BUDGET_SHARE` (share of each daily AI allowance the module may use, default 0.6), `MAX_ORGS_PER_USER` (default 10).
 
 The existing bindings (`DB` = `calldar`, `AI`) and secrets (`TURNSTILE_SECRET`, `GROQ_API_KEY`, `HASH_SALT`) stay as they are. New settings apply from the next deployment, which step 4 starts.
 
@@ -85,5 +88,5 @@ The one-time e-mail link sign-in is built in but off. It needs a domain verified
 
 ## Files in this package
 
-New: `functions/api/admin/[[path]].js`, `functions/api/auth/[[path]].js`, `functions/api/orgs/[[path]].js`, `functions/api/me.js`, `src/org/*`, `site/org/*`, `migrations/*`, `ingest/erasmus_guide.py`, `ingest/sources/erasmus_na.py`, tests under `test/`, this file.
+New: `functions/api/access/[[path]].js`, `functions/api/admin/[[path]].js`, `functions/api/auth/[[path]].js`, `functions/api/orgs/[[path]].js`, `functions/api/me.js`, `src/org/*`, `site/org/*`, `migrations/*`, `ingest/erasmus_guide.py`, `ingest/sources/erasmus_na.py`, tests under `test/`, this file.
 Changed: `site/index.html` (navigation entry, Organization route, privacy section), `ingest/build.py` (Erasmus+ countries), `ingest/fetch_extra.py`, `ingest/watch_lists.py`, `schema.sql`, `package.json`, `README.md`, `test/mocks.js`, `test/server.js`.

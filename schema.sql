@@ -25,7 +25,9 @@ CREATE TABLE IF NOT EXISTS users (
   terms_version TEXT NOT NULL,              -- privacy notice version accepted at sign-up
   terms_at INTEGER NOT NULL,
   news_opt_in INTEGER NOT NULL DEFAULT 0,   -- separate consent for news e-mails
-  news_opt_in_at INTEGER
+  news_opt_in_at INTEGER,
+  name TEXT,                                -- display name from the Google account (migration 0004)
+  idea_runs INTEGER NOT NULL DEFAULT 0      -- project idea generations started by this user (migration 0004)
 );
 
 CREATE TABLE IF NOT EXISTS login_tokens (
@@ -102,7 +104,8 @@ CREATE TABLE IF NOT EXISTS extractions (
   fields TEXT NOT NULL,                     -- JSON: {field: {value, evidence, confidence, found}}
   status TEXT NOT NULL DEFAULT 'review' CHECK (status IN ('review', 'applied', 'discarded')),
   created_by TEXT NOT NULL,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  result TEXT                               -- JSON: what the automatic fill did (filled, conflicts, not applied) (migration 0004)
 );
 CREATE INDEX IF NOT EXISTS extractions_org ON extractions (org_id, created_at);
 
@@ -131,6 +134,38 @@ CREATE TABLE IF NOT EXISTS project_ideas (
   model TEXT,
   created_by TEXT NOT NULL,
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  proposal TEXT,                            -- JSON: detailed proposal for the PDF (migration 0004)
+  evaluations TEXT                          -- JSON: Erasmus+ indicative evaluations by action (migration 0004)
 );
 CREATE INDEX IF NOT EXISTS project_ideas_org ON project_ideas (org_id, status, created_at);
+
+-- Premium access: one row per request; the newest row of a user decides the user's access.
+CREATE TABLE IF NOT EXISTS access_requests (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  org_id TEXT,                              -- organisation the user was working in when asking
+  service TEXT NOT NULL,                    -- what was asked for, e.g. 'project_ideas'
+  plan TEXT,                                -- plan id from the subscription settings
+  status TEXT NOT NULL CHECK (status IN ('pending_payment', 'payment_submitted', 'active', 'rejected', 'revoked', 'expired')),
+  payment_ref TEXT,                         -- reference the user gave for the payment
+  admin_note TEXT,
+  requested_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  paid_at INTEGER,                          -- when the user reported the payment
+  granted_at INTEGER,
+  expires_at INTEGER,                       -- NULL = no end date
+  decided_by TEXT,                          -- admin user id
+  notified INTEGER NOT NULL DEFAULT 0,      -- admin e-mail sent
+  notify_error TEXT
+);
+CREATE INDEX IF NOT EXISTS access_requests_user ON access_requests (user_id, requested_at);
+CREATE INDEX IF NOT EXISTS access_requests_status ON access_requests (status, updated_at);
+
+-- Settings the administrator edits in the admin dashboard (JSON values), e.g. 'subscription'.
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  updated_by TEXT
+);

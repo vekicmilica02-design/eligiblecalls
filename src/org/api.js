@@ -7,6 +7,10 @@ import { sendEmail, mailText } from "./email.js";
 import { cleanProfile, contextFrom, changedFields, completeness, FIELD } from "../../site/org/schema.js";
 import { extractFromText, researchUrl } from "./extract.js";
 import { generateIdeas, listIdeas, updateIdea } from "./ideas.js";
+import { requireAccess, countIdeaRun, accessOf, isAdmin, userAccessRoute, adminRoute } from "./access.js";
+import { makeProposal, getProposal } from "./proposal.js";
+import { evaluateIdea } from "./evaluate.js";
+import { planFill } from "./autofill.js";
 
 export const ROLES = { viewer: 1, editor: 2, owner: 3 };
 
@@ -84,7 +88,8 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
         if (!user) return json({ user: null, signin: { google: !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET), email: env.EMAIL_LOGIN === "1" } });
         const rows = (await db.prepare("SELECT o.id, o.name, o.profile_version, m.role FROM org_members m JOIN organizations o ON o.id = m.org_id WHERE m.user_id = ? ORDER BY o.name").bind(user.id).all()).results || [];
         const orgs = []; for (const r of rows) orgs.push(await orgSummary(db, r));
-        return json({ user: { id: user.id, email: user.email, lang: user.lang, news: user.news, createdAt: user.createdAt }, orgs });
+        const access = await accessOf(db, user.id, now);
+        return json({ user: { id: user.id, email: user.email, name: user.name || "", lang: user.lang, news: user.news, createdAt: user.createdAt, admin: isAdmin(env, user) }, orgs, access });
       }
       if (!user) throw new HttpError(401, "signin");
       if (M === "PATCH") {
@@ -107,6 +112,7 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
           db.prepare("DELETE FROM org_members WHERE user_id = ?").bind(user.id),
           db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(user.id),
           db.prepare("DELETE FROM ai_usage WHERE user_id = ?").bind(user.id),
+          db.prepare("DELETE FROM access_requests WHERE user_id = ?").bind(user.id),
           db.prepare("DELETE FROM login_tokens WHERE email = ?").bind(user.email),
           db.prepare("DELETE FROM users WHERE id = ?").bind(user.id),
         ]);
@@ -127,8 +133,11 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
           ...rows.map((r) => [q(r.email), iso(r.created_at), iso(r.last_login_at), r.lang, r.news_opt_in ? "yes" : "no", iso(r.news_opt_in_at), r.terms_version].join(","))].join("\n");
         return new Response(csv, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": "attachment; filename=eligiblecalls-users.csv", "cache-control": "no-store" } });
       }
-      throw new HttpError(404, "not_found");
+      return await adminRoute({ env, db, user, M, parts, body, now });
     }
+
+    // ----- premium access: the user's own status and requests -----
+    if (parts[0] === "access") return await userAccessRoute({ env, db, user, M, parts, body, now, fetchImpl, waitUntil });
 
     if (parts[0] !== "orgs") throw new HttpError(404, "not_found");
     if (!user) throw new HttpError(401, "signin");
@@ -255,10 +264,28 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
     // ----- project ideas -----
     if (sub === "ideas") {
       if (M === "GET" && !parts[3]) { await requireRole(db, orgId, user, "viewer"); return json({ ideas: await listIdeas(db, orgId) }); }
+      if (M === "GET" && parts[4] === "proposal") { await requireRole(db, orgId, user, "viewer"); return await getProposal(db, orgId, parts[3]); }
       const m = await requireRole(db, orgId, user, "editor");
       if (M === "POST" && !parts[3]) {
+        await requireAccess(db, user, "ideas", now);           // free generations, then premium only
         const cur = await currentProfile(db, m);
-        return await generateIdeas({ env, db, org: m, user, profile: cur.profile, version: cur.version, body, now, fetchImpl, waitUntil, url: request.url });
+        const res = await generateIdeas({ env, db, org: m, user, profile: cur.profile, version: cur.version, body, now, fetchImpl, waitUntil, url: request.url });
+        const out = await res.clone().json().catch(() => ({}));
+        if (out.generated > 0) await countIdeaRun(db, user.id);   // a run that produced no idea does not use the free generation
+        return res;
+      }
+      if (parts[3] && parts[4] === "proposal") {
+        if (M === "GET") return await getProposal(db, orgId, parts[3]);
+        if (M === "POST") {
+          await requireAccess(db, user, "proposal", now);
+          const cur = await currentProfile(db, m);
+          return await makeProposal({ env, db, org: m, user, profile: cur.profile, ideaId: parts[3], body, now, fetchImpl, waitUntil, url: request.url });
+        }
+      }
+      if (parts[3] && parts[4] === "evaluate" && M === "POST") {
+        await requireAccess(db, user, "evaluation", now);
+        const cur = await currentProfile(db, m);
+        return await evaluateIdea({ env, db, org: m, user, profile: cur.profile, ideaId: parts[3], body, now, fetchImpl, waitUntil, url: request.url });
       }
       if (M === "PATCH" && parts[3]) return await updateIdea(db, orgId, parts[3], body, now);
       if (M === "DELETE" && parts[3]) {
@@ -271,10 +298,49 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
     if (sub === "extractions") {
       await requireRole(db, orgId, user, M === "GET" ? "viewer" : "editor");
       if (M === "GET") {
-        const rows = (await db.prepare("SELECT id, kind, source_name, source_url, fields, status, created_at FROM extractions WHERE org_id = ? ORDER BY created_at DESC LIMIT 50").bind(orgId).all()).results || [];
-        return json({ extractions: rows.map((r) => ({ id: r.id, kind: r.kind, sourceName: r.source_name, sourceUrl: r.source_url, fields: JSON.parse(r.fields), status: r.status, at: r.created_at })) });
+        const rows = (await db.prepare("SELECT id, kind, source_name, source_url, fields, status, created_at, result FROM extractions WHERE org_id = ? ORDER BY created_at DESC LIMIT 50").bind(orgId).all()).results || [];
+        return json({ extractions: rows.map((r) => ({ id: r.id, kind: r.kind, sourceName: r.source_name, sourceUrl: r.source_url, fields: JSON.parse(r.fields), status: r.status, at: r.created_at, result: r.result ? JSON.parse(r.result) : null })) });
       }
       const eid = parts[3];
+      // Automatic fill: empty fields get every reliable value; conflicts and doubtful values wait for the user.
+      // body.take: fields to apply anyway (the user chose the found value); body.keep: conflicts resolved by keeping the profile's value.
+      if (M === "POST" && eid && parts[4] === "apply") {
+        const m = await requireRole(db, orgId, user, "editor");
+        const run = await db.prepare("SELECT * FROM extractions WHERE id = ? AND org_id = ?").bind(eid, orgId).first();
+        if (!run) throw new HttpError(404, "not_found");
+        const prevResult = run.result ? JSON.parse(run.result) : null;
+        const take = (Array.isArray(body.take) ? body.take : []).filter((k) => typeof k === "string").slice(0, 60);
+        const keep = (Array.isArray(body.keep) ? body.keep : []).filter((k) => typeof k === "string").slice(0, 60);
+        const ctx = contextFrom(await taxonomy(env, request.url), new Date(now).getUTCFullYear());
+        let out = null, version = null;
+        for (let attempt = 0; attempt < 2 && !out; attempt++) {          // one retry if someone saved the profile meanwhile
+          const cur = await currentProfile(db, m);
+          const fields = JSON.parse(run.fields);
+          const only = prevResult && (take.length || keep.length) ? Object.fromEntries(Object.entries(fields).filter(([k]) => take.includes(k))) : fields;
+          const plan = planFill(cur.profile, { kind: run.kind, sourceName: run.source_name, sourceUrl: run.source_url, fields: only }, { take, at: new Date(now).toISOString() });
+          const { profile, errors } = cleanProfile(plan.profile, ctx);
+          for (const k of Object.keys(errors)) {            // an invalid value is dropped and the previous value stays
+            plan.filled = plan.filled.filter((f) => f.id !== k);
+            if (cur.profile[k] !== undefined) profile[k] = cur.profile[k]; else delete profile[k];
+            if (profile._meta) { if (cur.profile._meta && cur.profile._meta[k]) profile._meta[k] = cur.profile._meta[k]; else delete profile._meta[k]; }
+            plan.notApplied.push({ id: k, value: (fields[k] || {}).value, evidence: (fields[k] || {}).evidence, confidence: (fields[k] || {}).confidence, why: "invalid" });
+          }
+          try {
+            const saved = plan.filled.length ? await saveProfile(db, m, user, profile, cur.version, "automatic fill: " + run.source_name, now) : { version: cur.version };
+            version = saved.version; out = plan;
+          } catch (e) { if (!(e instanceof HttpError && e.code === "version_conflict") || attempt) throw e; }
+        }
+        // Merge with what an earlier fill of this run recorded: decided items leave the open lists.
+        const decided = new Set([...take, ...keep]);
+        const result = prevResult && decided.size ? {
+          filled: [...prevResult.filled, ...out.filled],
+          conflicts: prevResult.conflicts.filter((c) => !decided.has(c.id)),
+          notApplied: prevResult.notApplied.filter((c) => !decided.has(c.id)),
+          kept: [...(prevResult.kept || []), ...keep], at: now, version,
+        } : { filled: out.filled, conflicts: out.conflicts, notApplied: out.notApplied, kept: [], at: now, version };
+        await db.prepare("UPDATE extractions SET status = 'applied', result = ? WHERE id = ? AND org_id = ?").bind(JSON.stringify(result), eid, orgId).run();
+        return json({ ok: true, version, result });
+      }
       if (M === "PATCH" && eid && ["applied", "discarded", "review"].includes(body.status)) {
         await db.prepare("UPDATE extractions SET status = ? WHERE id = ? AND org_id = ?").bind(body.status, eid, orgId).run();
         return json({ ok: true });

@@ -7,7 +7,7 @@
 import { HttpError, json, randomToken, randomId, sha256, verifyTurnstile, bump, utcDay, cookie } from "./http.js";
 import { sendEmail, mailText } from "./email.js";
 
-export const TERMS_VERSION = "2026-11-13";
+export const TERMS_VERSION = "2026-11-14";
 const LINK_MINUTES = 20;
 const SESSION_DAYS = 30;
 const COOKIE = "ec_session";
@@ -60,16 +60,16 @@ export async function verifyLink({ env, body, now }) {
 
 // Find or create the user, turn pending invitations into memberships, open a session.
 // Returns the Set-Cookie value of the new session.
-export async function loginUser(env, { email, googleSub = null, lang = "en", news = false, now }) {
+export async function loginUser(env, { email, googleSub = null, name = null, lang = "en", news = false, now }) {
   const db = env.DB;
   let user = googleSub ? await db.prepare("SELECT id, email FROM users WHERE google_sub = ?").bind(googleSub).first() : null;
   if (!user) user = await db.prepare("SELECT id, email FROM users WHERE email = ?").bind(email).first();
   if (!user) {
     user = { id: randomId(), email };
-    await db.prepare("INSERT INTO users (id, email, google_sub, created_at, last_login_at, lang, terms_version, terms_at, news_opt_in, news_opt_in_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(user.id, email, googleSub, now, now, lang, TERMS_VERSION, now, news ? 1 : 0, news ? now : null).run();
+    await db.prepare("INSERT INTO users (id, email, google_sub, created_at, last_login_at, lang, terms_version, terms_at, news_opt_in, news_opt_in_at, name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(user.id, email, googleSub, now, now, lang, TERMS_VERSION, now, news ? 1 : 0, news ? now : null, name).run();
   } else {
-    await db.prepare("UPDATE users SET last_login_at = ?, google_sub = COALESCE(google_sub, ?) WHERE id = ?").bind(now, googleSub, user.id).run();
+    await db.prepare("UPDATE users SET last_login_at = ?, google_sub = COALESCE(google_sub, ?), name = COALESCE(?, name) WHERE id = ?").bind(now, googleSub, name, user.id).run();
     // The Google account's address changed: follow it, unless another account already uses the new address.
     if (user.email !== email && !(await db.prepare("SELECT 1 FROM users WHERE email = ?").bind(email).first())) {
       await db.prepare("UPDATE users SET email = ? WHERE id = ?").bind(email, user.id).run();
@@ -117,7 +117,7 @@ export async function googleStart({ request, env }) {
   const st = { s: randomToken(24), v: randomToken(48), n: randomToken(24), l: q.get("lang") === "sr" ? "sr" : "en", w: q.get("news") === "1" ? 1 : 0 };
   const url = new URL(GOOGLE_AUTH);
   url.search = new URLSearchParams({
-    client_id: env.GOOGLE_CLIENT_ID, redirect_uri: site + "/api/auth/google/callback", response_type: "code", scope: "openid email",
+    client_id: env.GOOGLE_CLIENT_ID, redirect_uri: site + "/api/auth/google/callback", response_type: "code", scope: "openid email profile",
     state: st.s, nonce: st.n, code_challenge: await pkceChallenge(st.v), code_challenge_method: "S256", prompt: "select_account",
   }).toString();
   return redirect(url.href, [`${OAUTH_COOKIE}=${b64urlJson(st)}; Path=/api/auth/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`]);
@@ -147,7 +147,9 @@ export async function googleCallback({ request, env, now, fetchImpl = fetch }) {
       || !(claims.exp * 1000 > now) || claims.nonce !== st.n || !claims.sub) return fail("google_failed");
   const email = cleanEmail(claims.email);
   if (!email || claims.email_verified !== true) return fail("google_unverified");
-  const session = await loginUser(env, { email, googleSub: String(claims.sub), lang: st.l, news: st.w === 1, now });
+  // Display name (scope "profile"): used in the administrator's notifications and dashboard.
+  const name = typeof claims.name === "string" && claims.name.trim() ? claims.name.trim().slice(0, 120) : null;
+  const session = await loginUser(env, { email, googleSub: String(claims.sub), name, lang: st.l, news: st.w === 1, now });
   return redirect(site + "/#org", [session, clearOauth]);
 }
 
@@ -156,11 +158,11 @@ export async function currentUser(request, env, now) {
   if (!sid || sid.length > 100) return null;
   const hash = await sha256(sid);
   const row = await env.DB.prepare(
-    "SELECT u.id, u.email, u.lang, u.news_opt_in, u.created_at, s.expires_at, s.last_seen FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id_hash = ?"
+    "SELECT u.id, u.email, u.name, u.lang, u.news_opt_in, u.created_at, s.expires_at, s.last_seen FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id_hash = ?"
   ).bind(hash).first();
   if (!row || row.expires_at <= now) return null;
   if (now - row.last_seen > 864e5) await env.DB.prepare("UPDATE sessions SET last_seen = ?, expires_at = ? WHERE id_hash = ?").bind(now, now + SESSION_DAYS * 864e5, hash).run();
-  return { id: row.id, email: row.email, lang: row.lang, news: !!row.news_opt_in, createdAt: row.created_at, sessionHash: hash };
+  return { id: row.id, email: row.email, name: row.name || "", lang: row.lang, news: !!row.news_opt_in, createdAt: row.created_at, sessionHash: hash };
 }
 
 export async function logout(env, user) {

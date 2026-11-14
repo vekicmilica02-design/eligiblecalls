@@ -22,8 +22,10 @@ const env = {
   AI: { run: async (model, input) => { aiSeen.push(input); return sseStream([{ response: aiAnswer }, { response: "", usage: { prompt_tokens: 3000, completion_tokens: 400 } }]); } },
 };
 let web = {};
+const fetchLog = [];
 const fetchImpl = async (url, init) => {
   const u = String(url);
+  fetchLog.push({ url: u, init });
   if (u in web) { const [status, type, body, headers] = web[u]; return new Response(body, { status, headers: { "content-type": type, ...(headers || {}) } }); }
   return new Response("not found", { status: 404, headers: { "content-type": "text/html" } });
 };
@@ -165,6 +167,40 @@ await t("document extraction: quotes checked against the text, personal numbers 
   assert.ok(!JSON.stringify(env.DB._db.prepare("SELECT * FROM extractions").all()).includes("Ignore all previous"), "document text is not stored");
 });
 
+await t("automatic fill: reliable values fill empty fields with their source; differing values become conflicts; doubtful ones are listed", async () => {
+  const list = (await call("GET", `/api/orgs/${org}/extractions`, { cookie: alice })).j.extractions;
+  const run = list.find((x) => x.sourceName === "Statut.pdf");
+  assert.equal((await call("POST", `/api/orgs/${org}/extractions/${run.id}/apply`, { cookie: undefined })).status, 401);
+  const before = (await call("GET", `/api/orgs/${org}`, { cookie: alice })).j;
+  let r = await call("POST", `/api/orgs/${org}/extractions/${run.id}/apply`, { cookie: alice, body: {} });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  const res = r.j.result;
+  assert.deepEqual(res.filled.map((f) => f.id).sort(), ["targetGroups", "yearEstablished"]);
+  assert.deepEqual(res.conflicts.map((c) => [c.id, c.current, c.proposed]), [["name", "Udruženje Mladi", "Udruženje građana Mladi za Novi Sad"]], "an existing different name is not overwritten");
+  assert.deepEqual(res.notApplied.map((c) => [c.id, c.why]), [["employees", "quote_not_found"]]);
+  let p = (await call("GET", `/api/orgs/${org}`, { cookie: alice })).j;
+  assert.equal(p.version, before.version + 1);
+  assert.equal(p.profile.yearEstablished, 2014); assert.equal(p.profile.name, "Udruženje Mladi"); assert.equal(p.profile.employees, undefined);
+  assert.equal(p.profile._meta.yearEstablished.source, "document"); assert.equal(p.profile._meta.yearEstablished.sourceName, "Statut.pdf");
+  assert.equal(p.profile._meta.yearEstablished.verified, false); assert.match(p.profile._meta.yearEstablished.evidence, /2014/);
+  // the user takes the found name; the conflict leaves the list and the old name is replaced
+  r = await call("POST", `/api/orgs/${org}/extractions/${run.id}/apply`, { cookie: alice, body: { take: ["name"] } });
+  assert.deepEqual(r.j.result.conflicts, []); assert.ok(r.j.result.filled.some((f) => f.id === "name" && f.replaced === "Udruženje Mladi"));
+  p = (await call("GET", `/api/orgs/${org}`, { cookie: alice })).j;
+  assert.equal(p.profile.name, "Udruženje građana Mladi za Novi Sad");
+  // keeping the current value only closes the item
+  r = await call("POST", `/api/orgs/${org}/extractions/${run.id}/apply`, { cookie: alice, body: { keep: ["employees"] } });
+  assert.deepEqual(r.j.result.notApplied, []); assert.deepEqual(r.j.result.kept, ["employees"]);
+  assert.equal((await call("GET", `/api/orgs/${org}`, { cookie: alice })).j.version, p.version, "nothing to write, no new version");
+  const again = (await call("GET", `/api/orgs/${org}/extractions`, { cookie: alice })).j.extractions.find((x) => x.id === run.id);
+  assert.equal(again.status, "applied"); assert.equal(again.result.filled.length, 3);
+  // viewers cannot apply
+  const vw = await signIn("viewer-fill@example.org");
+  await call("POST", `/api/orgs/${org}/members`, { cookie: alice, body: { email: "viewer-fill@example.org", role: "viewer" } });
+  assert.equal((await call("POST", `/api/orgs/${org}/extractions/${run.id}/apply`, { cookie: await signIn("viewer-fill@example.org"), body: {} })).status, 403);
+  void vw;
+});
+
 await t("extraction limits: chunk size, per-user daily AI actions", async () => {
   assert.equal((await call("POST", `/api/orgs/${org}/extract`, { cookie: alice, body: { text: "a ".repeat(8000) } })).j.error, "chunk_too_large");
   env.ORG_AI_PER_USER = "1";
@@ -267,8 +303,16 @@ await t("project ideas: only shortlisted, open calls the country can enter; unkn
   assert.equal((await call("POST", `/api/orgs/${o}/ideas`, { cookie: vera, body: { candidates: cands } })).status, 403);
   assert.equal((await call("PATCH", `/api/orgs/${o}/ideas/${ideas[0].id}`, { cookie: vera, body: { status: "saved" } })).status, 403);
   assert.equal((await call("GET", `/api/orgs/${o}/ideas`, { cookie: alice })).status, 404, "another organisation's ideas are not visible");
-  // regenerating replaces the unsaved suggestions and keeps the saved idea
+  // the free generation is used: the next one needs premium access, which an administrator approves
   aiAnswer = JSON.stringify({ ideas: [idea(c2.id, "Fresh")] });
+  const nBefore = aiSeen.length;
+  r = await call("POST", `/api/orgs/${o}/ideas`, { cookie: ida, body: { candidates: cands } });
+  assert.equal(r.status, 402); assert.equal(r.j.error, "premium_required"); assert.equal(aiSeen.length, nBefore, "no model call behind the paywall");
+  const rq = await call("POST", "/api/access/request", { cookie: ida, body: { orgId: o } });
+  assert.equal(rq.status, 201); assert.equal(rq.j.status, "pending_payment");
+  const adm = await signIn("admin@example.org");
+  assert.equal((await call("POST", `/api/admin/access/${rq.j.request.id}`, { cookie: adm, body: { action: "approve" } })).status, 200);
+  // regenerating replaces the unsaved suggestions and keeps the saved idea
   r = await call("POST", `/api/orgs/${o}/ideas`, { cookie: ida, body: { candidates: cands } });
   const after = r.j.ideas;
   assert.deepEqual(after.map((x) => [x.idea.title, x.status]), [["First", "saved"], ["Fresh", "suggested"]]);
@@ -294,6 +338,136 @@ await t("project ideas: answer checks and ranking formula", () => {
   assert.equal(v.ideas[0].fit.alignment, null, "ratings outside 1-5 are discarded");
   assert.equal(conceptFit({ alignment: 5, priorities: 1, feasibility: 3, impact: 3 }), 50);
   assert.equal(conceptFit({}), null); assert.equal(rankScore(60, null), 60);
+});
+
+await t("premium access: one free generation, then paywall; request e-mails the admin; manual approval, revoke and expiry act at once", async () => {
+  _resetIdeasIndex();
+  const idx = JSON.parse(readFileSync(new URL("../site/data/index.json", import.meta.url), "utf8"));
+  const ci = Object.fromEntries(idx.countries.map((c, i) => [c, i]));
+  const nowIso = new Date(NOW).toISOString().slice(0, 16);
+  const c1 = idx.calls.find((c) => c.dl.some((d) => d.split("|")[0] > nowIso) && c.e[ci.RS] === "Y");
+  const pia = await signIn("pia@example.org"), adm = await signIn("admin@example.org");
+  const o = (await call("POST", "/api/orgs", { cookie: pia, body: { name: "Pia org" } })).j.id;
+  await call("PUT", `/api/orgs/${o}/profile`, { cookie: pia, body: { profile: { name: "Pia org", orgType: "ngo", country: "RS", description: "Youth NGO running media literacy workshops in Niš." }, baseVersion: 1 } });
+  let me = (await call("GET", "/api/me", { cookie: pia })).j;
+  assert.equal(me.user.admin, false); assert.deepEqual([me.access.status, me.access.active, me.access.freeLeft], ["none", false, 1]);
+  assert.equal((await call("GET", "/api/me", { cookie: adm })).j.user.admin, true);
+  const idea = { callId: c1.id, title: "Media literacy lab", concept: "c", problem: "p", solution: "s", objectives: ["Train 30 youth workers by month 9", "Reach 400 pupils"], targetGroups: ["young people"], activities: ["Workshops"], expectedResults: ["30 trained"], potentialPartners: ["school"], whyItFits: "w", fit: { alignment: 4, priorities: 4, feasibility: 4, impact: 4 } };
+  aiAnswer = JSON.stringify({ ideas: [idea] });
+  const cands = [{ id: c1.id, score: 80, status: "eligible", band: "strong" }];
+  let r = await call("POST", `/api/orgs/${o}/ideas`, { cookie: pia, body: { candidates: cands, lang: "en" } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  const iid = r.j.ideas[0].id;
+  assert.equal(r.j.ideas[0].proposal, null); assert.deepEqual(r.j.ideas[0].evaluations, {});
+  me = (await call("GET", "/api/me", { cookie: pia })).j;
+  assert.deepEqual([me.access.ideaRunsUsed, me.access.freeLeft], [1, 0]);
+  // premium features are refused by the server, not only hidden in the page
+  for (const [path, body] of [[`/api/orgs/${o}/ideas`, { candidates: cands }], [`/api/orgs/${o}/ideas/${iid}/proposal`, {}], [`/api/orgs/${o}/ideas/${iid}/evaluate`, { action: "KA220" }]]) {
+    const x = await call("POST", path, { cookie: pia, body }); assert.equal(x.status, 402, path); assert.equal(x.j.error, "premium_required");
+  }
+  // only administrators reach the admin API
+  assert.equal((await call("GET", "/api/admin/access", { cookie: pia })).status, 404);
+  assert.equal((await call("PUT", "/api/admin/settings", { cookie: pia, body: { subscription: {} } })).status, 404);
+  assert.equal((await call("POST", "/api/admin/users/x/access", { cookie: pia, body: { action: "grant" } })).status, 404);
+  // prices and plans are settings
+  r = await call("PUT", "/api/admin/settings", { cookie: adm, body: { subscription: { freeIdeaRuns: 1, accessDays: 365, plans: [{ id: "Year Plan!", name: "Annual", price: "49 EUR / year", description: "All premium features" }, { id: "year-plan", name: "dup" }], paymentInstructions: "Bank transfer to the account shown in the invoice." } } });
+  assert.equal(r.status, 200); assert.deepEqual(r.j.subscription.plans.map((x) => x.id), ["year-plan"], "ids cleaned and de-duplicated");
+  const plan = r.j.subscription.plans[0].id;
+  const pub = (await call("GET", "/api/access", { cookie: pia })).j;
+  assert.equal(pub.settings.plans[0].price, "49 EUR / year"); assert.match(pub.settings.paymentInstructions, /Bank transfer/);
+  // request: the administrator gets an e-mail with name, address, organisation, time, service and a link
+  env.RESEND_API_KEY = "re_test"; env.EMAIL_FROM = "Eligible Calls <onboarding@resend.dev>";
+  web["https://api.resend.com/emails"] = [200, "application/json", "{}"];
+  fetchLog.length = 0;
+  r = await call("POST", "/api/access/request", { cookie: pia, body: { plan, orgId: o } });
+  assert.equal(r.status, 201); assert.equal(r.j.status, "pending_payment"); assert.equal(r.j.active, false);
+  const rid = r.j.request.id;
+  const mails = fetchLog.filter((x) => x.url === "https://api.resend.com/emails").map((x) => JSON.parse(x.init.body));
+  assert.equal(mails.length, 1); assert.deepEqual(mails[0].to, ["admin@example.org"]);
+  assert.match(mails[0].subject, /Premium access request: pia@example\.org/);
+  for (const re of [/E-mail: pia@example\.org/, /Organisation: Pia org/, /Date and time: 13 November 2026 at 13:00 \(Europe\/Belgrade\), 2026-11-13 12:00 UTC/, /Service: Project idea generation/, /Plan: Annual \(49 EUR \/ year\)/, new RegExp(`https://eligiblecalls\\.pages\\.dev/#org/admin/r/${rid}`)]) assert.match(mails[0].text, re);
+  // asking again keeps one open request
+  assert.equal((await call("POST", "/api/access/request", { cookie: pia, body: { plan } })).j.request.id, rid);
+  r = await call("POST", "/api/access/payment", { cookie: pia, body: { reference: "RF 12-345" } });
+  assert.equal(r.j.status, "payment_submitted"); assert.equal(r.j.request.paymentRef, "RF 12-345");
+  assert.match(JSON.parse(fetchLog.filter((x) => x.url === "https://api.resend.com/emails").at(-1).init.body).subject, /Payment reported/);
+  // a failed e-mail is recorded on the request; the request itself still exists
+  web["https://api.resend.com/emails"] = [500, "application/json", "{}"];
+  const quinn = await signIn("quinn@example.org");
+  r = await call("POST", "/api/access/request", { cookie: quinn, body: {} });
+  assert.equal(r.status, 201); assert.equal(r.j.request.notified, false); assert.equal(r.j.request.notifyError, "provider_500");
+  assert.equal((await call("POST", "/api/access/payment", { cookie: await signIn("rhea@example.org"), body: {} })).j.error, "no_open_request");
+  delete env.RESEND_API_KEY; delete env.EMAIL_FROM; delete web["https://api.resend.com/emails"];
+  // the dashboard lists requests and users with their status
+  let d = (await call("GET", "/api/admin/access", { cookie: adm })).j;
+  const row = d.requests.find((x) => x.id === rid);
+  assert.deepEqual([row.effective, row.email, row.org, row.notified, row.paymentRef], ["payment_submitted", "pia@example.org", "Pia org", true, "RF 12-345"]);
+  assert.equal(d.users.find((u) => u.email === "pia@example.org").status, "payment_submitted");
+  assert.equal(d.users.find((u) => u.email === "pia@example.org").ideaRuns, 1);
+  // approval (default 365 days) unlocks the premium features at once
+  assert.equal((await call("POST", `/api/admin/access/${rid}`, { cookie: adm, body: { action: "nonsense" } })).status, 400);
+  assert.equal((await call("POST", `/api/admin/access/${rid}`, { cookie: adm, body: { action: "approve", note: "Paid 13 Nov" } })).status, 200);
+  me = (await call("GET", "/api/me", { cookie: pia })).j;
+  assert.equal(me.access.active, true); assert.equal(me.access.request.expiresAt, NOW + 365 * 864e5); assert.equal(me.access.request.grantedAt, NOW);
+  d = (await call("GET", "/api/admin/access", { cookie: adm })).j;
+  assert.equal(d.requests.find((x) => x.id === rid).decidedBy, "admin@example.org");
+  // detailed proposal: shares normalised, the requested total never above the call's amount
+  aiAnswer = JSON.stringify({ title: "Media literacy lab", durationMonths: 18, summary: "S. Ћирилица и latinica.", problem: "P", mainObjectives: ["M"], specificObjectives: ["A", "B"],
+    targetGroups: [{ group: "Youth", description: "d", reach: "400" }], workPackages: [{ id: "WP1", title: "Mgmt", months: "M1-M18", activities: ["x"], deliverables: ["y"] }, { title: "Training", activities: ["x"] }],
+    methodology: "m", outputs: [{ output: "o1", indicator: "i", target: "t" }, { output: "o2" }], impact: "i", partnership: { structure: "s", partners: [{ profile: "School", country: "HR", role: "r" }] },
+    timeline: [{ phase: "Prep", period: "M1-M3", milestones: ["m"] }], monitoring: "m", sustainability: "s", risks: [{ risk: "r", likelihood: "extreme", mitigation: "m" }], alignment: "a",
+    budget: { requestedTotal: 1e12, basis: "b", categories: [{ category: "Staff", share: 3 }, { category: "Travel", share: 1 }, { category: "Bad", share: -5 }], considerations: "c" } });
+  r = await call("POST", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia, body: { lang: "sr" } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  const pr = r.j.proposal;
+  assert.deepEqual(pr.budget.categories.map((c) => c.share), [75, 25]);
+  assert.ok(pr.budget.requestedTotal === null || pr.budget.requestedTotal === Math.round(c1.f), "total clamped to the call's amount or dropped");
+  assert.equal(pr.workPackages[1].id, "WP2"); assert.equal(pr.risks[0].likelihood, "medium"); assert.equal(pr.lang, "sr"); assert.equal(pr.call.id, c1.id);
+  assert.match(aiSeen.at(-1).messages[0].content, /Serbian \(Latin script\)/);
+  assert.equal((await call("GET", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia })).j.proposal.title, "Media literacy lab");
+  aiAnswer = JSON.stringify({ title: "only a title" });
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia, body: {} })).j.error, "ai_bad_answer", "an incomplete proposal is refused");
+  assert.equal((await call("GET", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia })).j.proposal.title, "Media literacy lab", "and the stored one is kept");
+  // Erasmus+ evaluation: official maxima and thresholds decide, not the model
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/evaluate`, { cookie: pia, body: { action: "KA999" } })).status, 400);
+  aiAnswer = JSON.stringify({ criteria: [{ id: "c1", score: 35, justification: "j", strengths: ["s"], weaknesses: ["w"], missing: ["m"], recommendations: ["r"] }, { id: "c2", score: 10 }, { id: "c3", score: 14 }, { id: "c4", score: 15 }], summary: "sum", priorityActions: ["p"] });
+  r = await call("POST", `/api/orgs/${o}/ideas/${iid}/evaluate`, { cookie: pia, body: { action: "KA210", lang: "en" } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  const ev = r.j.evaluation;
+  assert.deepEqual(ev.criteria.map((c) => [c.max, c.min, c.score, c.pass]), [[30, 15, 30, true], [30, 15, 10, false], [20, 10, 14, true], [20, 10, 15, true]]);
+  assert.deepEqual([ev.total, ev.max, ev.threshold, ev.passesTotal, ev.passesCriteria, ev.passed, ev.usedProposal], [69, 100, 60, true, false, false, true]);
+  assert.match(aiSeen.at(-1).messages[0].content, /maximum 30 points; at least 15 needed/);
+  assert.match(aiSeen.at(-1).messages[1].content, /DETAILED PROPOSAL/);
+  aiAnswer = JSON.stringify({ criteria: [{ id: "c1", score: 20 }, { id: "c2", score: 20 }, { id: "c3", score: 15 }, { id: "c4", score: 15 }] });
+  r = await call("POST", `/api/orgs/${o}/ideas/${iid}/evaluate`, { cookie: pia, body: { action: "KA220" } });
+  assert.deepEqual([r.j.evaluation.max, r.j.evaluation.threshold, r.j.evaluation.total, r.j.evaluation.passed], [100, 70, 70, true]);
+  aiAnswer = JSON.stringify({ criteria: [{ id: "c1" }] });
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/evaluate`, { cookie: pia, body: { action: "KA220" } })).j.error, "ai_bad_answer");
+  const listed = (await call("GET", `/api/orgs/${o}/ideas`, { cookie: pia })).j.ideas.find((x) => x.id === iid);
+  assert.deepEqual(Object.keys(listed.evaluations).sort(), ["KA210", "KA220"]); assert.equal(listed.proposal.lang, "sr");
+  // revoke: refused at once
+  assert.equal((await call("POST", `/api/admin/access/${rid}`, { cookie: adm, body: { action: "revoke" } })).status, 200);
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/evaluate`, { cookie: pia, body: { action: "KA220" } })).status, 402);
+  assert.equal((await call("GET", "/api/me", { cookie: pia })).j.access.status, "revoked");
+  // direct grant for 2 days; after that access counts as expired
+  const pid = d.users.find((u) => u.email === "pia@example.org").id;
+  assert.equal((await call("POST", `/api/admin/users/${pid}/access`, { cookie: adm, body: { action: "grant", days: 2 } })).j.status, "active");
+  assert.equal((await call("GET", "/api/me", { cookie: pia })).j.access.active, true);
+  const saveNow = NOW; NOW += 3 * 864e5;
+  me = (await call("GET", "/api/me", { cookie: pia })).j;
+  assert.deepEqual([me.access.status, me.access.active], ["expired", false]);
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia, body: {} })).status, 402);
+  assert.equal((await call("GET", "/api/admin/access", { cookie: adm })).j.users.find((u) => u.id === pid).status, "expired");
+  NOW = saveNow;
+  // reject closes an open request
+  const qr = (await call("GET", "/api/access", { cookie: quinn })).j.request.id;
+  await call("POST", `/api/admin/access/${qr}`, { cookie: adm, body: { action: "reject", note: "No payment received" } });
+  const qa = (await call("GET", "/api/access", { cookie: quinn })).j;
+  assert.deepEqual([qa.status, qa.request.adminNote], ["rejected", "No payment received"]);
+  // deleting the account removes its requests
+  await call("DELETE", `/api/orgs/${o}`, { cookie: pia });
+  assert.equal((await call("DELETE", "/api/me", { cookie: pia })).status, 200);
+  assert.equal(env.DB._db.prepare("SELECT COUNT(*) n FROM access_requests WHERE user_id = ?").get(pid).n, 0);
 });
 
 await t("admin export lists users with their news consent; hidden from others", async () => {
@@ -352,7 +526,7 @@ await t("Google: start needs consent and configuration; sends state, nonce and P
   const { start, url } = await googleLogin({ email: "dana@example.org" });
   assert.equal(url.searchParams.get("client_id"), env.GOOGLE_CLIENT_ID);
   assert.equal(url.searchParams.get("redirect_uri"), "https://eligiblecalls.pages.dev/api/auth/google/callback");
-  assert.equal(url.searchParams.get("scope"), "openid email");
+  assert.equal(url.searchParams.get("scope"), "openid email profile");
   assert.equal(url.searchParams.get("code_challenge_method"), "S256");
   assert.match(start.cookies[0], /^ec_oauth=[^;]+; Path=\/api\/auth\/; HttpOnly; Secure; SameSite=Lax; Max-Age=600$/);
   const id = env.GOOGLE_CLIENT_ID; delete env.GOOGLE_CLIENT_ID;
@@ -389,6 +563,10 @@ await t("Google: an invitation becomes a membership; the same Google account kee
   const s2 = again.cb.cookies.find((c) => c.startsWith("ec_session=")).split(";")[0];
   assert.equal((await call("GET", "/api/me", { cookie: s2 })).j.user.email, "frank.new@example.org", "address follows the Google account");
   assert.equal((await call("GET", `/api/orgs/${o}`, { cookie: s2 })).j.role, "editor");
+  // the name from the Google profile is kept for the administrator's access list
+  const g = await googleLogin({ email: "gina@example.org", name: "Gina Gee" });
+  const s3 = g.cb.cookies.find((c) => c.startsWith("ec_session=")).split(";")[0];
+  assert.equal((await call("GET", "/api/me", { cookie: s3 })).j.user.name, "Gina Gee");
 });
 
 await t("e-mail link sign-in is off unless EMAIL_LOGIN is 1; /api/me tells the page which sign-in exists", async () => {

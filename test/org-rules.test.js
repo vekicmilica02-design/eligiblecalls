@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ROOT } from "./mocks.js";
-import { assess, assessAll, buildDF, band, DEFAULT_WEIGHTS, callFingerprint } from "../site/org/rules.js";
+import { assess, assessAll, buildDF, band, scoreTier, DEFAULT_WEIGHTS, callFingerprint } from "../site/org/rules.js";
 import { cleanProfile, completeness, contextFrom, changedFields } from "../site/org/schema.js";
 
 const TAX = JSON.parse(readFileSync(path.join(ROOT, "site/data/taxonomy.json"), "utf8"));
@@ -100,6 +100,15 @@ t("weights are configurable and change the score, never the status", () => {
   assert.notEqual(a.score, b.score);
   assert.equal(a.status, b.status);
   assert.equal(Object.values(DEFAULT_WEIGHTS).reduce((x, y) => x + y, 0), 100);
+});
+
+t("score colours: red below 50, yellow 50-74, green from 75; status stays with the mandatory checks", () => {
+  assert.deepEqual([0, 49, 50, 74, 75, 100].map(scoreTier), ["low", "low", "medium", "medium", "high", "high"]);
+  const failed = assess(ngo, call({ eligibility: { RS: ["N", 0] }, reasons: ["Not a participating country."] }), { now: NOW, relevanceCap: false, weights: { country: 0 } });
+  assert.equal(failed.status, "ineligible");
+  assert.equal(scoreTier(failed.score), "high", "a green score does not lift a failed mandatory check (score " + failed.score + ")");
+  const low = assess(ngo, call({ title: "Nuclear fusion materials", keywords: ["plasma"], description: "Tokamak plasma-facing materials research.", sectors: ["energy"] }), { now: NOW });
+  assert.equal(scoreTier(low.score), "low"); assert.equal(low.status, "eligible", "a red score is not a legal ineligibility");
 });
 
 t("bands follow the brief", () => {

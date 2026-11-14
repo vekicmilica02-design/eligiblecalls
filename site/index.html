@@ -205,6 +205,22 @@ aside.filters { align-self: start; position: sticky; top: 80px; max-height: calc
 .filters-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; }
 .filters-head h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
 details.facet { border-top: 1px solid var(--line); padding-block: 12px; }
+.budget { display: grid; gap: 10px; margin-top: 10px; }
+.budget-now { font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
+.range2 { position: relative; height: 28px; }
+.range2 .track { position: absolute; left: 9px; right: 9px; top: 12px; height: 4px; border-radius: 4px; background: var(--line); }
+.range2 .track i { position: absolute; top: 0; bottom: 0; background: var(--green); border-radius: 4px; }
+.range2 input[type=range] { position: absolute; inset: 0; width: 100%; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; }
+.range2 input[type=range]::-webkit-slider-runnable-track { background: none; height: 28px; }
+.range2 input[type=range]::-moz-range-track { background: none; }
+.range2 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 20px; height: 20px; margin-top: 4px; border-radius: 50%; background: var(--surface); border: 2px solid var(--green); cursor: pointer; }
+.range2 input[type=range]::-moz-range-thumb { pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 2px solid var(--green); cursor: pointer; }
+.range2 input[type=range]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--focus); outline-offset: 2px; }
+.range2 input[type=range]:focus-visible::-moz-range-thumb { outline: 2px solid var(--focus); outline-offset: 2px; }
+.budget-vals { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.budget-info summary { cursor: pointer; } .budget-info p { margin-top: 6px; }
+.budget-vals label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.budget-vals input { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); color: var(--ink); font: inherit; font-variant-numeric: tabular-nums; }
 details.facet summary { cursor: pointer; font-weight: 600; font-size: 14px; list-style: none; display: flex; align-items: center; gap: 6px; }
 details.facet summary::-webkit-details-marker { display: none; }
 details.facet summary::after { content: ""; margin-left: auto; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
@@ -530,7 +546,7 @@ body.chat-open .chat-fab { display: none; }
       <a href="#deadlines" data-route="deadlines" data-i18n="navDeadlines">Deadlines</a>
       <a href="#updates" data-route="updates" data-i18n="navUpdates">Updates</a>
       <a href="#saved" data-route="saved"><span data-i18n="navSaved">Saved</span><span class="count-pill" id="savedCount" hidden>0</span></a>
-      <a href="#org" data-route="org" data-i18n="navOrg" title="Organization Intelligence">Organization</a>
+      <a href="#org" data-route="org" data-i18n="navOrg" title="Organization Intelligence">Profile</a>
       <a href="#about" data-route="about" data-i18n="navAbout">About</a>
     </nav>
     <button type="button" class="btn ask-btn" data-chat-open><span aria-hidden="true">✦</span> <span data-ci18n="open">Ask the assistant</span></button>
@@ -587,7 +603,7 @@ const I18N = {
 <li><b>Who sees it.</b> Only the members of an organisation see its profile. The site's administrators can export the list of user e-mail addresses with the news-e-mail choice.</li>
 <li><b>News e-mails.</b> Only if you ticked the box; you can switch them off in Settings.</li>
 <li><b>Deleting.</b> In Settings: delete an organisation (owners) or your whole account. Deletion removes the data from the database; it can remain for a limited period in Cloudflare's database backups (D1 Time Travel).</li></ul>`,
-    brandSub: "European funding calls", navFind: "Find funding", navProgrammes: "Programmes", navDeadlines: "Deadlines", navSaved: "Saved", navOrg: "Organization", navAbout: "About",
+    brandSub: "European funding calls", navFind: "Find funding", navProgrammes: "Programmes", navDeadlines: "Deadlines", navSaved: "Saved", navOrg: "Profile", navAbout: "About",
     footData: (when) => `Data: EU Funding & Tenders Portal and other official sources (see About), imported ${when}. Always confirm on the official call page.`,
     updatedAgo: (v, u) => `Updated ${v} ${u === "m" ? "min" : u === "h" ? (v === 1 ? "hour" : "hours") : v === 1 ? "day" : "days"} ago`, updatedNow: "Updated just now", staleNote: "newer calls may be missing",
     foot: "Eligible Calls is an independent directory. The official funding body is always the authoritative source for deadlines, eligibility and amounts.",
@@ -598,7 +614,7 @@ const I18N = {
     searchPh: "Keyword or call ID", search: "Search", tryLabel: "Try:",
     closingSoon: "Closing in the next 14 days", seeAll: "All deadlines",
     filters: "Filters", clearAll: "Clear all", showResults: "Show results",
-    fStatus: "Status", stOpenNow: "Open now", stSoon: "Opening soon", opensOn: (d) => `Opens ${d}`, resultsAll: "Open and upcoming calls", fCountry: "Your country", fApplicant: "Applicant type", fSector: "Sector", fProgramme: "Programme", fFunding: "Funding per project", fDeadline: "Deadline", fType: "Type of call", fPartner: "Partnership",
+    fStatus: "Status", stOpenNow: "Open now", stSoon: "Opening soon", opensOn: (d) => `Opens ${d}`, resultsAll: "Open and upcoming calls", fCountry: "Your country", fApplicant: "Applicant type", fSector: "Sector", fProgramme: "Programme", fFunding: "Funding per project", budgetMin: "Minimum (€)", budgetMax: "Maximum (€)", budgetIn: (n) => `${n} calls in this range.`, budgetHidden: (n) => `${n} without an amount per project are hidden.`, budgetShown: (n) => `${n} without an amount per project are shown.`, budgetHow: "How amounts are read", budgetRule: "A call is shown when its amount per project overlaps your range. Where a call gives only a total budget, the amount per project is not known.", budgetUnknown: "Also show calls that state no amount per project", budgetFx: (cur, d, r) => `${cur} amounts are shown in euros at the European Central Bank reference rate of ${d} (1 € = ${r} ${cur}).`, budgetNoFx: (cur) => `No exchange rate for ${cur} is available, so those calls count as having no amount in euros.`, budgetCap: "Calls that state only a total budget are hidden when the total is below your minimum.", approx: "≈", fDeadline: "Deadline", fType: "Type of call", fPartner: "Partnership",
     showMore: "Show all", showLess: "Show fewer",
     elY: "Eligible", elP: "Eligible with a condition", elN: "Not eligible", elC: "Not available from the source",
     elShortY: "Eligible", elShortP: "Condition", elShortN: "Not eligible", elShortC: "Not in source",
@@ -655,7 +671,7 @@ const I18N = {
 <li><b>Ko vidi podatke.</b> Profil organizacije vide samo njeni članovi. Administratori sajta mogu da izvezu spisak e-mail adresa korisnika sa izborom o e-mail vestima.</li>
 <li><b>E-mail vesti.</b> Samo ako ste označili polje; možete ih isključiti u Podešavanjima.</li>
 <li><b>Brisanje.</b> U Podešavanjima: brisanje organizacije (vlasnici) ili celog naloga. Brisanjem se podaci uklanjaju iz baze; ograničeno vreme mogu ostati u rezervnim kopijama baze kod Cloudflare-a (D1 Time Travel).</li></ul>`,
-    brandSub: "Evropski pozivi za finansiranje", navFind: "Pretraga", navProgrammes: "Programi", navDeadlines: "Rokovi", navSaved: "Sačuvano", navOrg: "Organizacija", navAbout: "O podacima",
+    brandSub: "Evropski pozivi za finansiranje", navFind: "Pretraga", navProgrammes: "Programi", navDeadlines: "Rokovi", navSaved: "Sačuvano", navOrg: "Profil", navAbout: "O podacima",
     footData: (when) => `Podaci: EU Funding & Tenders portal i drugi zvanični izvori (vidi O podacima), preuzeto ${when}. Uvek proverite na zvaničnoj stranici poziva.`,
     updatedAgo: (v, u) => `Ažurirano pre ${v} ${u === "m" ? "min" : u === "h" ? (v % 10 === 1 && v % 100 !== 11 ? "sat" : v % 10 >= 2 && v % 10 <= 4 && (v % 100 < 12 || v % 100 > 14) ? "sata" : "sati") : v === 1 ? "dan" : "dana"}`, updatedNow: "Upravo ažurirano", staleNote: "noviji pozivi možda nedostaju",
     foot: "Eligible Calls je nezavisan katalog. Zvanični davalac sredstava je uvek merodavan izvor za rokove, uslove i iznose.",
@@ -666,7 +682,7 @@ const I18N = {
     searchPh: "Ključna reč ili oznaka poziva", search: "Traži", tryLabel: "Primeri:",
     closingSoon: "Ističu u narednih 14 dana", seeAll: "Svi rokovi",
     filters: "Filteri", clearAll: "Obriši sve", showResults: "Prikaži rezultate",
-    fStatus: "Status", stOpenNow: "Otvoren", stSoon: "Uskoro se otvara", opensOn: (d) => `Otvara se ${d}`, resultsAll: "Otvoreni i najavljeni pozivi", fCountry: "Vaša zemlja", fApplicant: "Tip podnosioca", fSector: "Oblast", fProgramme: "Program", fFunding: "Iznos po projektu", fDeadline: "Rok", fType: "Vrsta poziva", fPartner: "Partnerstvo",
+    fStatus: "Status", stOpenNow: "Otvoren", stSoon: "Uskoro se otvara", opensOn: (d) => `Otvara se ${d}`, resultsAll: "Otvoreni i najavljeni pozivi", fCountry: "Vaša zemlja", fApplicant: "Tip podnosioca", fSector: "Oblast", fProgramme: "Program", fFunding: "Iznos po projektu", budgetMin: "Najmanje (€)", budgetMax: "Najviše (€)", budgetIn: (n) => `Poziva u ovom rasponu: ${n}.`, budgetHidden: (n) => `Skriveno bez iznosa po projektu: ${n}.`, budgetShown: (n) => `Prikazano bez iznosa po projektu: ${n}.`, budgetHow: "Kako se čitaju iznosi", budgetRule: "Poziv se prikazuje kada se njegov iznos po projektu preklapa sa vašim rasponom. Kada poziv navodi samo ukupan budžet, iznos po projektu nije poznat.", budgetUnknown: "Prikaži i pozive koji ne navode iznos po projektu", budgetFx: (cur, d, r) => `Iznosi u valuti ${cur} prikazani su u evrima po referentnom kursu Evropske centralne banke od ${d} (1 € = ${r} ${cur}).`, budgetNoFx: (cur) => `Kurs za ${cur} nije dostupan, pa se ti pozivi računaju kao pozivi bez iznosa u evrima.`, budgetCap: "Pozivi koji navode samo ukupan budžet skrivaju se kada je taj budžet manji od vašeg minimuma.", approx: "≈", fDeadline: "Rok", fType: "Vrsta poziva", fPartner: "Partnerstvo",
     showMore: "Prikaži sve", showLess: "Prikaži manje",
     elY: "Ispunjava uslove", elP: "Ispunjava uz uslov", elN: "Ne ispunjava uslove", elC: "Nije dostupno u izvoru",
     elShortY: "Da", elShortP: "Uz uslov", elShortN: "Ne", elShortC: "Nema podatka",
@@ -729,7 +745,7 @@ let TAX, PROGS, META, CALLS, CHANGES = null, P = {}, IDX = {}, BYKEY = {};
 const keyOf = (c) => (c.kind === "8" ? "x-" : "") + c.id.replace(/[^A-Za-z0-9._~-]/g, "_");
 const getJSON = (f) => fetch(f, { cache: "no-cache" }).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.json(); });
 function setData(tax, progs, calls) {
-  TAX = tax; PROGS = progs.programmes; META = calls; CALLS = calls.calls; P = {}; BYKEY = {}; HAY.clear();
+  TAX = tax; PROGS = progs.programmes; META = calls; CALLS = calls.calls; P = {}; BYKEY = {}; HAY.clear(); BUDGET_CACHE.clear(); BMAX = null;
   PROGS.forEach((p) => (P[p.id] = p));
   for (const k of ["countries", "sectors", "applicants", "types", "partnership", "fundingBands", "deadlineBuckets", "sectorGroups", "applicantGroups"]) { IDX[k] = {}; TAX[k].forEach((x) => (IDX[k][x.id] = x)); }
   CALLS.forEach((c) => { c.key = keyOf(c); BYKEY[c.key] = c; });
@@ -825,10 +841,40 @@ function stampHTML(c, cc, short) {
 }
 
 /* ---------- filters ---------- */
-const FACETS = ["status", "applicants", "sectors", "programmes", "funding", "deadline", "types", "partnership"];
-const emptyFilters = () => ({ q: "", country: store.get("country", ""), status: [], applicants: [], sectors: [], programmes: [], funding: [], deadline: [], types: [], partnership: [], elig: ["Y", "P", "C"], sort: "deadline" });
+const FACETS = ["status", "applicants", "sectors", "programmes", "deadline", "types", "partnership"]; // funding: budget range below
+const emptyFilters = () => ({ q: "", country: store.get("country", ""), status: [], applicants: [], sectors: [], programmes: [], budget: null, budgetUnknown: false, deadline: [], types: [], partnership: [], elig: ["Y", "P", "C"], sort: "deadline" });
 let F = emptyFilters();
-function bandOf(c) { const v = c.bandValue; if (v == null) return "b0"; const b = TAX.fundingBands.find((b) => b.min != null && v >= b.min && (b.max == null || v <= b.max)); return b ? b.id : "b0"; }
+/* ---------- budget per project (dual-range filter) ----------
+   Amount per project in euros, from the call's own funding data: the stated range or maximum per grant, or the topic
+   budget divided by the expected number of grants (an estimate). Other currencies are converted at the ECB reference
+   rate written by the importer (META.fx); without a rate the call counts as having no amount in euros. A total budget
+   (topic or open call) is not an amount per project: it only shows that no project can receive more than the total. */
+const BUDGET_CACHE = new Map(); let BMAX = null; const BMIN = 1000, BSTEPS = 1000;
+function toEur(v, cur) { if (v == null) return null; if (!cur || cur === "EUR") return v; const r = META.fx && META.fx.rates && META.fx.rates[cur]; return r ? v / r : null; }
+function amountOf(c) {
+  if (BUDGET_CACHE.has(c.key)) return BUDGET_CACHE.get(c.key);
+  const f = c.funding || {}, cur = f.currency || "EUR";
+  const lo0 = f.minPerGrant || f.maxPerGrant || f.approxPerGrant || null, hi0 = f.maxPerGrant || f.minPerGrant || f.approxPerGrant || null;
+  let a;
+  if (lo0) { const lo = toEur(lo0, cur), hi = toEur(hi0, cur); a = lo == null ? { kind: "none", cap: null, cur } : { kind: "range", lo, hi, cur, est: !f.minPerGrant && !f.maxPerGrant }; }
+  else { const total = f.topicBudget || f.callBudget || null; a = { kind: "none", cap: total ? toEur(total, cur) : null, cur }; }
+  BUDGET_CACHE.set(c.key, a); return a;
+}
+// Highest amount per project among the open calls, rounded up to the next thousand: the right end of the slider.
+function budgetMax() { if (BMAX == null) { let m = 0; for (const c of CALLS) if (isOpen(c)) { const a = amountOf(c); if (a.kind === "range" && a.hi > m) m = a.hi; } BMAX = Math.ceil(m / 1000) * 1000; } return BMAX; }
+// The slider moves on a logarithmic scale (amounts run from a few thousand to tens of millions); values are rounded to two significant digits.
+const nice = (v) => { if (v < 1000) return Math.round(v / 100) * 100; const p = Math.pow(10, Math.floor(Math.log10(v)) - 1); return Math.round(v / p) * p; };
+function valAt(pos, max) { if (pos <= 0) return 0; if (pos >= BSTEPS) return max; return Math.min(max, nice(Math.exp(Math.log(BMIN) + (pos / BSTEPS) * (Math.log(max) - Math.log(BMIN))))); }
+function posOf(v, max) { if (v <= 0) return 0; if (v >= max) return BSTEPS; return Math.round(BSTEPS * (Math.log(Math.max(v, BMIN)) - Math.log(BMIN)) / (Math.log(max) - Math.log(BMIN))); }
+function inBudget(c, f) {
+  if (!f.budget) return true;
+  const a = amountOf(c);
+  if (a.kind === "range") return a.hi >= f.budget.lo && a.lo <= f.budget.hi;
+  if (a.cap != null && a.cap < f.budget.lo) return false; // even the whole budget is below the minimum
+  return f.budgetUnknown;
+}
+const eur = (v) => new Intl.NumberFormat(loc(), { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
+const budgetLabel = (b) => `${eur(b.lo)} – ${eur(b.hi)}`;
 function bucketOf(c) { const n = nextDl(c); if (!n) return null; const d = daysUntil(n); return d <= 7 ? "week" : d <= 30 ? "month" : d <= 92 ? "quarter" : "later"; }
 function inBucket(c, id) { const b = bucketOf(c); if (!b) return false; const o = ["week", "month", "quarter", "later"]; return id === "later" ? b === "later" : o.indexOf(b) <= o.indexOf(id); }
 const HAY = new Map();
@@ -843,7 +889,7 @@ function match(c, f, skip) {
   if (skip !== "programmes" && !any(f.programmes, (s) => c.programme === s)) return false;
   if (skip !== "types" && !any(f.types, (s) => c.type === s)) return false;
   if (skip !== "partnership" && !any(f.partnership, (s) => c.partnership === s)) return false;
-  if (skip !== "funding" && !any(f.funding, (s) => bandOf(c) === s)) return false;
+  if (skip !== "funding" && !inBudget(c, f)) return false;
   if (skip !== "deadline" && !any(f.deadline, (s) => inBucket(c, s))) return false;
   if (skip !== "elig" && f.country && !f.elig.includes(elig(c, f.country).s)) return false;
   return true;
@@ -853,7 +899,8 @@ function match(c, f, skip) {
    Deadlines page stay in pure deadline order. */
 const ELRANK = { Y: 0, P: 1, C: 2, N: 3 };
 function sortList(list) {
-  const by = F.sort === "funding" ? (a, b) => (b.bandValue || 0) - (a.bandValue || 0) : (a, b) => (nextDl(a) || "9").localeCompare(nextDl(b) || "9");
+  const amt = (c) => { const a = amountOf(c); return a.kind === "range" ? a.hi : -1; };
+  const by = F.sort === "funding" ? (a, b) => amt(b) - amt(a) : (a, b) => (nextDl(a) || "9").localeCompare(nextDl(b) || "9");
   if (!F.country) return list.sort(by);
   return list.sort((a, b) => ELRANK[elig(a, F.country).s] - ELRANK[elig(b, F.country).s] || by(a, b));
 }
@@ -869,10 +916,11 @@ function facetCount(facet, id) { const f = Object.assign({}, F, { [facet]: [id] 
 function money(n, cur) { if (!cur) return new Intl.NumberFormat(loc(), { maximumFractionDigits: 0 }).format(n) + ` (${t("noCurrency")})`; return new Intl.NumberFormat(loc(), { style: "currency", currency: cur, maximumFractionDigits: 0 }).format(n); }
 function fundingText(c) {
   const f = c.funding || {};
-  if (f.minPerGrant && f.maxPerGrant && f.minPerGrant !== f.maxPerGrant) return `${money(f.minPerGrant, f.currency)} – ${money(f.maxPerGrant, f.currency)} ${t("perGrant")}`;
-  if (f.maxPerGrant) return `${t("upTo")} ${money(f.maxPerGrant, f.currency)} ${t("perGrant")}`;
-  if (f.topicBudget) return `${t("topicBudget")} ${money(f.topicBudget, f.currency)}${f.expectedGrants ? " " + t("forGrants", f.expectedGrants) : ""}`;
-  if (f.callBudget) return `${t("callBudget")} ${money(f.callBudget, f.currency)}`;
+  const conv = (v) => (f.currency && f.currency !== "EUR" && toEur(v, f.currency) != null ? ` (${t("approx")} ${eur(toEur(v, f.currency))})` : "");
+  if (f.minPerGrant && f.maxPerGrant && f.minPerGrant !== f.maxPerGrant) return `${money(f.minPerGrant, f.currency)} – ${money(f.maxPerGrant, f.currency)} ${t("perGrant")}${conv(f.maxPerGrant)}`;
+  if (f.maxPerGrant) return `${t("upTo")} ${money(f.maxPerGrant, f.currency)} ${t("perGrant")}${conv(f.maxPerGrant)}`;
+  if (f.topicBudget) return `${t("topicBudget")} ${money(f.topicBudget, f.currency)}${f.expectedGrants ? " " + t("forGrants", f.expectedGrants) : ""}${conv(f.topicBudget)}`;
+  if (f.callBudget) return `${t("callBudget")} ${money(f.callBudget, f.currency)}${conv(f.callBudget)}`;
   return t("notStated");
 }
 function deadlineHTML(c, long) {
@@ -1024,16 +1072,53 @@ function facetDef() {
     { key: "sectors", title: t("fSector"), items: used(TAX.sectors, "sectors").map((x) => ({ id: x.id, label: nm(x) })), limit: 8, open: true, note: t("derived") },
     { key: "programmes", title: t("fProgramme"), items: PROGS.filter((p) => CALLS.some((c) => c.programme === p.id)).map((p) => ({ id: p.id, label: p.short })), limit: 30 },
     { key: "deadline", title: t("fDeadline"), items: TAX.deadlineBuckets.map((x) => ({ id: x.id, label: nm(x) })), limit: 10 },
-    { key: "funding", title: t("fFunding"), items: TAX.fundingBands.map((x) => ({ id: x.id, label: nm(x) })), limit: 10 },
+    { key: "funding", title: t("fFunding"), custom: true },
     { key: "types", title: t("fType"), items: TAX.types.map((x) => ({ id: x.id, label: nm(x) })), limit: 10 },
     { key: "partnership", title: t("fPartner"), items: TAX.partnership.map((x) => ({ id: x.id, label: nm(x) })), limit: 10 }
   ];
+}
+/* Budget range: two handles on one track, two number fields for exact amounts, and a note on what is not shown. */
+function budgetBlock() {
+  const max = budgetMax(); if (!max) return "";
+  const b = F.budget || { lo: 0, hi: max };
+  const open = openState.funding ?? !!F.budget;
+  const base = CALLS.filter((c) => match(c, F, "funding"));
+  let inRange = 0, unknown = 0;
+  for (const c of base) { const a = amountOf(c); if (a.kind === "range") { if (!F.budget || inBudget(c, F)) inRange++; } else if (!(F.budget && a.cap != null && a.cap < F.budget.lo)) unknown++; }
+  const curs = [...new Set(CALLS.filter(isOpen).map((c) => (c.funding || {}).currency).filter((x) => x && x !== "EUR"))];
+  const fx = curs.map((cur) => { const r = META.fx && META.fx.rates && META.fx.rates[cur]; return r ? t("budgetFx", cur, fmtDate(META.fx.date), r) : t("budgetNoFx", cur); }).join(" ");
+  return `<details class="facet" data-key="funding"${open ? " open" : ""}><summary>${esc(t("fFunding"))}${F.budget ? `<span class="n">1</span>` : ""}</summary>
+    <div class="budget">
+      <p class="budget-now" id="bNow">${esc(budgetLabel(b))}</p>
+      <div class="range2"><div class="track"><i id="bFill" style="left:${posOf(b.lo, max) / 10}%;right:${100 - posOf(b.hi, max) / 10}%"></i></div>
+        <input type="range" id="bLo" min="0" max="${BSTEPS}" step="1" value="${posOf(b.lo, max)}" aria-label="${esc(t("budgetMin"))}" aria-valuetext="${esc(eur(b.lo))}">
+        <input type="range" id="bHi" min="0" max="${BSTEPS}" step="1" value="${posOf(b.hi, max)}" aria-label="${esc(t("budgetMax"))}" aria-valuetext="${esc(eur(b.hi))}"></div>
+      <div class="budget-vals"><label>${esc(t("budgetMin"))}<input type="number" id="bLoN" min="0" max="${max}" step="1000" inputmode="numeric" value="${Math.round(b.lo)}"></label>
+        <label>${esc(t("budgetMax"))}<input type="number" id="bHiN" min="0" max="${max}" step="1000" inputmode="numeric" value="${Math.round(b.hi)}"></label></div>
+      <p class="fine" id="bSum">${esc(t("budgetIn", inRange))}${F.budget && unknown ? " " + esc(t(F.budgetUnknown ? "budgetShown" : "budgetHidden", unknown)) : ""}</p>
+      <label class="opt" for="bUnknown"><input type="checkbox" id="bUnknown"${F.budgetUnknown ? " checked" : ""}><span>${esc(t("budgetUnknown"))}</span><span class="c">${unknown}</span></label>
+      <details class="budget-info"><summary class="fine">${esc(t("budgetHow"))}</summary><p class="fine">${esc(t("budgetRule"))} ${esc(t("budgetCap"))}${fx ? " " + esc(fx) : ""}</p></details>
+    </div></details>`;
+}
+// Dragging updates the results at once; letting go also updates the counts in the other filters.
+function bindBudget(el) {
+  const lo = el.querySelector("#bLo"), hi = el.querySelector("#bHi"); if (!lo) return;
+  const max = budgetMax(), loN = el.querySelector("#bLoN"), hiN = el.querySelector("#bHiN");
+  const apply = (a, b) => { a = Math.max(0, Math.min(a, max)); b = Math.max(0, Math.min(b, max)); if (a > b) [a, b] = [b, a]; F.budget = a <= 0 && b >= max ? null : { lo: a, hi: b }; };
+  const show = () => { const b = F.budget || { lo: 0, hi: max }; el.querySelector("#bNow").textContent = budgetLabel(b); const fill = el.querySelector("#bFill"); fill.style.left = posOf(b.lo, max) / 10 + "%"; fill.style.right = 100 - posOf(b.hi, max) / 10 + "%"; lo.setAttribute("aria-valuetext", eur(b.lo)); hi.setAttribute("aria-valuetext", eur(b.hi)); loN.value = Math.round(b.lo); hiN.value = Math.round(b.hi); };
+  const slide = (which) => () => { if (+lo.value > +hi.value) (which === "lo" ? (lo.value = hi.value) : (hi.value = lo.value)); apply(valAt(+lo.value, max), valAt(+hi.value, max)); show(); renderResults(); };
+  lo.addEventListener("input", slide("lo")); hi.addEventListener("input", slide("hi"));
+  lo.addEventListener("change", refresh); hi.addEventListener("change", refresh);
+  const typed = () => { apply(+loN.value || 0, hiN.value === "" ? max : +hiN.value); refresh(); };
+  loN.addEventListener("change", typed); hiN.addEventListener("change", typed);
+  el.querySelector("#bUnknown").addEventListener("change", (e) => { F.budgetUnknown = e.target.checked; refresh(); });
 }
 const openState = {}; const expanded = {};
 function renderFilters() {
   const el = document.getElementById("filters"); if (!el) return;
   const countryBlock = `<details class="facet" open><summary>${esc(t("fCountry"))}${F.country ? `<span class="n">1</span>` : ""}</summary><div class="opts" style="margin-top:8px"><label class="vh" for="fCountrySel">${esc(t("fCountry"))}</label><select id="fCountrySel" class="toolbar-sel" style="padding:10px 14px;border:1px solid var(--line);border-radius:var(--r);background-color:var(--bg);width:100%">${countryOptions(F.country, true)}</select></div></details>`;
   const html = facetDef().map((fd) => {
+    if (fd.custom) return budgetBlock();
     const sel = F[fd.key]; const isOpen = openState[fd.key] ?? (fd.open || sel.length > 0);
     const items = fd.items.map((it) => ({ ...it, c: facetCount(fd.key, it.id) }));
     const visible = expanded[fd.key] ? items : items.filter((it, i) => i < fd.limit || sel.includes(it.id));
@@ -1046,6 +1131,7 @@ function renderFilters() {
   el.querySelector("#fCountrySel").addEventListener("change", (e) => { F.country = e.target.value; store.set("country", F.country); const b = document.getElementById("bCountry"); if (b) b.value = F.country; refresh(); });
   el.querySelectorAll("input[data-facet]").forEach((cb) => cb.addEventListener("change", () => { const arr = F[cb.dataset.facet]; const i = arr.indexOf(cb.value); cb.checked ? i < 0 && arr.push(cb.value) : i >= 0 && arr.splice(i, 1); refresh(); }));
   el.querySelectorAll("details.facet[data-key]").forEach((d) => d.addEventListener("toggle", () => (openState[d.dataset.key] = d.open)));
+  bindBudget(el);
   el.querySelectorAll("[data-more]").forEach((b) => b.addEventListener("click", () => { expanded[b.dataset.more] = !expanded[b.dataset.more]; renderFilters(); }));
   const clear = () => { const s = F.sort, c = F.country; F = emptyFilters(); F.sort = s; F.country = c; const q = document.getElementById("q"); if (q) q.value = ""; refresh(); };
   const ca = el.querySelector("#clearAll"); if (ca) ca.addEventListener("click", clear);
@@ -1053,7 +1139,7 @@ function renderFilters() {
   el.querySelector("#fDone").addEventListener("click", () => { el.classList.remove("open"); document.getElementById("resultsCol").scrollIntoView(); });
 }
 function refresh() { const f = document.getElementById("filters"); const sc = f ? f.scrollTop : 0; renderFilters(); if (f) document.getElementById("filters").scrollTop = sc; renderResults(); syncBuilder(); }
-function activeCount() { return FACETS.reduce((n, k) => n + F[k].length, 0) + (F.q ? 1 : 0); }
+function activeCount() { return FACETS.reduce((n, k) => n + F[k].length, 0) + (F.q ? 1 : 0) + (F.budget ? 1 : 0); }
 function labelFor(k, id) { if (k === "status") return t(id === "open" ? "stOpenNow" : "stSoon"); const m = { sectors: IDX.sectors, applicants: IDX.applicants, funding: IDX.fundingBands, deadline: IDX.deadlineBuckets, types: IDX.types, partnership: IDX.partnership }; return k === "programmes" ? (P[id] ? P[id].short : id) : nm(m[k][id]); }
 function renderResults() {
   const col = document.getElementById("resultsCol"); if (!col) return;
@@ -1061,6 +1147,7 @@ function renderResults() {
   const grp = { sectors: groupMatch(TAX.sectorGroups, "sectors", F.sectors), applicants: groupMatch(TAX.applicantGroups, "applicants", F.applicants) };
   const chips = FACETS.flatMap((k) => grp[k] ? [`<button type="button" class="af" data-rm="${k}:*">${esc(nm((k === "sectors" ? IDX.sectorGroups : IDX.applicantGroups)[grp[k]]))}</button>`] : F[k].map((id) => `<button type="button" class="af" data-rm="${k}:${id}">${esc(labelFor(k, id))}</button>`));
   if (F.q) chips.unshift(`<button type="button" class="af" data-rm="q:">“${esc(F.q)}”</button>`);
+  if (F.budget) chips.push(`<button type="button" class="af" data-rm="budget:">${esc(t("fFunding"))}: ${esc(budgetLabel(F.budget))}</button>`);
   const eTabs = F.country ? ["Y", "P", "C", "N"].map((s) => `<button type="button" data-el="${s}" aria-pressed="${F.elig.includes(s)}">${esc(t("elShort" + s))} <span class="mono">${CALLS.filter((c) => match(c, Object.assign({}, F, { elig: [s] }))).length}</span></button>`).join("") : "";
   col.innerHTML = `
     <div class="toolbar"><div><h2>${esc(t(CALLS.some(isSoon) ? "resultsAll" : "results"))} <span class="cnt">${list.length}</span></h2><div class="meta" aria-live="polite">${esc(t("nResults", list.length))}${F.country ? " · " + esc(nm(IDX.countries[F.country])) : ""}</div></div>
@@ -1072,7 +1159,7 @@ function renderResults() {
   col.querySelector("#sort").value = F.sort;
   col.querySelector("#sort").addEventListener("change", (e) => { F.sort = e.target.value; renderResults(); });
   col.querySelectorAll("[data-el]").forEach((b) => b.addEventListener("click", () => { const s = b.dataset.el; const i = F.elig.indexOf(s); if (i >= 0) { if (F.elig.length > 1) F.elig.splice(i, 1); } else F.elig.push(s); refresh(); }));
-  col.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => { const [k, id] = b.dataset.rm.split(":"); if (k === "q") { F.q = ""; const q = document.getElementById("q"); if (q) q.value = ""; } else F[k] = id === "*" ? [] : F[k].filter((x) => x !== id); refresh(); }));
+  col.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => { const [k, id] = b.dataset.rm.split(":"); if (k === "q") { F.q = ""; const q = document.getElementById("q"); if (q) q.value = ""; } else if (k === "budget") F.budget = null; else F[k] = id === "*" ? [] : F[k].filter((x) => x !== id); refresh(); }));
   col.querySelector("#openFilters").addEventListener("click", () => document.getElementById("filters").classList.add("open"));
   bindSaves(col);
 }

@@ -42,6 +42,17 @@ function demoAI(seen) {
       fields.employees = { value: 12, evidence: "The organisation employs 12 people.", confidence: "high" }; // a quote that is not in the source
       return sseStream([{ response: JSON.stringify({ fields }) }, { response: "", usage: { prompt_tokens: 3000, completion_tokens: 300 } }]);
     }
+    if (sys.startsWith("You are the project ideation agent")) {
+      // Project ideas: one idea for each of the first three listed calls, plus one for a call that was not listed
+      // (the server must drop it).
+      const ids = ((sys.match(/copied from this list: ([^\n]*?)\. Never/) || [])[1] || "").split(", ").filter(Boolean);
+      const idea = (callId, i) => ({ callId, title: `Test idea ${i + 1} for ${callId}`, concept: "A concept written by the test model.", problem: "A problem.", solution: "A solution.",
+        objectives: ["Train 40 youth workers by month 12", "Reach 300 young people in 6 towns"], targetGroups: ["Young people"], activities: ["Workshops", "Online course"],
+        expectedResults: ["40 trained youth workers"], potentialPartners: ["A school in another country"], whyItFits: "The profile shows matching experience.",
+        fit: { alignment: 4 - i, priorities: 4, feasibility: 3, impact: 4, reasons: "Test ratings." } });
+      const ideas = ids.slice(0, 3).map(idea).concat([idea("INVENTED-CALL-ID", 3)]);
+      return sseStream([{ response: JSON.stringify({ ideas }) }, { response: "", usage: { prompt_tokens: 3500, completion_tokens: 900 } }]);
+    }
     const blocks = [...sys.matchAll(/^### (\S+)\nTitle: (.*)\n.*\nNext deadline: (\S+)/gm)].slice(0, 3);
     const country = (sys.match(/APPLICANT: country (\w\w)/) || [])[1];
     const text = blocks.length

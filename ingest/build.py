@@ -492,7 +492,33 @@ for c in calls:
         c["firstSeen"] = _prev_calls[c["id"]].get("firstSeen")
     else:
         c["firstSeen"] = raw["fetchedAt"] if prev else None
+# ---------- exchange rates for amounts in other currencies ----------
+# ECB euro reference rates (1 EUR = rate units of the currency). Used by the website's budget filter to show
+# non-euro amounts as approximate euros; the original currency is always shown next to them. If the ECB file
+# cannot be read, the rates of the previous build are kept with their own date; with none, those calls are
+# shown as "amount in another currency" instead of being converted.
+ECB_URL = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
+def ecb_rates(needed):
+    if not needed: return None
+    prev_fx = (prev or {}).get("fx")
+    if os.environ.get("RAW"):  # sample or offline build: no network
+        return prev_fx
+    try:
+        import requests
+        r = requests.get(ECB_URL, timeout=20, headers={"User-Agent": "EligibleCalls/1.0 (+https://eligiblecalls.pages.dev)"})
+        r.raise_for_status()
+        day = re.search(r"time=['\"](\d{4}-\d{2}-\d{2})['\"]", r.text)
+        rates = {m.group(1): float(m.group(2)) for m in re.finditer(r"currency=['\"]([A-Z]{3})['\"]\s+rate=['\"]([\d.]+)['\"]", r.text)}
+        got = {c: rates[c] for c in sorted(needed) if c in rates}
+        if day and got:
+            return {"base": "EUR", "date": day.group(1), "rates": got, "source": ECB_URL, "name": "European Central Bank euro reference rates"}
+    except Exception as e:
+        print("ECB rates not read:", e)
+    return prev_fx
+FX = ecb_rates({(c.get("funding") or {}).get("currency") for c in calls} - {None, "EUR"})
+
 json.dump({"generated": raw["fetchedAt"], "source": raw["source"], "query": raw["query"], "counts": raw["counts"] | {"published": len(calls), "droppedAtBuild": len(dropped), "bySource": dict(collections.Counter(c["sourceKey"] for c in calls))},
+           "fx": FX,
            "sources": [{"key": "portal", "name": "EU Funding & Tenders Portal (grant topics)", "ok": True, "fetchedAt": raw["fetchedAt"]}] + [{"key": k, "name": s.get("name"), "ok": s.get("ok"), "fetchedAt": s.get("fetchedAt")} for k, s in EXTRA.get("sources", {}).items()],
            "statusLegend": {"Y":"Eligible","P":"Eligible with a condition","N":"Not eligible","C":"Not available from the source"},
            "countries": COUNTRIES,
@@ -555,7 +581,7 @@ def tf_of(e):
 
 idx = [{"id": c["id"], "t": c["title"], "p": c["programme"], "dl": [d for d in c["deadlines"] if deadline_instant(d) > NOW],
         "ty": c["type"], "st": c["status"], "op": c["opens"], "s": c["sectors"], "a": c["applicants"], "pt": c["partnership"],
-        "f": c["funding"]["maxPerGrant"] or c["funding"]["approxPerGrant"], "fb": c["funding"]["topicBudget"],
+        "f": c["funding"]["maxPerGrant"] or c["funding"]["approxPerGrant"], "fb": c["funding"]["topicBudget"], "cur": c["funding"]["currency"],
         "e": "".join(c["eligibility"][cc][0] for cc in COUNTRIES), "r": [c["eligibility"][cc][1] for cc in COUNTRIES], "rs": c["reasons"],
         "k": c["keywords"][:8], "x": excerpt(c["description"], 700), "n": c["notes"], "u": c["url"]} for c in calls]
 inv = {}  # term -> [call position, weight, call position, weight, ...]

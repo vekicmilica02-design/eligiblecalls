@@ -16,6 +16,10 @@ export const DEFAULT_WEIGHTS = { orgType: 20, country: 20, objectives: 20, exper
 export const PROGRAMME_WEIGHTS = {};
 export const BANDS = [[90, "excellent"], [75, "strong"], [60, "moderate"], [40, "low"], [0, "verylow"]];
 export const band = (score) => BANDS.find(([min]) => score >= min)[1];
+// Colour tier of a compatibility score: red below 50, yellow 50-74, green from 75. It describes the score only;
+// the eligibility status comes from the mandatory checks and is never derived from this tier.
+export const SCORE_TIERS = [[75, "high"], [50, "medium"], [0, "low"]];
+export const scoreTier = (score) => SCORE_TIERS.find(([min]) => (Number(score) || 0) >= min)[1];
 export const STATUS_ORDER = { eligible: 0, potential: 1, insufficient: 2, ineligible: 3 };
 
 const TYPE = Object.fromEntries(ORG_TYPES.map((t) => [t.id, t]));

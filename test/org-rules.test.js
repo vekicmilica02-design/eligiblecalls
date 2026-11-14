@@ -102,8 +102,8 @@ t("weights are configurable and change the score, never the status", () => {
   assert.equal(Object.values(DEFAULT_WEIGHTS).reduce((x, y) => x + y, 0), 100);
 });
 
-t("score colours: red below 50, yellow 50-74, green from 75; status stays with the mandatory checks", () => {
-  assert.deepEqual([0, 49, 50, 74, 75, 100].map(scoreTier), ["low", "low", "medium", "medium", "high", "high"]);
+t("score colours: red below 50, yellow 50-69, green from 70; status stays with the mandatory checks", () => {
+  assert.deepEqual([0, 49, 49.9, 50, 69, 69.9, 70, 100].map(scoreTier), ["low", "low", "low", "medium", "medium", "medium", "high", "high"]);
   const failed = assess(ngo, call({ eligibility: { RS: ["N", 0] }, reasons: ["Not a participating country."] }), { now: NOW, relevanceCap: false, weights: { country: 0 } });
   assert.equal(failed.status, "ineligible");
   assert.equal(scoreTier(failed.score), "high", "a green score does not lift a failed mandatory check (score " + failed.score + ")");

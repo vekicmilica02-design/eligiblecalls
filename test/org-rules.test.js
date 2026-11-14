@@ -96,7 +96,7 @@ t("European Universities: a non-university gets a possible disqualifier quoted f
 
 t("weights are configurable and change the score, never the status", () => {
   const a = assess(ngo, call(), { now: NOW });
-  const b = assess(ngo, call(), { now: NOW, weights: { objectives: 0, country: 80 } });
+  const b = assess(ngo, call(), { now: NOW, weights: { partnerships: 80 } }); // partnership not stated scores 0.6
   assert.notEqual(a.score, b.score);
   assert.equal(a.status, b.status);
   assert.equal(Object.values(DEFAULT_WEIGHTS).reduce((x, y) => x + y, 0), 100);
@@ -141,6 +141,13 @@ t("completeness and change list", () => {
   assert.deepEqual(changedFields(ngo, { ...ngo, city: "Beograd" }), ["city"]);
 });
 
+t("completeness: optional registration number and OID never count as missing", () => {
+  const full = { ...ngo, website: "https://example.org", mission: "m", geoScope: "national", fundingDetails: "d", partnerships: "p", infrastructure: "i", capacity: "c", expertise: "e" };
+  const c = completeness(full);
+  assert.ok(!c.missing.includes("registrationNumber") && !c.missing.includes("oid"), c.missing.join(","));
+  assert.equal(c.pct, 100, c.missing.join(","));
+});
+
 t("call fingerprint changes when eligibility changes", () => {
   assert.notEqual(callFingerprint(call()), callFingerprint(call({ eligibility: { RS: ["N", 0] } })));
   assert.equal(callFingerprint(call()), callFingerprint(call()));
@@ -152,5 +159,42 @@ t("relevance cap: an eligible but unrelated call cannot look compatible", () => 
   assert.equal(r.status, "eligible");
   assert.ok(r.score <= 45 && r.capApplied, "score " + r.score);
   assert.ok(assess(ngo, unrelated, { now: NOW, relevanceCap: false }).score > r.score);
+});
+t("one broad shared sector does not make an unrelated large research call compatible", () => {
+  const small = { ...ngo, employees: 3, volunteers: 25 };
+  const qkd = call({
+    id: "HORIZON-JU-EUROHPC-TEST", programme: "HORIZON", title: "Next-Generation QKD Systems", keywords: ["Quantum key distribution"],
+    description: "Development of quantum key distribution systems with entanglement-based protocols, trusted nodes and photonic integration for secure networks.",
+    sectors: ["digital", "it", "research"], applicants: ["organisation"], partnership: "unspecified",
+    funding: { topicBudget: 24000000, expectedGrants: 1, minPerGrant: 21000000, maxPerGrant: 24000000 },
+  });
+  const r = assess(small, qkd, { now: NOW, stats: buildDF([qkd, call()]) });
+  assert.equal(r.status, "eligible");
+  assert.ok(r.score < 60, "score " + r.score);
+  assert.equal(r.dims.capacity.size, "xlarge");
+  assert.equal(r.dims.capacity.s, 0.1); // 3 employees + 25 volunteers = 5.5 staff for a EUR 24M grant
+  assert.ok(r.capApplied);
+});
+
+t("silent calls do not add points: unstated target groups and partnership score below the middle", () => {
+  const silent = call({ title: "Media literacy", keywords: [], description: "Media literacy projects.", partnership: "unspecified" });
+  const r = assess(ngo, silent, { now: NOW });
+  assert.equal(r.dims.targetGroups.s, 0.3);
+  assert.equal(r.dims.partnerships.s, 0.6);
+  assert.equal(assess(ngo, call({ partnership: "alone" }), { now: NOW }).dims.partnerships.s, 1);
+});
+
+t("grant size from topic budget and expected grants when no per-grant amount is given", () => {
+  const r = assess(ngo, call({ funding: { topicBudget: 6000000, expectedGrants: 2 } }), { now: NOW });
+  assert.equal(r.dims.capacity.size, "xlarge");
+  assert.equal(r.dims.capacity.perGrant, 3000000);
+});
+
+t("live data: a small youth NGO's top matches are not dominated by large research calls", () => {
+  const small = { ...ngo, employees: 3, volunteers: 25 };
+  const top = assessAll(small, CALLS, { now: NOW }).filter((r) => r.status !== "ineligible").slice(0, 10);
+  const byId = new Map(CALLS.map((c) => [c.id, c]));
+  const quantum = top.filter((r) => /quantum|QKD/i.test(byId.get(r.callId).title));
+  assert.equal(quantum.length, 0, quantum.map((r) => byId.get(r.callId).title).join("; "));
 });
 console.log(`${pass} passed`);

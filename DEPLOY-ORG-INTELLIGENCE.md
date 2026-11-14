@@ -18,6 +18,7 @@ Follow the steps in this order. Until steps 1 to 3 are done, the rest of the sit
 1. Cloudflare dashboard → **Storage & Databases → D1** → `calldar` → **Console**.
 2. Paste the whole content of `migrations/0002_org.sql` and run it.
 3. Check: the **Tables** tab lists `users`, `sessions`, `organizations`, `org_members`, `org_invites`, `profile_versions`, `extractions`, `login_tokens`, `rate_limits`, `ai_usage` next to the existing `usage` and `visitor_usage`.
+4. Project ideas (phase 4): also run `migrations/0003_ideas.sql`, which adds the table `project_ideas`. Optional variable `ORG_IDEAS_PER_DAY` (default 5) limits idea generations per organisation per day.
 
 The migration only adds tables. Running it twice does nothing.
 

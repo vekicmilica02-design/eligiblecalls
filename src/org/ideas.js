@@ -17,7 +17,7 @@ export const MAX_IDEAS = 8;
 const MAX_PER_CALL = 2;
 
 let INDEX = null;
-async function loadIndex(env, url) {
+export async function loadIndex(env, url) {
   if (INDEX) return INDEX;
   const r = await env.ASSETS.fetch(new URL("/data/index.json", url));
   if (!r.ok) throw new HttpError(503, "data_unavailable");
@@ -52,7 +52,7 @@ export function profileReady(p) {
   return missing;
 }
 
-function callBlock(index, c, country, now, cand) {
+export function callBlock(index, c, country, now, cand) {
   const dl = nextDeadline(c, now);
   const el = eligibilityFor(index, c, country);
   const cur = c.cur ? " " + c.cur : "";
@@ -128,6 +128,8 @@ const rowOut = (r) => ({
   id: r.id, batchId: r.batch_id, callId: r.call_id, rank: r.rank, status: r.status, idea: JSON.parse(r.idea), match: r.match ? JSON.parse(r.match) : null,
   notes: r.notes || "", lang: r.lang, profileVersion: r.profile_version, callTitle: r.call_title, callDeadline: r.call_deadline, model: r.model,
   createdAt: r.created_at, updatedAt: r.updated_at,
+  proposal: r.proposal ? (() => { const p = JSON.parse(r.proposal); return { at: p.at, model: p.model, lang: p.lang }; })() : null,
+  evaluations: r.evaluations ? JSON.parse(r.evaluations) : {},
 });
 
 export async function listIdeas(db, orgId) {

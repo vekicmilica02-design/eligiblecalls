@@ -53,6 +53,27 @@ function demoAI(seen) {
       const ideas = ids.slice(0, 3).map(idea).concat([idea("INVENTED-CALL-ID", 3)]);
       return sseStream([{ response: JSON.stringify({ ideas }) }, { response: "", usage: { prompt_tokens: 3500, completion_tokens: 900 } }]);
     }
+    if (sys.startsWith("You turn one project idea into a detailed project proposal")) {
+      const idea = JSON.parse((input.messages[1].content.match(/<idea>\n([\s\S]*?)\n<\/idea>/) || [, "{}"])[1]);
+      const p = { title: (idea.title || "Test") + " (proposal)", durationMonths: 18,
+        summary: "A test proposal written by the local test model. Ćirilica: Удружење грађана „Млади“ из Новог Сада, latinica: Udruženje građana „Mladi“.",
+        problem: "Young people in 6 towns lack youth work services (to be confirmed).", mainObjectives: ["Improve the quality of youth work in 6 towns"],
+        specificObjectives: ["Train 40 youth workers by month 12", "Reach 300 young people by month 18"],
+        targetGroups: [{ group: "Youth workers", description: "Staff and volunteers", reach: "40" }, { group: "Young people", description: "Aged 15-24", reach: "300" }],
+        workPackages: [{ id: "WP1", title: "Management", lead: "Applicant", months: "M1-M18", activities: ["Kick-off meeting"], deliverables: ["Project plan"] },
+          { id: "WP2", title: "Training", lead: "Partner (university)", months: "M3-M12", activities: ["Five training days"], deliverables: ["Training curriculum"] }],
+        methodology: "Peer learning and blended training.", outputs: [{ output: "Curriculum", indicator: "Modules", target: "6" }, { output: "Trained workers", indicator: "People", target: "40" }],
+        impact: "Better services for young people.", partnership: { structure: "Applicant plus two partners.", partners: [{ profile: "University youth studies department", country: "HR", role: "Training design" }] },
+        timeline: [{ phase: "Preparation", period: "M1-M3", milestones: ["Partners agree the plan"] }], monitoring: "Quarterly reviews.", sustainability: "Curriculum stays online.",
+        risks: [{ risk: "Low participation", likelihood: "medium", mitigation: "Outreach through schools" }], alignment: "Matches the call's youth priority.",
+        budget: { requestedTotal: 999999999, basis: "Lump sum", categories: [{ category: "Staff", share: 3, note: "" }, { category: "Travel", share: 1, note: "" }], considerations: "Check the call's lump sums." } };
+      return sseStream([{ response: JSON.stringify(p) }, { response: "", usage: { prompt_tokens: 3000, completion_tokens: 1500 } }]);
+    }
+    if (sys.startsWith("You are an experienced evaluator of Erasmus+")) {
+      const ids = [...sys.matchAll(/^### (c\d+):/gm)].map((m) => m[1]);
+      const criteria = ids.map((id, i) => ({ id, score: [22, 18, 14, 30][i] ?? 10, justification: "Test justification for " + id + ".", strengths: ["Clear target group"], weaknesses: ["Partners not named"], missing: ["Budget detail"], recommendations: ["Name the partners"] }));
+      return sseStream([{ response: JSON.stringify({ criteria, summary: "Test evaluation summary.", priorityActions: ["Confirm partners"] }) }, { response: "", usage: { prompt_tokens: 2500, completion_tokens: 900 } }]);
+    }
     const blocks = [...sys.matchAll(/^### (\S+)\nTitle: (.*)\n.*\nNext deadline: (\S+)/gm)].slice(0, 3);
     const country = (sys.match(/APPLICANT: country (\w\w)/) || [])[1];
     const text = blocks.length
@@ -98,7 +119,7 @@ const server = http.createServer(async (req, res) => {
       let r;
       if (url.pathname === "/api/chat" && req.method === "POST") r = await handleChat({ request, env, now: nowFn(), fetchImpl: mockFetch() });
       else if (url.pathname === "/api/health") r = await handleHealth({ env, now: nowFn() });
-      else if (/^\/api\/(auth|orgs|admin)(\/|$)|^\/api\/me$/.test(url.pathname)) r = await handleApi({ request, env, now: nowFn(), fetchImpl: googleStub });
+      else if (/^\/api\/(auth|orgs|admin|access)(\/|$)|^\/api\/me$/.test(url.pathname)) r = await handleApi({ request, env, now: nowFn(), fetchImpl: googleStub });
       else r = new Response("not found", { status: 404 });
       const hs = Object.fromEntries([...r.headers].filter(([k]) => k !== "set-cookie"));
       const sc = r.headers.getSetCookie(); if (sc.length) hs["set-cookie"] = sc;

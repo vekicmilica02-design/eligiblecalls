@@ -131,3 +131,25 @@ table.cmp th { text-align: left; vertical-align: top; width: 160px; font-size: 1
 table.cmp td { vertical-align: top; min-width: 180px; }
 table.cmp ul { padding-left: 16px; }
 @media (max-width: 560px) { table.cmp th { width: 110px; } }
+
+/* Evaluation guidelines */
+.etabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.etab { font: inherit; font-size: 14px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.etab.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.etab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.crit-sum { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.crit .s1 { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--sunk); color: var(--ink-2); white-space: nowrap; }
+.crit-note { margin-top: 10px; padding: 10px 12px; border-radius: var(--r); background: var(--sunk); }
+.crit-note p { font-size: 13.5px; margin-top: 4px; }
+table.crit-t td:first-child { min-width: 0; } table.crit-t tr.tot td { font-weight: 700; }
+.crit-sumtext { padding-left: 18px; font-size: 13.5px; margin: 8px 0; }
+.crit-full > summary { cursor: pointer; font-size: 13.5px; color: var(--green); margin: 6px 0; }
+.crit-text { display: grid; gap: 4px; font-size: 13.5px; color: var(--ink-2); }
+.crit-text p, .crit-text h4, .crit-note p, .crit-sumtext { margin-block: 0; }
+.crit-text h4 { font-size: 13.5px; color: var(--ink); margin-top: 8px; }
+.crit-text .lv1 { padding-left: 14px; } .crit-text .lv2 { padding-left: 28px; } .crit-text .lv3, .crit-text .lv4 { padding-left: 42px; }
+.eval-call > summary { cursor: pointer; display: grid; gap: 6px; list-style: none; }
+.eval-call > summary::-webkit-details-marker { display: none; }
+.eval-call > summary .eval-t { font-weight: 600; overflow-wrap: anywhere; }
+.eval-call > summary .eval-t::before { content: "▸ "; color: var(--muted); } .eval-call[open] > summary .eval-t::before { content: "▾ "; }
+.eval-body { margin-top: 12px; display: grid; gap: 8px; min-width: 0; }

@@ -55,8 +55,19 @@ const S = {
     assessedAt: (d, v, g) => `Assessed ${d} on profile version ${v} and call data of ${g}. The assessment is recalculated whenever the profile or the call data change.`,
     explain: { eligible: "No mandatory requirement fails on the information available, and every checked requirement is met.", potential: "No mandatory requirement fails, but some need to be verified in the call document or need more profile data.", ineligible: "At least one mandatory requirement is not met. The compatibility score is shown for information only.", insufficient: "Country and organisation type are needed before eligibility can be checked." },
     dims: { orgType: "Organisation type and legal status", country: "Country and geographic eligibility", objectives: "Alignment with funding objectives", experience: "Experience and previous projects", targetGroups: "Target groups and beneficiaries", capacity: "Operational and administrative capacity", partnerships: "Partnerships and international cooperation" },
-    evalTitle: "Evaluation guidelines: Erasmus+", evalLede: "Award criteria as published in the Erasmus+ Programme Guide. Eligibility (can we apply?) and quality (would evaluators score the proposal well?) are separate questions: an eligible organisation can still submit a weak proposal.",
-    evalSoon: "The AI evaluation assistant, which scores a saved project idea against these criteria, comes with the project idea generator (next phase).",
+    evalTitle: "Evaluation guidelines", evalLede: "How proposals are scored, taken from the official documents: Horizon Europe's General Annex D, each call's own call document, the funder's call page, and the Erasmus+ Programme Guide. Eligibility (can we apply?) and quality (would evaluators score the proposal well?) are separate questions: an eligible organisation can still submit a weak proposal.",
+    evalTabCalls: "By call", evalCallsNote: "Your open calls, most compatible first. Criteria are quoted in English, the language of the official documents; the call's own documents prevail.", progL: "Programme",
+    evalShowIneligible: "Also show calls you cannot apply to", evalCount: (n, k) => `${n} calls; for ${k} of them the criteria are shown here, for the others the call says where to find them.`,
+    kindL: { framework: "General Annex D", document: "Call document", page: "Funder's page", pointer: "See the call" }, openReport: "Detailed report",
+    critNone: "No information on evaluation criteria for this call.", fromCallPage: "Specific to this call (call page):",
+    critFromAnnex: (row) => `Horizon Europe General Annex D, row "${row}".`, heAnnex: "General Annex D", critFromDoc: "Section \"Award criteria\" of the call document", callDoc: "Call document", evalForm: "Evaluation form",
+    critFromPage: (src) => `${src} call page, section "How we will assess your application".`, critPointer: "The criteria are not published in a form this site can read. They are in the call's own documents.", critPointerNote: "The call page says where its criteria are:",
+    criterion: "Criterion", minPass: "Minimum", maxScore: "Maximum", fullText: "Full text of the criteria",
+    scoreOf5: "scored 0–5", iaWeight: "Impact weighted ×1.5 for ranking (Innovation actions)", heThresholds: "Each criterion 0–5 · threshold 3 · overall threshold 10 of 15", twoStageChip: "Two-stage call",
+    stage1Short: "1st stage", stage1Mark: "Also assessed in the first stage of a two-stage call (bold in the annex)", stage1Note: "In the first stage of a two-stage call only Excellence and Impact are scored, on the aspects marked \"1st stage\", with a threshold of 4 each.",
+    heScoringTitle: "Scores and thresholds", heTwoStageTitle: "Two-stage calls", openCallsUsing: (n) => `Open calls on Eligible Calls scored this way: ${n}.`,
+    heOwn: "Marie Skłodowska-Curie Actions, the European Research Council, the European Innovation Council, prizes and some partnership calls use their own criteria; their calls point to them under \"By call\".",
+    retrieved: (d) => `retrieved ${d}`, repEval: "How this call is evaluated", critNotice: "Preliminary self-assessment aid. The work programme and the call's own documents prevail.",
     guide: (y, v) => `Programme Guide ${y}, ${v}`, guideNotice: "Preliminary self-assessment aid. Evaluators score against the official guide of the call year; the guide prevails.", maxPts: (m, n) => `max ${m} points · minimum ${n}`, totalMin: (n) => `Proposals need at least ${n} points in total and at least half of the maximum in each criterion.`,
     rounds: "Deadlines in this guide (national agencies)", optional: "if the national agency organises it", where: "Apply to the Erasmus+ national agency of your country.", na: "National agencies",
     ideasTitle: "Project ideas", ideasLede: "Concepts for projects your organisation could develop, each linked to an open call listed on Eligible Calls. An AI model writes them from your saved profile and the calls you select; the calls, deadlines, eligibility and compatibility scores come from the platform's data and rules.",
@@ -123,8 +134,19 @@ const S = {
     assessedAt: (d, v, g) => `Procenjeno ${d} na verziji profila ${v} i podacima o pozivima od ${g}. Procena se ponovo računa pri svakoj izmeni profila ili podataka o pozivu.`,
     explain: { eligible: "Nijedan obavezan uslov nije prekršen prema dostupnim podacima i svi provereni uslovi su ispunjeni.", potential: "Nijedan obavezan uslov nije prekršen, ali neke treba proveriti u dokumentu poziva ili dopuniti profil.", ineligible: "Najmanje jedan obavezan uslov nije ispunjen. Ocena kompatibilnosti je samo informativna.", insufficient: "Za proveru podobnosti potrebni su država i tip organizacije." },
     dims: { orgType: "Tip i pravni status organizacije", country: "Država i geografska podobnost", objectives: "Usklađenost sa ciljevima poziva", experience: "Iskustvo i prethodni projekti", targetGroups: "Ciljne grupe i korisnici", capacity: "Operativni i administrativni kapacitet", partnerships: "Partnerstva i međunarodna saradnja" },
-    evalTitle: "Kriterijumi ocenjivanja: Erasmus+", evalLede: "Kriterijumi za dodelu kako su objavljeni u Vodiču kroz program Erasmus+. Podobnost (smemo li da apliciramo?) i kvalitet (da li bi ocenjivači dobro ocenili predlog?) su odvojena pitanja: podobna organizacija i dalje može podneti slab predlog.",
-    evalSoon: "AI asistent za ocenjivanje, koji sačuvanu projektnu ideju ocenjuje prema ovim kriterijumima, dolazi uz generator projektnih ideja (sledeća faza).",
+    evalTitle: "Kriterijumi ocenjivanja", evalLede: "Kako se predlozi boduju, prema zvaničnim dokumentima: Opšti aneks D programa Horizont Evropa, dokument svakog poziva, stranica finansijera i Vodič kroz program Erasmus+. Podobnost (smemo li da apliciramo?) i kvalitet (da li bi ocenjivači dobro ocenili predlog?) su odvojena pitanja: podobna organizacija i dalje može podneti slab predlog.",
+    evalTabCalls: "Po pozivu", evalCallsNote: "Vaši otvoreni pozivi, najkompatibilniji prvi. Kriterijumi su navedeni na engleskom, jeziku zvaničnih dokumenata; merodavna su dokumenta samog poziva.", progL: "Program",
+    evalShowIneligible: "Prikaži i pozive na koje ne možete da aplicirate", evalCount: (n, k) => `Poziva: ${n}; za ${k} kriterijumi su prikazani ovde, za ostale poziv navodi gde se nalaze.`,
+    kindL: { framework: "Opšti aneks D", document: "Dokument poziva", page: "Stranica finansijera", pointer: "Videti poziv" }, openReport: "Detaljan izveštaj",
+    critNone: "Nema podataka o kriterijumima ocenjivanja za ovaj poziv.", fromCallPage: "Posebno za ovaj poziv (stranica poziva):",
+    critFromAnnex: (row) => `Opšti aneks D programa Horizont Evropa, red „${row}“.`, heAnnex: "Opšti aneks D", critFromDoc: "Odeljak „Award criteria“ dokumenta poziva", callDoc: "Dokument poziva", evalForm: "Obrazac za ocenjivanje",
+    critFromPage: (src) => `Stranica poziva (${src}), odeljak „How we will assess your application“.`, critPointer: "Kriterijumi nisu objavljeni u obliku koji ovaj sajt može da pročita. Nalaze se u dokumentima samog poziva.", critPointerNote: "Stranica poziva navodi gde su kriterijumi:",
+    criterion: "Kriterijum", minPass: "Minimum", maxScore: "Maksimum", fullText: "Ceo tekst kriterijuma",
+    scoreOf5: "ocena 0–5", iaWeight: "Uticaj se množi sa 1,5 za rangiranje (inovacione akcije)", heThresholds: "Svaki kriterijum 0–5 · prag 3 · ukupni prag 10 od 15", twoStageChip: "Poziv u dve faze",
+    stage1Short: "1. faza", stage1Mark: "Ocenjuje se i u prvoj fazi poziva u dve faze (podebljano u aneksu)", stage1Note: "U prvoj fazi poziva u dve faze boduju se samo Izvrsnost i Uticaj, i to aspekti označeni sa „1. faza“, uz prag 4 za svaki.",
+    heScoringTitle: "Ocene i pragovi", heTwoStageTitle: "Pozivi u dve faze", openCallsUsing: (n) => `Otvorenih poziva na Eligible Calls koji se ovako ocenjuju: ${n}.`,
+    heOwn: "Akcije Marija Sklodovska-Kiri, Evropski istraživački savet, Evropski savet za inovacije, nagrade i neki pozivi partnerstava imaju sopstvene kriterijume; njihovi pozivi upućuju na njih u delu „Po pozivu“.",
+    retrieved: (d) => `preuzeto ${d}`, repEval: "Kako se ovaj poziv ocenjuje", critNotice: "Pomoć za preliminarnu samoprocenu. Merodavni su program rada i dokumenta samog poziva.",
     guide: (y, v) => `Vodič kroz program ${y}, ${String(v).replace(/^Version (\d+) of /, "verzija $1 od ")}`, guideNotice: "Pomoć za preliminarnu samoprocenu. Ocenjivači boduju prema zvaničnom vodiču za godinu poziva; vodič je merodavan.", maxPts: (m, n) => `najviše ${m} bodova · najmanje ${n}`, totalMin: (n) => `Predlog mora imati najmanje ${n} bodova ukupno i najmanje polovinu maksimuma po svakom kriterijumu.`,
     rounds: "Rokovi u ovom vodiču (nacionalne agencije)", optional: "ako ga nacionalna agencija organizuje", where: "Prijava se podnosi Erasmus+ nacionalnoj agenciji vaše zemlje.", na: "Nacionalne agencije",
     ideasTitle: "Projektne ideje", ideasLede: "Koncepti projekata koje vaša organizacija može da razvije, svaki vezan za otvoren poziv sa Eligible Calls. Piše ih AI model na osnovu sačuvanog profila i poziva koje izaberete; pozivi, rokovi, podobnost i ocene kompatibilnosti potiču iz podataka i pravila platforme.",
@@ -651,7 +673,7 @@ afterRender.matching = () => {
   const m = document.getElementById("ofMore"); if (m) m.addEventListener("click", () => { F.shown += 30; const y = scrollY; EC.route(); scrollTo(0, y); });
 };
 
-function secReport(key) {
+async function secReport(key) {
   const c = EC.BYKEY[decodeURIComponent(key)];
   if (!c) return `<p class="note err">${esc(T("errors.not_found"))}</p>`;
   const r = assess(ST.org.profile, c, { stats: ST.stats || buildDF(activeCalls()) });
@@ -670,21 +692,106 @@ function secReport(key) {
     <section class="oi-card"><h2>${esc(T("repD"))}</h2>${r.gaps.length ? `<ul>${r.gaps.map((x) => `<li><span class="res ${x.result}">${esc(T("resL." + x.result))}</span> ${esc(codeText(x))}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</section>
     <section class="oi-card"><h2>${esc(T("repE"))}</h2>${r.missing.length ? `<p>${esc(listOf(r.missing, fieldName))}</p><p><a href="#org/${id}/profile">${esc(T("fillProfile"))} →</a></p>` : `<p class="fine">${esc(T("missingCall"))}</p>`}</section>
     <section class="oi-card"><h2>${esc(T("repF"))}</h2><ol>${r.next.map((x) => `<li>${esc(codeText(x))}</li>`).join("")}</ol></section>
+    <section class="oi-card"><h2>${esc(T("repEval"))}</h2>${critHTML((await loadCriteria()).calls[c.id], c)}</section>
     <p class="fine">${esc(T("assessedAt", fmtTime(Date.now()), ST.org.version, EC.fmtDate(EC.META.generated)))}</p>`;
 }
 
-/* ---------- Erasmus+ evaluation guidelines ---------- */
+/* ---------- evaluation guidelines ---------- */
+// Criteria per call (site/org/criteria.json, written by ingest/award_criteria.py) and Erasmus+ KA210/KA220 (erasmus-2026.json).
+async function loadCriteria() {
+  if (!ST.crit) { try { const r = await fetch("org/criteria.json", { cache: "no-cache" }); ST.crit = r.ok ? await r.json() : { calls: {}, frameworks: {} }; } catch { ST.crit = { calls: {}, frameworks: {} }; } }
+  return ST.crit;
+}
+async function loadGuide() { if (!ST.guide) { const r = await fetch("org/erasmus-2026.json", { cache: "no-cache" }); ST.guide = await r.json(); } return ST.guide; }
+const ext = (url, label) => (url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)} ↗</a>` : "");
+const pts = (n) => String(n).replace(/\.0$/, "");
+// Official text, kept in its own language (English) and nesting
+function textBlocks(blocks) {
+  return `<div class="crit-text">${blocks.map((b) => b.head ? `<h4>${esc(b.text)}</h4>` : `<p class="lv${Math.min(b.level || 0, 4)}">${b.level ? "<span aria-hidden=\"true\">• </span>" : ""}${esc(b.text)}</p>`).join("")}</div>`;
+}
+function heRowHTML(fw, rowId, opts = {}) {
+  const row = fw.rows[rowId];
+  return `<div class="crit-list">${row.criteria.map((c) => `<div class="crit"><h3><span>${esc(c.name)}</span><span class="fine num">${esc(T("scoreOf5"))}${opts.ia && c.name === "Impact" ? " · " + esc(T("iaWeight")) : ""}</span></h3>
+    ${c.name === "Excellence" ? `<p class="fine">${esc(fw.excellenceNote)}</p>` : ""}
+    <ul>${c.aspects.map((a) => `<li>${a.stage1 && opts.twoStage !== false ? `<span class="s1" title="${esc(T("stage1Mark"))}">${esc(T("stage1Short"))}</span> ` : ""}${esc(a.text)}</li>`).join("")}</ul></div>`).join("")}</div>
+    ${row.note ? `<p class="fine">${esc(row.note)}</p>` : ""}`;
+}
+function heScoring(fw, e) {
+  return `<div class="crit-sum"><span class="sc-chip t-medium">${esc(T("heThresholds"))}</span>${e && e.ia ? `<span class="sc-chip t-medium">${esc(T("iaWeight"))}</span>` : ""}${e && e.twoStage ? `<span class="sc-chip t-medium">${esc(T("twoStageChip"))}</span>` : ""}</div>`;
+}
+// One call: its criteria from the general annex, its call document, its funder's page, or where to find them
+function critHTML(e, c) {
+  const crit = ST.crit;
+  if (!e) return `<p class="fine">${esc(T("critNone"))}</p>${c && c.url ? `<p>${ext(c.url, T("official"))}</p>` : ""}`;
+  const note = e.note ? `<div class="crit-note"><span class="fine">${esc(T("fromCallPage"))}</span><p>${esc(e.note)}</p></div>` : "";
+  if (e.kind === "framework") {
+    const fw = crit.frameworks[e.framework];
+    return `<p class="fine">${esc(T("critFromAnnex", fw.rows[e.row].name))} · ${ext(fw.url, T("heAnnex"))}</p>${heScoring(fw, e)}
+      ${e.twoStage ? `<p class="fine">${esc(T("stage1Note"))}</p>` : ""}${heRowHTML(fw, e.row, { ia: e.ia, twoStage: e.twoStage })}${note}`;
+  }
+  if (e.kind === "document") {
+    const t = e.table;
+    return `<p class="fine">${esc(T("critFromDoc"))}${e.version ? " (" + esc(e.version) + ")" : ""} · ${ext(e.url, T("callDoc"))}${e.evalForm ? " · " + ext(e.evalForm, T("evalForm")) : ""}</p>
+      ${t ? `<div class="tw"><table class="oi-t crit-t"><thead><tr><th>${esc(T("criterion"))}</th><th class="num">${esc(T("minPass"))}</th><th class="num">${esc(T("maxScore"))}</th></tr></thead><tbody>
+        ${t.rows.map((r) => `<tr><td>${esc(r.name)}</td><td class="num">${esc(/^(n\/a|-)$/i.test(r.min) ? "–" : r.min)}</td><td class="num">${esc(pts(r.max))}</td></tr>`).join("")}
+        <tr class="tot"><td>${esc(t.total.name)}</td><td class="num">${esc(t.total.min)}</td><td class="num">${esc(pts(t.total.max))}</td></tr></tbody></table></div>` : ""}
+      ${e.summary && e.summary.length ? `<ul class="crit-sumtext">${e.summary.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      <details class="crit-full"><summary>${esc(T("fullText"))}</summary>${textBlocks(e.blocks)}</details>${note}`;
+  }
+  if (e.kind === "page") {
+    return `<p class="fine">${esc(T("critFromPage", e.source || ""))} · ${ext(e.url, T("official"))}</p><details class="crit-full" open><summary>${esc(e.heading)}</summary>${textBlocks(e.blocks)}</details>`;
+  }
+  return `<p class="fine">${esc(T(e.note ? "critPointerNote" : "critPointer"))}</p>${note}<p>${ext(e.url || (c && c.url), T(e.url && /\.pdf($|\?)/i.test(e.url) ? "callDoc" : "official"))}${e.evalForm ? " · " + ext(e.evalForm, T("evalForm")) : ""}</p>`;
+}
+const KIND_ORDER = { framework: 0, document: 0, page: 0, pointer: 1 };
 async function secEvaluation() {
-  if (!ST.guide) { const r = await fetch("org/erasmus-2026.json", { cache: "no-cache" }); ST.guide = await r.json(); }
-  const g = ST.guide;
-  return `<h1>${esc(T("evalTitle"))}</h1><p class="lede">${esc(T("evalLede"))}</p><p class="note">${esc(T("evalSoon"))}</p>
-    <p class="fine"><a href="${esc(g.guideUrl)}" target="_blank" rel="noopener">${esc(T("guide", g.guideYear, g.guideVersion))} ↗</a> · ${esc(T("guideNotice"))}</p>
+  const crit = await loadCriteria();
+  const tab = ST.evalTab || "calls", id = ST.org.id;
+  const tabs = [["calls", T("evalTabCalls")], ["horizon", "Horizon Europe"], ["erasmus", "Erasmus+ KA210 · KA220"]];
+  const head = `<h1>${esc(T("evalTitle"))}</h1><p class="lede">${esc(T("evalLede"))}</p>
+    <div class="etabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" class="etab${tab === k ? " on" : ""}" aria-selected="${tab === k}" data-etab="${k}">${esc(l)}</button>`).join("")}</div>`;
+  if (tab === "horizon") {
+    const fw = crit.frameworks["HE-GA-D"];
+    if (!fw) return head + `<p class="note err">${esc(T("errors.data_unavailable"))}</p>`;
+    const n = {}; for (const e of Object.values(crit.calls)) if (e.kind === "framework") n[e.row] = (n[e.row] || 0) + 1;
+    return head + `<p class="fine">${ext(fw.url, fw.title)} · ${esc(T("retrieved", fw.retrieved))} · ${esc(T("critNotice"))}</p>
+      <section class="oi-card"><h2>${esc(T("heScoringTitle"))}</h2><ul>${fw.scoring.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+        <h3>${esc(T("heTwoStageTitle"))}</h3><ul>${fw.twoStage.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><p class="fine">${esc(T("stage1Note"))}</p></section>
+      ${Object.keys(fw.rows).map((k) => `<section class="oi-card"><h2>${esc(fw.rows[k].name)}</h2><p class="fine">${esc(T("openCallsUsing", n[k] || 0))}</p>${heRowHTML(fw, k, { twoStage: true })}</section>`).join("")}
+      <p class="fine">${esc(T("heOwn"))}</p>`;
+  }
+  if (tab === "erasmus") {
+    const g = await loadGuide();
+    return head + `<p class="fine"><a href="${esc(g.guideUrl)}" target="_blank" rel="noopener">${esc(T("guide", g.guideYear, g.guideVersion))} ↗</a> · ${esc(T("guideNotice"))}</p>
     ${g.actions.map((a) => `<section class="oi-card"><h2>${esc(a.id)} · ${esc(nm(a.name))}</h2>
       <p class="fine">${esc(T("where"))} <a href="${esc(g.nationalAgenciesUrl)}" target="_blank" rel="noopener">${esc(T("na"))} ↗</a> · <a href="${esc(a.url)}" target="_blank" rel="noopener">Programme Guide ↗</a></p>
       <p>${esc(T("totalMin", a.threshold.total))}</p>
       <div class="crit-list">${a.criteria.map((c) => `<div class="crit"><h3><span>${esc(c.name)}</span><span class="fine num">${esc(T("maxPts", c.max, c.min))}</span></h3><ul>${c.points.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>`).join("")}</div>
       <h3>${esc(T("rounds"))}</h3><ul>${a.rounds.map((r) => `<li>${esc(r.deadline.slice(0, 10))} ${esc(r.deadline.slice(11, 16))} (Brussels)${r.kind === "optional" ? ", " + esc(T("optional")) : ""}</li>`).join("")}</ul></section>`).join("")}`;
+  }
+  // By call: the organisation's open calls, most compatible first, with the criteria each one is scored against
+  const EF = ST.evalF || (ST.evalF = { prog: "", all: false, shown: 20 });
+  const res = results();
+  const progs = [...new Set(res.map((r) => r.call.programme))].sort();
+  const list = res.filter((r) => (EF.all || r.status !== "ineligible") && (!EF.prog || r.call.programme === EF.prog))
+    .sort((a, b) => (KIND_ORDER[(crit.calls[a.callId] || {}).kind] ?? 1) - (KIND_ORDER[(crit.calls[b.callId] || {}).kind] ?? 1) || b.score - a.score);
+  const withCrit = list.filter((r) => (crit.calls[r.callId] || {}).kind && crit.calls[r.callId].kind !== "pointer").length;
+  return head + `<p class="fine">${esc(T("evalCallsNote"))}</p>
+    <div class="oi-row"><select id="evProg" aria-label="${esc(T("progL"))}"><option value="">${esc(T("fProg"))}</option>${progs.map((p) => `<option value="${esc(p)}"${EF.prog === p ? " selected" : ""}>${esc((EC.P[p] || {}).short || p)}</option>`).join("")}</select>
+      <label class="opt"><input type="checkbox" id="evAll"${EF.all ? " checked" : ""}> ${esc(T("evalShowIneligible"))}</label></div>
+    <p class="fine" role="status">${esc(T("evalCount", list.length, withCrit))}</p>
+    <div class="match-list">${list.slice(0, EF.shown).map((r) => { const c = r.call, e = crit.calls[r.callId], dl = EC.nextDl(c);
+      return `<details class="oi-card eval-call"><summary><span class="eval-t">${esc(c.title)}</span><span class="oi-row fine"><span>${esc((EC.P[c.programme] || {}).short || c.programme)}</span>${dl ? `<span>${esc(EC.fmtDate(dl))}</span>` : ""}${scoreNum(r.score)}${statusBadge(r.status)}<span class="sc-chip ${e && e.kind !== "pointer" ? "t-high" : "t-low"}">${esc(T("kindL." + (e ? e.kind : "pointer")))}</span></span></summary>
+        <div class="eval-body">${critHTML(e, c)}<p class="fine"><a href="#org/${id}/match/${encodeURIComponent(c.key)}">${esc(T("openReport"))} →</a></p></div></details>`; }).join("")}</div>
+    ${list.length > EF.shown ? `<button type="button" class="btn ghost" id="evMore">${esc(T("more"))}</button>` : ""}`;
 }
+afterRender.evaluation = () => {
+  document.querySelectorAll("[data-etab]").forEach((b) => b.addEventListener("click", () => { ST.evalTab = b.dataset.etab; EC.route(); }));
+  const EF = ST.evalF;
+  const p = document.getElementById("evProg"); if (p) p.addEventListener("change", () => { EF.prog = p.value; EF.shown = 20; EC.route(); });
+  const a = document.getElementById("evAll"); if (a) a.addEventListener("change", () => { EF.all = a.checked; EF.shown = 20; EC.route(); });
+  const m = document.getElementById("evMore"); if (m) m.addEventListener("click", () => { EF.shown += 20; const y = scrollY; EC.route(); scrollTo(0, y); });
+};
 /* ---------- project ideas ---------- */
 const IDEA_CALLS = 6;
 // Calls offered for ideas: open, not failing a mandatory check, score 50% or more, most compatible first.

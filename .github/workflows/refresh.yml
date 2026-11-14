@@ -47,11 +47,17 @@ jobs:
       - name: Build site data
         run: python ingest/build.py
 
+      - name: Read the evaluation criteria of the calls (call documents, Horizon Europe General Annex D, UKRI pages)
+        run: |
+          sudo apt-get install -y -qq poppler-utils > /dev/null || true
+          python ingest/award_criteria.py
+        continue-on-error: true   # a failure keeps the previous criteria file; the call data still publishes
+
       - name: Commit if anything changed
         run: |
           git config user.name "eligiblecalls-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add site/data ingest/state.json ingest/review.md ingest/extra.json ingest/extra_state.json
+          git add site/data site/org ingest/state.json ingest/review.md ingest/extra.json ingest/extra_state.json
           if git diff --cached --quiet -- site/data; then
             echo "No changes to the site data."
             echo "changed=false" >> "$GITHUB_OUTPUT"

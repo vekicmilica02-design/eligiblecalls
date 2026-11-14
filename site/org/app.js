@@ -1,7 +1,7 @@
 // Organization Intelligence: the organisation dashboard of Eligible Calls.
 // Uses the page's loaded data through window.EC (index.html) and the API under /api/.
 import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completeness } from "./schema.js";
-import { assessAll, assess, buildDF, band, STATUS_ORDER, DEFAULT_WEIGHTS } from "./rules.js";
+import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS } from "./rules.js";
 
 const EC = window.EC;
 const esc = EC.esc;
@@ -40,6 +40,7 @@ const S = {
     apply: "Apply selected to profile", discard: "Discard", applied: (n) => `${n} field(s) added to the profile.`, runs: "Earlier extractions", status: { review: "to review", applied: "applied", discarded: "discarded" }, del: "Delete", open: "Open",
     confL: { high: "high", medium: "medium", low: "low" }, dropped: (n) => `${n} proposed value(s) were removed because they were invalid or contained personal data.`, noQuote: (n) => `${n} value(s) without a quote from the source were left out.`,
     matchTitle: "Eligibility matching", matchLede: (n, d) => `${n} open and forthcoming calls checked against your profile (data of ${d}). Rule-based: mandatory requirements first, then a weighted compatibility score.`,
+    scoreLegend: "Score colours: red 0–49%, yellow 50–74%, green 75–100%. The colour shows the compatibility score only; whether you are eligible is decided by the mandatory requirements (status label).", tierL: { high: "75–100%", medium: "50–74%", low: "0–49%" },
     notice: "Compatibility is an estimate, not a legal eligibility decision and not a probability of funding. The official call documents prevail.",
     fStatus: "All statuses", fProg: "All programmes", fDl: "Any deadline", dl30: "Next 30 days", dl60: "Next 60 days", dl120: "Next 120 days", onlyHigh: "Only 75%+", sortScore: "Sort: compatibility", sortDl: "Sort: deadline",
     showing: (n, m) => `${n} of ${m} calls`, more: "Show more", strengths: "Strengths", problems: "Possible problems", missing: "Missing information", next: "Next step", report: "Detailed assessment", official: "Official page",
@@ -58,13 +59,24 @@ const S = {
     evalSoon: "The AI evaluation assistant, which scores a saved project idea against these criteria, comes with the project idea generator (next phase).",
     guide: (y, v) => `Programme Guide ${y}, ${v}`, guideNotice: "Preliminary self-assessment aid. Evaluators score against the official guide of the call year; the guide prevails.", maxPts: (m, n) => `max ${m} points · minimum ${n}`, totalMin: (n) => `Proposals need at least ${n} points in total and at least half of the maximum in each criterion.`,
     rounds: "Deadlines in this guide (national agencies)", optional: "if the national agency organises it", where: "Apply to the Erasmus+ national agency of your country.", na: "National agencies",
-    ideasTitle: "Project ideas", ideasSoon: "The project idea generator is the next phase of this module. It will propose concepts that combine your profile with open calls, each linked to a real call.",
+    ideasTitle: "Project ideas", ideasLede: "Concepts for projects your organisation could develop, each linked to an open call listed on Eligible Calls. An AI model writes them from your saved profile and the calls you select; the calls, deadlines, eligibility and compatibility scores come from the platform's data and rules.",
+    ideasAi: "AI-generated proposal: check it against the call documents before relying on it.", ideasPick: "Calls to build ideas on", ideasPickNote: (n) => `Your most compatible open calls: eligible or to verify, with a score of 50% or more. Up to ${n} can be used in one run.`,
+    ideasNoCalls: "No open call reaches 50% compatibility with the profile yet. Complete the profile or look at the matching page.", ideasNeed: "To generate ideas the profile needs a name, organisation type, country, and a description, mission or objectives.",
+    ideasGenerate: "Generate ideas", ideasRegenerate: "Generate new ideas", ideasBusy: "Writing ideas… this can take up to a minute.", ideasUse: "Uses one of your daily AI actions. Unsaved suggestions are replaced; saved ideas stay.",
+    ideasDone: (n, d) => `${n} idea(s) generated.` + (d ? ` ${d} proposal(s) were discarded because they named a call that was not selected or were incomplete.` : ""), ideasZero: "The model found no selected call that genuinely fits the profile. Try other calls or complete the profile.",
+    ideasNone: "No ideas yet.", ideasSaved: "Saved ideas", ideasSuggested: "Latest suggestions", ideasViewerNote: "You can read the ideas. Editors and owners generate, save and annotate them.",
+    ideaSavedChip: "Saved", ideaSave: "Save", ideaUnsave: "Remove from saved", ideaNotes: "Notes", ideaNotesSave: "Save notes", ideaNotesSaved: "Notes saved.", ideaCompare: "Compare", ideaDelete: "Delete",
+    ideaF: { concept: "Project concept", problem: "Problem addressed", solution: "Proposed solution", objectives: "Main objectives", targetGroups: "Target groups", activities: "Proposed activities", expectedResults: "Expected results and impact", potentialPartners: "Potential partners", whyItFits: "Why this project makes sense" },
+    ideaCall: "Matching funding opportunity", compatRule: "Organisation–call compatibility (rules)", conceptFitL: "Concept fit (AI estimate)", fitTitle: "AI ratings (1–5)",
+    fitL: { alignment: "Alignment with the call", priorities: "Programme priorities", feasibility: "Feasibility", impact: "Potential impact" },
+    ideaStale: (v) => `Generated from profile version ${v}; the profile has changed since.`, ideaClosed: "This call is no longer open.", ideaGen: (d, sc) => `Generated ${d}; compatibility at that time ${sc}%.`,
+    compareTitle: "Comparison", compareHint: "Tick Compare on two or three ideas to see them side by side.", compareMax: "You can compare up to three ideas.", savedIdeasN: "Saved project ideas",
     reportsTitle: "Saved reports", reportsSoon: "Saving and exporting reports comes with the evaluation assistant (next phase). Assessments are recalculated live on the matching page.",
     settingsTitle: "Settings", members: "Members", invite: "Add a member by e-mail", role: "Role", roles: { owner: "Owner", editor: "Editor", viewer: "Viewer" }, add: "Add",
     invited: "Invited (not signed up yet)", remove: "Remove", leave: "Leave this organisation", versions: "Profile history", changedF: "Changed fields", by: "by",
     account: "Your account", newsToggle: "News e-mails", deleteAccount: "Delete my account", deleteAccountNote: "Deletes your account, your sign-in sessions and the organisations where you are the only member.", deleteAccountConfirm: "Yes, delete my account permanently", cancel: "Cancel", signedInAs: (e) => `Signed in as ${e}`,
     deleteOrg: "Delete this organisation", deleteOrgNote: (n) => `Deletes the profile, its history and all extraction results. Type the organisation name (${n}) to confirm.`, confirmDel: "Delete permanently",
-    errors: { signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server." },
+    errors: { signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
   },
   sr: {
     title: "Analiza organizacije", lede: "Profil vaše organizacije, proveren u odnosu na sve otvorene pozive na Eligible Calls.",
@@ -96,6 +108,7 @@ const S = {
     apply: "Primeni označeno na profil", discard: "Odbaci", applied: (n) => `Dodato polja u profil: ${n}.`, runs: "Ranija izdvajanja", status: { review: "za pregled", applied: "primenjeno", discarded: "odbačeno" }, del: "Obriši", open: "Otvori",
     confL: { high: "visoka", medium: "srednja", low: "niska" }, dropped: (n) => `Uklonjeno predloženih vrednosti: ${n} (neispravne ili sa ličnim podacima).`, noQuote: (n) => `Izostavljeno vrednosti bez citata iz izvora: ${n}.`,
     matchTitle: "Provera podobnosti", matchLede: (n, d) => `${n} otvorenih i najavljenih poziva provereno u odnosu na vaš profil (podaci od ${d}). Provera po pravilima: prvo obavezni uslovi, zatim ponderisana ocena kompatibilnosti.`,
+    scoreLegend: "Boje ocene: crvena 0–49%, žuta 50–74%, zelena 75–100%. Boja prikazuje samo ocenu kompatibilnosti; da li ste podobni određuju obavezni uslovi (oznaka statusa).", tierL: { high: "75–100%", medium: "50–74%", low: "0–49%" },
     notice: "Kompatibilnost je procena, a ne pravna odluka o podobnosti niti verovatnoća finansiranja. Merodavna su zvanična dokumenta poziva.",
     fStatus: "Svi statusi", fProg: "Svi programi", fDl: "Bilo koji rok", dl30: "Narednih 30 dana", dl60: "Narednih 60 dana", dl120: "Narednih 120 dana", onlyHigh: "Samo 75%+", sortScore: "Redosled: kompatibilnost", sortDl: "Redosled: rok",
     showing: (n, m) => `${n} od ${m} poziva`, more: "Prikaži još", strengths: "Prednosti", problems: "Mogući problemi", missing: "Nedostajući podaci", next: "Sledeći korak", report: "Detaljna procena", official: "Zvanična stranica",
@@ -114,13 +127,24 @@ const S = {
     evalSoon: "AI asistent za ocenjivanje, koji sačuvanu projektnu ideju ocenjuje prema ovim kriterijumima, dolazi uz generator projektnih ideja (sledeća faza).",
     guide: (y, v) => `Vodič kroz program ${y}, ${String(v).replace(/^Version (\d+) of /, "verzija $1 od ")}`, guideNotice: "Pomoć za preliminarnu samoprocenu. Ocenjivači boduju prema zvaničnom vodiču za godinu poziva; vodič je merodavan.", maxPts: (m, n) => `najviše ${m} bodova · najmanje ${n}`, totalMin: (n) => `Predlog mora imati najmanje ${n} bodova ukupno i najmanje polovinu maksimuma po svakom kriterijumu.`,
     rounds: "Rokovi u ovom vodiču (nacionalne agencije)", optional: "ako ga nacionalna agencija organizuje", where: "Prijava se podnosi Erasmus+ nacionalnoj agenciji vaše zemlje.", na: "Nacionalne agencije",
-    ideasTitle: "Projektne ideje", ideasSoon: "Generator projektnih ideja je sledeća faza ovog modula. Predlagaće koncepte koji spajaju vaš profil sa otvorenim pozivima, svaki vezan za stvaran poziv.",
+    ideasTitle: "Projektne ideje", ideasLede: "Koncepti projekata koje vaša organizacija može da razvije, svaki vezan za otvoren poziv sa Eligible Calls. Piše ih AI model na osnovu sačuvanog profila i poziva koje izaberete; pozivi, rokovi, podobnost i ocene kompatibilnosti potiču iz podataka i pravila platforme.",
+    ideasAi: "Predlog koji je napisao AI: proverite ga u dokumentaciji poziva pre nego što se na njega oslonite.", ideasPick: "Pozivi za ideje", ideasPickNote: (n) => `Vaši najkompatibilniji otvoreni pozivi: podobni ili za proveru, sa ocenom od najmanje 50%. U jednom pokretanju može se koristiti najviše ${n}.`,
+    ideasNoCalls: "Nijedan otvoren poziv još nema 50% kompatibilnosti sa profilom. Dopunite profil ili pogledajte stranicu provere podobnosti.", ideasNeed: "Za ideje profil mora imati naziv, tip organizacije, državu i opis, misiju ili ciljeve.",
+    ideasGenerate: "Napravi ideje", ideasRegenerate: "Napravi nove ideje", ideasBusy: "Pišem ideje… to može trajati do jednog minuta.", ideasUse: "Troši jednu od vaših dnevnih AI akcija. Nesačuvani predlozi se zamenjuju; sačuvane ideje ostaju.",
+    ideasDone: (n, d) => `Napravljeno ideja: ${n}.` + (d ? ` Odbačeno predloga: ${d} (naveli su poziv koji nije izabran ili su bili nepotpuni).` : ""), ideasZero: "Model nije našao izabran poziv koji zaista odgovara profilu. Probajte druge pozive ili dopunite profil.",
+    ideasNone: "Još nema ideja.", ideasSaved: "Sačuvane ideje", ideasSuggested: "Najnoviji predlozi", ideasViewerNote: "Možete da čitate ideje. Urednici i vlasnici ih prave, čuvaju i dopisuju beleške.",
+    ideaSavedChip: "Sačuvano", ideaSave: "Sačuvaj", ideaUnsave: "Ukloni iz sačuvanih", ideaNotes: "Beleške", ideaNotesSave: "Sačuvaj beleške", ideaNotesSaved: "Beleške su sačuvane.", ideaCompare: "Uporedi", ideaDelete: "Obriši",
+    ideaF: { concept: "Koncept projekta", problem: "Problem koji se rešava", solution: "Predloženo rešenje", objectives: "Glavni ciljevi", targetGroups: "Ciljne grupe", activities: "Predložene aktivnosti", expectedResults: "Očekivani rezultati i uticaj", potentialPartners: "Mogući partneri", whyItFits: "Zašto ovaj projekat ima smisla" },
+    ideaCall: "Odgovarajući poziv", compatRule: "Kompatibilnost organizacije i poziva (pravila)", conceptFitL: "Uklapanje koncepta (AI procena)", fitTitle: "AI ocene (1–5)",
+    fitL: { alignment: "Usklađenost sa pozivom", priorities: "Prioriteti programa", feasibility: "Izvodljivost", impact: "Mogući uticaj" },
+    ideaStale: (v) => `Napravljeno na osnovu verzije profila ${v}; profil je od tada izmenjen.`, ideaClosed: "Ovaj poziv više nije otvoren.", ideaGen: (d, sc) => `Napravljeno ${d}; kompatibilnost tada ${sc}%.`,
+    compareTitle: "Poređenje", compareHint: "Označite Uporedi na dve ili tri ideje da ih vidite jednu pored druge.", compareMax: "Možete uporediti najviše tri ideje.", savedIdeasN: "Sačuvane projektne ideje",
     reportsTitle: "Sačuvani izveštaji", reportsSoon: "Čuvanje i izvoz izveštaja dolazi uz asistenta za ocenjivanje (sledeća faza). Procene se računaju uživo na stranici provere podobnosti.",
     settingsTitle: "Podešavanja", members: "Članovi", invite: "Dodajte člana preko e-mail adrese", role: "Uloga", roles: { owner: "Vlasnik", editor: "Urednik", viewer: "Posmatrač" }, add: "Dodaj",
     invited: "Pozvan (još nije registrovan)", remove: "Ukloni", leave: "Napusti ovu organizaciju", versions: "Istorija profila", changedF: "Izmenjena polja", by: "",
     account: "Vaš nalog", newsToggle: "E-mail vesti", deleteAccount: "Obriši moj nalog", deleteAccountNote: "Briše vaš nalog, sesije prijave i organizacije u kojima ste jedini član.", deleteAccountConfirm: "Da, trajno obriši moj nalog", cancel: "Otkaži", signedInAs: (e) => `Prijavljeni ste kao ${e}`,
     deleteOrg: "Obriši ovu organizaciju", deleteOrgNote: (n) => `Briše profil, njegovu istoriju i sve rezultate izdvajanja. Upišite naziv organizacije (${n}) da potvrdite.`, confirmDel: "Trajno obriši",
-    errors: { signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera protiv botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran kao međusajtni. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom." },
+    errors: { signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera protiv botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran kao međusajtni. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila pravljenje ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, tip, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
   },
 };
 const T = (k, ...a) => { const v = k.split(".").reduce((o, x) => (o ? o[x] : undefined), S[L()]) ?? k.split(".").reduce((o, x) => (o ? o[x] : undefined), S.en); return typeof v === "function" ? v(...a) : v ?? k; };
@@ -246,7 +270,7 @@ async function render(h) {
 function shell(id, sec, body) {
   const me = ST.me, org = ST.org && ST.org.id === id ? ST.org : null;
   const items = ["overview", "profile", "documents", "matching", "ideas", "evaluation", "reports", "settings"];
-  const soon = new Set(["ideas", "reports"]);
+  const soon = new Set(["reports"]);
   app().innerHTML = `<div class="wrap oi">
     <aside class="oi-side">
       <div class="oi-org"><span class="eyebrow">${esc(T("title"))}</span><span class="n">${esc(org ? org.name : "")}</span>
@@ -339,8 +363,13 @@ function renderCreate() {
 /* ---------- overview ---------- */
 const statusBadge = (s) => `<span class="st ${s}">${esc(T("statusL." + s))}</span>`;
 const meter = (pct, cls = "") => `<div class="meter ${cls}"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>`;
-function secOverview() {
+// Compatibility scores everywhere use the same three colours (scoreTier); status badges use the mandatory checks.
+const tierCls = (score) => "t-" + scoreTier(score);
+const scoreMeter = (score) => meter(score, tierCls(score));
+const scoreNum = (score) => `<b class="scn ${tierCls(score)}">${score}%</b>`;
+async function secOverview() {
   const org = ST.org, p = org.profile, c = completeness(p);
+  let savedIdeas = 0; try { savedIdeas = (await api("GET", `/orgs/${org.id}/ideas`)).ideas.filter((x) => x.status === "saved").length; } catch { /* shown as 0 */ }
   const res = results();
   const ok = res.filter((r) => r.status === "eligible" || r.status === "potential");
   const high = ok.filter((r) => r.score >= 75);
@@ -358,8 +387,9 @@ function secOverview() {
       <div class="stat"><span class="l">${esc(T("analysed"))}</span><span class="v">${res.length}</span></div>
       <div class="stat"><span class="l">${esc(T("high"))}</span><span class="v">${high.length}</span></div>
       <div class="stat"><span class="l">${esc(T("eligibleN"))}</span><span class="v">${res.filter((r) => r.status === "eligible").length}</span></div>
+      <a class="stat" href="#org/${org.id}/ideas"><span class="l">${esc(T("savedIdeasN"))}</span><span class="v">${savedIdeas}</span></a>
     </div>
-    <div class="oi-card"><h2>${esc(T("upcoming"))}</h2>${soon.length ? `<div class="tw"><table class="oi-t upc"><tbody>${soon.map(({ r, dl }) => `<tr><td class="num">${esc(EC.fmtDate(dl))}</td><td><a href="#org/${org.id}/match/${encodeURIComponent(r.call.key)}">${esc(r.call.title)}</a><div class="fine">${esc((EC.P[r.call.programme] || {}).short || r.call.programmeName || "")}</div></td><td class="num"><b>${r.score}%</b></td><td>${statusBadge(r.status)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="fine">${esc(T("none"))}</p>`}
+    <div class="oi-card"><h2>${esc(T("upcoming"))}</h2>${soon.length ? `<div class="tw"><table class="oi-t upc"><tbody>${soon.map(({ r, dl }) => `<tr><td class="num">${esc(EC.fmtDate(dl))}</td><td><a href="#org/${org.id}/match/${encodeURIComponent(r.call.key)}">${esc(r.call.title)}</a><div class="fine">${esc((EC.P[r.call.programme] || {}).short || r.call.programmeName || "")}</div></td><td class="num">${scoreNum(r.score)}</td><td>${statusBadge(r.status)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="fine">${esc(T("none"))}</p>`}
       <p><a href="#org/${org.id}/matching">${esc(T("openMatching"))} →</a></p></div>
     <div class="oi-card"><h2>${esc(T("missingTitle"))}</h2>${c.missing.length ? `<p>${esc(listOf(c.missing.slice(0, 12), fieldName))}</p><p><a href="#org/${org.id}/profile">${esc(T("fillProfile"))} →</a></p>` : `<p class="fine">${esc(T("missingNone"))}</p>`}</div>
     <div class="oi-card"><h2>${esc(T("strengthsTitle"))}</h2>${strengths.length ? `<ul>${strengths.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</div>
@@ -581,8 +611,7 @@ function fundingText(c) {
 function matchCard(r) {
   const c = r.call, id = ST.org.id, dl = EC.nextDl(c);
   const probs = r.checks.filter((x) => x.result !== "pass").slice(0, 3);
-  const cls = r.status === "ineligible" ? "low" : r.score >= 75 ? "yes" : r.score >= 60 ? "part" : "low";
-  return `<article class="oi-card match-card"><div class="sc"><b>${r.score}%</b>${meter(r.score, cls)}<span class="fine">${esc(T("bandL." + r.band))}</span></div>
+  return `<article class="oi-card match-card"><div class="sc">${scoreNum(r.score)}${scoreMeter(r.score)}<span class="fine">${esc(T("bandL." + r.band))}</span></div>
     <div style="display:grid;gap:8px;min-width:0"><div class="oi-row">${statusBadge(r.status)}<span>${esc((EC.P[c.programme] || {}).short || c.programmeName || c.programme)}</span>${dl ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(dl))}</b> · <span data-dl="${esc(dl)}">${esc(EC.leftText(dl))}</span></span>` : ""}${fundingText(c) ? `<span>${esc(T("funding"))}: ${esc(fundingText(c))}</span>` : ""}</div>
     <h3><a href="#org/${id}/match/${encodeURIComponent(c.key)}">${esc(c.title)}</a></h3>
     <div class="cols">${r.strengths.length ? `<div><h4>${esc(T("strengths"))}</h4><ul>${r.strengths.slice(0, 2).map((s) => `<li>${esc(codeText(s))}</li>`).join("")}</ul></div>` : ""}
@@ -605,6 +634,7 @@ function secMatching() {
   return `<h1>${esc(T("matchTitle"))}</h1><p class="lede">${esc(T("matchLede", all.length, EC.fmtDate(EC.META.generated)))}</p>
     ${!ST.org.profile.country || !ST.org.profile.orgType ? `<p class="note warn">${esc(T("noCountry"))}</p>` : ""}
     <p class="note">${esc(T("notice"))}</p>
+    <div class="tier-legend" aria-label="${esc(T("scoreLegend"))}">${["low", "medium", "high"].map((k) => `<span class="sc-chip t-${k}">${esc(T("tierL." + k))}</span>`).join("")}<span class="fine">${esc(T("scoreLegend"))}</span></div>
     <div class="oi-filters">${sel("ofStatus", [["", T("fStatus")], ...Object.keys(STATUS_ORDER).map((s) => [s, T("statusL." + s)])], F.status)}
       ${sel("ofProg", [["", T("fProg")], ...progs.map((p) => [p, (EC.P[p] || {}).short || p])], F.prog)}
       ${sel("ofDl", [["", T("fDl")], ["30", T("dl30")], ["60", T("dl60")], ["120", T("dl120")]], F.dl)}
@@ -630,12 +660,12 @@ function secReport(key) {
   return `<a class="back" href="#org/${id}/matching">← ${esc(T("matchTitle"))}</a>
     <h1>${esc(c.title)}</h1>
     <div class="oi-row"><span>${esc((EC.P[c.programme] || {}).name || c.programmeName || "")}</span>${dl ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(dl))}</b></span>` : ""}${fundingText(c) ? `<span>${esc(T("funding"))}: ${esc(fundingText(c))}</span>` : ""}<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(T("official"))} ↗</a> · <a href="#c-${encodeURIComponent(c.key)}">Eligible Calls</a></div>
-    <section class="oi-card"><h2>${esc(T("repA"))}</h2><div class="oi-row"><span class="score"><b>${r.score}%</b> ${esc(T("bandL." + r.band))}</span>${statusBadge(r.status)}</div>
+    <section class="oi-card"><h2>${esc(T("repA"))}</h2><div class="oi-row"><span class="score">${scoreNum(r.score)} ${esc(T("bandL." + r.band))}</span>${statusBadge(r.status)}</div>${scoreMeter(r.score)}<p class="fine">${esc(T("scoreLegend"))}</p>
       <p>${esc(T("explain." + r.status))}</p>${r.capApplied ? `<p class="fine">${esc(T("capNote"))}</p>` : ""}<p class="note">${esc(T("notice"))}</p></section>
     <section class="oi-card"><h2>${esc(T("repB"))}</h2><div class="tw"><table class="oi-t"><thead><tr><th>${esc(T("requirement"))}</th><th>${esc(T("result"))}</th><th>${esc(T("basis"))}</th></tr></thead><tbody>
       ${r.checks.map((x) => `<tr><td>${esc(codeText(x))}${x.params.quote ? `<p class="quote">${esc(x.params.quote)}</p>` : ""}${x.params.url ? `<a class="fine" href="${esc(x.params.url)}" target="_blank" rel="noopener">Programme Guide ↗</a>` : ""}</td><td><span class="res ${x.result}">${esc(x.code === "partnership.unspecified" ? T("notStated") : T("resL." + x.result))}</span></td><td class="fine">${esc(srcLabel(x.source))}</td></tr>`).join("")}
     </tbody></table></div>
-    <h3>${esc(T("repB2"))}</h3><div class="dims">${Object.keys(DEFAULT_WEIGHTS).map((k) => `<div class="dim"><span>${esc(T("dims." + k))}</span><span class="fine num">${esc(T("weight"))} ${r.weights[k]}%</span>${meter(Math.round(100 * r.dims[k].s), r.dims[k].s >= 0.75 ? "yes" : r.dims[k].s >= 0.5 ? "part" : "low")}</div>`).join("")}</div></section>
+    <h3>${esc(T("repB2"))}</h3><div class="dims">${Object.keys(DEFAULT_WEIGHTS).map((k) => `<div class="dim"><span>${esc(T("dims." + k))}</span><span class="fine num">${esc(T("weight"))} ${r.weights[k]}%</span>${scoreMeter(Math.round(100 * r.dims[k].s))}</div>`).join("")}</div></section>
     <section class="oi-card"><h2>${esc(T("repC"))}</h2>${r.strengths.length ? `<ul>${r.strengths.map((s) => `<li>${esc(codeText(s))}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</section>
     <section class="oi-card"><h2>${esc(T("repD"))}</h2>${r.gaps.length ? `<ul>${r.gaps.map((x) => `<li><span class="res ${x.result}">${esc(T("resL." + x.result))}</span> ${esc(codeText(x))}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</section>
     <section class="oi-card"><h2>${esc(T("repE"))}</h2>${r.missing.length ? `<p>${esc(listOf(r.missing, fieldName))}</p><p><a href="#org/${id}/profile">${esc(T("fillProfile"))} →</a></p>` : `<p class="fine">${esc(T("missingCall"))}</p>`}</section>
@@ -655,7 +685,107 @@ async function secEvaluation() {
       <div class="crit-list">${a.criteria.map((c) => `<div class="crit"><h3><span>${esc(c.name)}</span><span class="fine num">${esc(T("maxPts", c.max, c.min))}</span></h3><ul>${c.points.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>`).join("")}</div>
       <h3>${esc(T("rounds"))}</h3><ul>${a.rounds.map((r) => `<li>${esc(r.deadline.slice(0, 10))} ${esc(r.deadline.slice(11, 16))} (Brussels)${r.kind === "optional" ? ", " + esc(T("optional")) : ""}</li>`).join("")}</ul></section>`).join("")}`;
 }
-const secIdeas = () => `<h1>${esc(T("ideasTitle"))}</h1><p class="note">${esc(T("ideasSoon"))}</p>`;
+/* ---------- project ideas ---------- */
+const IDEA_CALLS = 6;
+// Calls offered for ideas: open, not failing a mandatory check, score 50% or more, most compatible first.
+const ideaCandidates = () => results().filter((r) => (r.status === "eligible" || r.status === "potential") && r.score >= 50).slice(0, 12);
+const ideaReady = (p) => p.name && p.orgType && p.country && (p.description || p.objectives || p.mission);
+function ideaCard(x, res) {
+  const org = ST.org, it = x.idea, live = res.find((r) => r.callId === x.callId);
+  const call = live ? live.call : (EC.CALLS || []).find((c) => c.id === x.callId);
+  const dl = call && EC.nextDl(call);
+  const score = live ? live.score : x.match.score, status = live ? live.status : x.match.status;
+  const fit = x.match && x.match.conceptFit;
+  const sec = (k) => { const v = it[k]; if (!v || (Array.isArray(v) && !v.length)) return ""; return `<div><h4>${esc(T("ideaF." + k))}</h4>${Array.isArray(v) ? `<ul>${v.map((y) => `<li>${esc(y)}</li>`).join("")}</ul>` : `<p>${esc(v)}</p>`}</div>`; };
+  const ratings = ["alignment", "priorities", "feasibility", "impact"].filter((k) => it.fit && it.fit[k]);
+  return `<article class="oi-card idea" data-idea="${esc(x.id)}">
+    <div class="oi-row">${x.status === "saved" ? `<span class="sc-chip t-high">★ ${esc(T("ideaSavedChip"))}</span>` : `<span class="fine">#${x.rank}</span>`}<span class="ai-tag">AI</span><span class="fine">${esc(T("ideasAi"))}</span></div>
+    <h3>${esc(it.title)}</h3>
+    <p>${esc(it.concept)}</p>
+    <div class="idea-call"><span class="fine">${esc(T("ideaCall"))}</span>
+      ${call ? `<a href="#org/${org.id}/match/${encodeURIComponent(call.key)}">${esc(call.title)}</a>` : `<span>${esc(x.callTitle || x.callId)}</span>`}
+      <div class="oi-row">${call ? `<span>${esc((EC.P[call.programme] || {}).short || call.programmeName || call.programme)}</span>` : ""}${dl ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(dl))}</b> · <span data-dl="${esc(dl)}">${esc(EC.leftText(dl))}</span></span>` : `<span class="note warn">${esc(T("ideaClosed"))}</span>`}${call && call.url ? `<a class="fine" href="${esc(call.url)}" target="_blank" rel="noopener">${esc(T("official"))} ↗</a>` : ""}</div></div>
+    <div class="idea-scores">
+      <div><span class="fine">${esc(T("compatRule"))}</span><div class="oi-row">${scoreNum(score)}${statusBadge(status)}</div>${scoreMeter(score)}</div>
+      <div><span class="fine">${esc(T("conceptFitL"))}</span><div class="oi-row">${fit == null ? "<b>–</b>" : scoreNum(fit)}</div>${fit == null ? "" : scoreMeter(fit)}</div>
+    </div>
+    ${x.profileVersion !== ST.org.version ? `<p class="fine">${esc(T("ideaStale", x.profileVersion))}</p>` : ""}
+    <details><summary>${esc(T("ideaF.problem"))}, ${esc(T("ideaF.objectives").toLowerCase())}, ${esc(T("ideaF.activities").toLowerCase())}…</summary>
+      <div class="idea-body">${["problem", "solution", "objectives", "targetGroups", "activities", "expectedResults", "potentialPartners", "whyItFits"].map(sec).join("")}
+      ${ratings.length ? `<div><h4>${esc(T("fitTitle"))}</h4><ul>${ratings.map((k) => `<li>${esc(T("fitL." + k))}: ${it.fit[k]}/5</li>`).join("")}</ul>${it.fit.reasons ? `<p class="fine">${esc(it.fit.reasons)}</p>` : ""}</div>` : ""}</div>
+      <p class="fine">${esc(T("ideaGen", fmtTime(x.createdAt), x.match.score))}</p></details>
+    ${canEdit() ? `<div class="idea-notes"><label for="n-${esc(x.id)}">${esc(T("ideaNotes"))}</label><textarea id="n-${esc(x.id)}" rows="2" maxlength="4000">${esc(x.notes || "")}</textarea></div>
+    <div class="oi-row"><button type="button" class="btn quiet" data-act="save">${esc(T(x.status === "saved" ? "ideaUnsave" : "ideaSave"))}</button><button type="button" class="btn ghost" data-act="notes">${esc(T("ideaNotesSave"))}</button>
+      <label class="opt"><input type="checkbox" data-act="compare"${ST.compare.has(x.id) ? " checked" : ""}> ${esc(T("ideaCompare"))}</label><button type="button" class="linkbtn" data-act="del">${esc(T("ideaDelete"))}</button><span class="fine" role="status" data-msg></span></div>`
+    : x.notes ? `<div class="idea-notes"><h4>${esc(T("ideaNotes"))}</h4><p>${esc(x.notes)}</p></div>` : `<label class="opt"><input type="checkbox" data-act="compare"${ST.compare.has(x.id) ? " checked" : ""}> ${esc(T("ideaCompare"))}</label>`}
+  </article>`;
+}
+function compareHTML(ideas, res) {
+  const pick = ideas.filter((x) => ST.compare.has(x.id)).slice(0, 3);
+  if (pick.length < 2) return `<p class="fine">${esc(T("compareHint"))}</p>`;
+  const cell = (x, k) => { const live = res.find((r) => r.callId === x.callId);
+    if (k === "call") { const c = live && live.call; const dl = c && EC.nextDl(c); return `${esc(c ? c.title : x.callTitle)}${dl ? `<div class="fine">${esc(EC.fmtDate(dl))}</div>` : ""}`; }
+    if (k === "compat") return scoreNum(live ? live.score : x.match.score);
+    if (k === "fit") return x.match.conceptFit == null ? "–" : scoreNum(x.match.conceptFit);
+    if (k === "notes") return esc(x.notes || "–");
+    const v = x.idea[k]; return Array.isArray(v) ? `<ul>${v.map((y) => `<li>${esc(y)}</li>`).join("")}</ul>` : esc(v || "–"); };
+  const rows = [["title", T("ideasTitle")], ["call", T("ideaCall")], ["compat", T("compatRule")], ["fit", T("conceptFitL")], ["objectives", T("ideaF.objectives")], ["targetGroups", T("ideaF.targetGroups")], ["potentialPartners", T("ideaF.potentialPartners")], ["notes", T("ideaNotes")]];
+  return `<div class="tw"><table class="oi-t cmp"><tbody>${rows.map(([k, l]) => `<tr><th scope="row">${esc(l)}</th>${pick.map((x) => `<td>${k === "title" ? `<b>${esc(x.idea.title)}</b>` : cell(x, k)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+async function secIdeas() {
+  const org = ST.org, p = org.profile;
+  let ideas = []; try { ideas = (await api("GET", `/orgs/${org.id}/ideas`)).ideas; } catch { /* shown empty */ }
+  ST.ideas = ideas;
+  ST.compare = new Set([...(ST.compare || [])].filter((id) => ideas.some((x) => x.id === id)));
+  const res = results(), cands = ideaCandidates();
+  // Keep the member's choice while it still matches the shortlist; otherwise start from the most compatible calls.
+  const keep = ST.ideaPick && ST.ideaPickOrg === org.id ? [...ST.ideaPick].filter((id) => cands.some((r) => r.callId === id)) : [];
+  ST.ideaPick = new Set(keep.length ? keep : cands.slice(0, IDEA_CALLS).map((r) => r.callId)); ST.ideaPickOrg = org.id;
+  const saved = ideas.filter((x) => x.status === "saved"), sugg = ideas.filter((x) => x.status !== "saved").sort((a, b) => a.rank - b.rank);
+  const ready = ideaReady(p);
+  return `<h1>${esc(T("ideasTitle"))}</h1><p class="lede">${esc(T("ideasLede"))}</p>
+    ${!canEdit() ? `<p class="note">${esc(T("ideasViewerNote"))}</p>` : ""}
+    ${canEdit() ? `<section class="oi-card"><h2>${esc(T("ideasPick"))}</h2>
+      ${!ready ? `<p class="note warn">${esc(T("ideasNeed"))} <a href="#org/${org.id}/profile">${esc(T("fillProfile"))}</a></p>` : ""}
+      ${cands.length ? `<p class="fine">${esc(T("ideasPickNote", IDEA_CALLS))}</p><div class="idea-picks">${cands.map((r) => `<label class="opt"><input type="checkbox" data-pick="${esc(r.callId)}"${ST.ideaPick.has(r.callId) ? " checked" : ""}><span>${esc(r.call.title)} <span class="fine">· ${esc((EC.P[r.call.programme] || {}).short || r.call.programme)}</span></span>${scoreNum(r.score)}</label>`).join("")}</div>
+        <div class="oi-row"><button type="button" class="btn" id="oiGen"${ready && ST.ideaPick.size ? "" : " disabled"}>${esc(T(ideas.length ? "ideasRegenerate" : "ideasGenerate"))}</button><span class="fine">${esc(T("ideasUse"))}</span></div><div id="oiGenMsg" role="status"></div>`
+        : `<p class="note">${esc(T("ideasNoCalls"))} <a href="#org/${org.id}/matching">${esc(T("openMatching"))} →</a></p>`}</section>` : ""}
+    ${ideas.length >= 2 ? `<section class="oi-card"><h2>${esc(T("compareTitle"))}</h2><div id="oiCmp">${compareHTML(ideas, res)}</div></section>` : ""}
+    ${saved.length ? `<h2 class="idea-h">${esc(T("ideasSaved"))} (${saved.length})</h2><div class="match-list">${saved.map((x) => ideaCard(x, res)).join("")}</div>` : ""}
+    <h2 class="idea-h">${esc(T("ideasSuggested"))}</h2>${sugg.length ? `<div class="match-list">${sugg.map((x) => ideaCard(x, res)).join("")}</div>` : `<p class="fine">${esc(T("ideasNone"))}</p>`}`;
+}
+afterRender.ideas = () => {
+  const org = ST.org;
+  document.querySelectorAll("[data-pick]").forEach((cb) => cb.addEventListener("change", () => {
+    if (cb.checked && ST.ideaPick.size >= IDEA_CALLS) { cb.checked = false; return; }
+    cb.checked ? ST.ideaPick.add(cb.dataset.pick) : ST.ideaPick.delete(cb.dataset.pick);
+    const g = document.getElementById("oiGen"); if (g) g.disabled = !ST.ideaPick.size || !ideaReady(org.profile);
+  }));
+  const gen = document.getElementById("oiGen");
+  if (gen) gen.addEventListener("click", async () => {
+    const msg = document.getElementById("oiGenMsg");
+    const cands = ideaCandidates().filter((r) => ST.ideaPick.has(r.callId)).map((r) => ({ id: r.callId, score: r.score, status: r.status, band: r.band }));
+    gen.disabled = true; msg.className = "progress"; msg.textContent = T("ideasBusy");
+    try {
+      const r = await api("POST", `/orgs/${org.id}/ideas`, { candidates: cands, lang: L() });
+      ST.ideaNote = r.generated ? T("ideasDone", r.generated, r.dropped.length) : T("ideasZero");
+      EC.route();
+    } catch (e) { gen.disabled = false; msg.className = "note err"; msg.textContent = errText(e); }
+  });
+  if (ST.ideaNote) { const m = document.getElementById("oiGenMsg"); if (m) { m.className = "note ok"; m.textContent = ST.ideaNote; } ST.ideaNote = null; }
+  document.querySelectorAll("article.idea").forEach((card) => {
+    const id = card.dataset.idea, x = ST.ideas.find((y) => y.id === id), msg = card.querySelector("[data-msg]");
+    const on = (act, ev, fn) => { const el = card.querySelector(`[data-act="${act}"]`); if (el) el.addEventListener(ev, fn); };
+    on("save", "click", async () => { try { await api("PATCH", `/orgs/${org.id}/ideas/${id}`, { status: x.status === "saved" ? "suggested" : "saved" }); EC.route(); } catch (e) { msg.textContent = errText(e); } });
+    on("notes", "click", async () => { try { const v = card.querySelector("textarea").value; await api("PATCH", `/orgs/${org.id}/ideas/${id}`, { notes: v }); x.notes = v; msg.textContent = T("ideaNotesSaved"); const cmp = document.getElementById("oiCmp"); if (cmp) cmp.innerHTML = compareHTML(ST.ideas, results()); } catch (e) { msg.textContent = errText(e); } });
+    on("del", "click", async () => { try { await api("DELETE", `/orgs/${org.id}/ideas/${id}`); ST.compare.delete(id); EC.route(); } catch (e) { msg.textContent = errText(e); } });
+    on("compare", "change", (ev) => {
+      if (ev.target.checked && ST.compare.size >= 3) { ev.target.checked = false; if (msg) msg.textContent = T("compareMax"); return; }
+      ev.target.checked ? ST.compare.add(id) : ST.compare.delete(id);
+      const cmp = document.getElementById("oiCmp"); if (cmp) cmp.innerHTML = compareHTML(ST.ideas, results());
+    });
+  });
+};
 const secReports = () => `<h1>${esc(T("reportsTitle"))}</h1><p class="note">${esc(T("reportsSoon"))}</p>`;
 
 /* ---------- settings ---------- */

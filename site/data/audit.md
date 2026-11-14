@@ -1,12 +1,12 @@
-# Import audit — 2026-11-14T00:17:27.000Z
+# Import audit — 2026-11-14T02:17:25.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1183 rows, 1095 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-14 01:17 Brussels, deadlines counted at 17:00 Brussels): 395, of which forthcoming: 250
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-14 03:17 Brussels, deadlines counted at 17:00 Brussels): 395, of which forthcoming: 250
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
 - EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 177, noFutureDeadline 69, noOrganiserLink 9, linkNotVerified 47, published 52
-- interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 28, noFutureDeadline 3, linkNotVerified 1, published 24
+- interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 27, noFutureDeadline 2, linkNotVerified 1, published 24
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 23, noFutureDeadline 9, linkNotVerified 0, published 14
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 12, linkNotVerified 0, published 3
 - UKRI Funding Finder (ukri.org): OK · listed 137, inviteOnly 3, noFutureDeadline 59, published 75
@@ -18,7 +18,7 @@
 - Duplicates across sources removed: 9 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15721; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
 - Published: 572
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 39
-- Changes since the previous import: 0 new, 0 changed, 1 closed
+- Changes since the previous import: 0 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 348

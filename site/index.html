@@ -520,7 +520,8 @@ body.chat-open .chat-fab { display: none; }
 :root[data-theme="dark"] { --accent-text: #a99bd0; --ask-soft: #34303f; }
 .hero h1 .h1-accent { color: var(--accent-text); }
 .hero h1 { font-size: clamp(42px, 6.6vw, 104px); line-height: 0.98; letter-spacing: -0.04em; max-width: 16ch; }
-.hero p.lede { margin-top: 22px; }
+/* the lede grows with the headline (about a fifth of its size) and runs wide: two lines on a desktop screen */
+.hero p.lede { margin-top: 22px; font-size: clamp(16px, 1.42vw, 22px); line-height: 1.55; max-width: 54.25em; }
 .hero-ask { background: var(--ask-soft); }
 .hero-ask:hover { border-color: var(--green); }
 .hero-ask span[aria-hidden] { color: var(--accent-text); }

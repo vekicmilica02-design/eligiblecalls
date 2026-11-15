@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import { handleApi } from "../src/org/api.js";
 import { _resetTaxonomy } from "../src/org/http.js";
 import { verifyFields, robotsAllows, checkPublicUrl, aboutLinks, matchKey } from "../src/org/extract.js";
-import { parseJsonObject } from "../src/org/ai.js";
+import { parseJsonObject, complete } from "../src/org/ai.js";
+import { GROQ_FREE } from "../src/providers.js";
 import { contextFrom } from "../site/org/schema.js";
-import { mockD1, mockAssets, sseStream } from "./mocks.js";
+import { mockD1, mockAssets, sseStream, mockFetch } from "./mocks.js";
 import { readFileSync, existsSync } from "node:fs";
 import { _resetIdeasIndex, verifyIdeas, conceptFit, rankScore } from "../src/org/ideas.js";
 import { rubricFor } from "../site/org/rubric.js";
@@ -805,6 +806,23 @@ await t("e-mail link sign-in is off unless EMAIL_LOGIN is 1; /api/me tells the p
   assert.equal((await call("POST", "/api/auth/request", { body: { email: "x@example.org", accept: true } })).j.error, "email_login_off");
   assert.deepEqual((await call("GET", "/api/me")).j.signin, { google: true, email: false });
   env.EMAIL_LOGIN = "1";
+});
+
+await t("AI chain for organisation work: no retired Groq models; a per-minute limit is reported even when a later provider fails differently", async () => {
+  assert.deepEqual(GROQ_FREE.map((m) => m.model), ["openai/gpt-oss-120b", "openai/gpt-oss-20b"], "llama-3.3-70b-versatile and llama-3.1-8b-instant were shut down on 16 Aug 2026");
+  const tpm = (m) => `Rate limit reached for model \`${m}\` on tokens per minute (TPM): Limit 8000, Used 6000, Requested 5000.`;
+  const run = async (byModel, extra = {}) => {
+    const env = { DB: mockD1(), GROQ_API_KEY: "test", ...extra };
+    try { await complete({ env, userId: "u1", messages: [{ role: "user", content: "Статут удружења." }], maxOut: 300, now: Date.parse("2026-11-15T12:00:00Z"), fetchImpl: mockFetch([], { groqByModel: byModel }) }); return "ok"; }
+    catch (e) { return e.code || e.message; }
+  };
+  const warn = console.warn; console.warn = () => {};
+  try {
+    // busy first, then another failure (a removed model used to fail last with "model not found")
+    assert.equal(await run({ "openai/gpt-oss-120b": [429, tpm("openai/gpt-oss-120b")], "openai/gpt-oss-20b": [404, "The model does not exist"] }), "ai_busy");
+    assert.equal(await run({ "openai/gpt-oss-120b": [500, "x"], "openai/gpt-oss-20b": [404, "x"] }), "ai_unavailable");
+    assert.equal(await run({}), "ok");
+  } finally { console.warn = warn; }
 });
 
 console.log(`\n${pass} passed`);

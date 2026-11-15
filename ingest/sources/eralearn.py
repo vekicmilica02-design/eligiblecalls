@@ -20,7 +20,11 @@ NAME2CODE = {"Austria": "AT", "Belgium": "BE", "Bulgaria": "BG", "Croatia": "HR"
              "Iceland": "IS", "Liechtenstein": "LI", "Norway": "NO", "Switzerland": "CH", "United Kingdom": "GB", "Albania": "AL",
              "Bosnia and Herzegovina": "BA", "Kosovo": "XK", "Montenegro": "ME", "North Macedonia": "MK", "Serbia": "RS",
              "Turkey": "TR", "Türkiye": "TR", "Ukraine": "UA", "Moldova": "MD", "Republic of Moldova": "MD", "Georgia": "GE",
-             "Armenia": "AM", "Faroe Islands": "FO"}
+             "Armenia": "AM", "Faroe Islands": "FO", "The Netherlands": "NL", "Kingdom of the Netherlands": "NL", "Czechia (Czech Republic)": "CZ",
+             "Flanders": "BE", "Wallonia": "BE", "Brussels-Capital Region": "BE", "Israel": "IL", "Tunisia": "TN"}
+COUNTRY_RE = re.compile(r"\b(" + "|".join(sorted(map(re.escape, NAME2CODE), key=len, reverse=True)) + r")\b")
+# Headings and sentences that introduce the list of countries taking part in a joint call, on the call's own page.
+LIST_RE = re.compile(r"(?i)participating countries|countries (?:have )?confirmed their participation|countries (?:are )?participating|(?:are|is) participating\s*:|participating funding (?:organisations|organizations|agencies)")
 
 
 def field(t, label):
@@ -48,6 +52,39 @@ def parse(h):
             "type": field(t, "Type of joint call"), "aim": (field(t, "Aim of the joint call") or "")[:1500],
             "summary": C.text_of(basic.group(1))[:1500] if basic else "", "fields": re.findall(r"\n\s*-\s*([A-Z][^\n]{2,40})", (re.search(r"Research fields\s*\n(.*?)\n\s*Type of research", t, re.S) or [None, ""])[1] if re.search(r"Research fields\s*\n(.*?)\n\s*Type of research", t, re.S) else ""),
             "countries": countries}
+
+
+def site_countries(h):
+    """Countries taking part, read from the call's own web page (used when ERA-LEARN lists no funders yet).
+    A sentence ("The following countries have confirmed their participation: A, B and C") gives the countries on
+    that line; a list (one country per line, each followed by its funders) is read until it stops naming countries."""
+    lines = [x.strip() for x in C.text_of(h).split("\n") if x.strip()]
+    best, quote = [], ""
+    for i, ln in enumerate(lines):
+        if not LIST_RE.search(ln):
+            continue
+        found, used, gap = [], [], 0
+        for j in range(i, min(len(lines), i + 400)):
+            names = COUNTRY_RE.findall(lines[j])
+            if j > i and LIST_RE.search(lines[j]) and found:
+                break
+            if names:
+                found += names; used.append(lines[j]); gap = 0
+                if len(names) >= 3:  # a sentence listing the countries: that line is the list
+                    break
+            elif found:
+                gap += 1
+                if gap > 8:
+                    break
+            elif j - i > 6:
+                break
+        codes = sorted({NAME2CODE[n] for n in found})
+        if len(codes) > len(best):
+            best = codes
+            listed = " ".join(used) if len(used) == 1 else ", ".join(dict.fromkeys(found))
+            head = ln + " " if used and used[0] is not ln and len(ln) < 80 else ""
+            quote = head + listed
+    return {"countries": best if len(best) >= 3 else [], "quote": quote[:600] if len(best) >= 3 else ""}
 
 
 def run(cache, fp_names):
@@ -78,10 +115,17 @@ def run(cache, fp_names):
         if not dl:
             stats["noFutureDeadline"] += 1; continue
         link, why = url, "ERA-LEARN call page"
+        site = None
         if d.get("website", "").startswith("http"):
             ok, final, w = C.verify(d["website"], d["title"], cache, trusted="ERA-LEARN")
             if ok:
                 link, why = final, w
+                if not d["countries"]:
+                    site = C.cached_fields(final, cache, site_countries, hours=24)
+        countries, quote = d["countries"], "Funding organisations taking part in the call (ERA-LEARN): " + ", ".join(d["countries"])
+        if not countries and site and site.get("countries"):
+            countries, quote = site["countries"], "Participating countries on the call page: " + site["quote"]
+            stats["countriesFromCallPage"] = stats.get("countriesFromCallPage", 0) + 1
         status = "forthcoming" if d["launch"] and d["launch"] > today else "open"
         notes = []
         if two and d["full"]:
@@ -93,8 +137,7 @@ def run(cache, fp_names):
             description=(d["summary"] or d["aim"])[:2500], conditions=" ".join(notes),
             keywords=d["fields"][:8],
             prog="PARTNERSHIPS", progName="European partnerships: joint transnational calls", progShort="European partnerships",
-            countries={"eligible": d["countries"] or None, "complete": False, "jointCall": True,
-                       "quote": "Funding organisations taking part in the call (ERA-LEARN): " + ", ".join(d["countries"])},
+            countries={"eligible": countries or None, "complete": bool(countries), "jointCall": True, "quote": quote},
             sectors=["research", "innovation"], applicants=["university", "organisation", "sme"],
             organiser=(d.get("network") or net).strip(), extraNotes=notes, source=KEY, sourceName=NAME,
         ))

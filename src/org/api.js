@@ -11,6 +11,7 @@ import { requireAccess, countIdeaRun, accessOf, isAdmin, userAccessRoute, adminR
 import { makeProposal, getProposal } from "./proposal.js";
 import { evaluateIdea } from "./evaluate.js";
 import { planFill } from "./autofill.js";
+import { reportsRoute } from "./reports.js";
 
 export const ROLES = { viewer: 1, editor: 2, owner: 3 };
 
@@ -50,7 +51,7 @@ async function saveProfile(db, org, user, profile, baseVersion, note, now) {
 }
 
 async function deleteOrg(db, orgId) {
-  await db.batch(["profile_versions", "extractions", "project_ideas", "org_invites", "org_members"].map((t) => db.prepare(`DELETE FROM ${t} WHERE org_id = ?`).bind(orgId))
+  await db.batch(["profile_versions", "extractions", "project_ideas", "reports", "org_invites", "org_members"].map((t) => db.prepare(`DELETE FROM ${t} WHERE org_id = ?`).bind(orgId))
     .concat([db.prepare("DELETE FROM organizations WHERE id = ?").bind(orgId)]));
 }
 
@@ -294,6 +295,9 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
       }
       throw new HttpError(405, "method");
     }
+
+    // ----- saved reports -----
+    if (sub === "reports") return await reportsRoute({ db, user, M, parts, body, now, orgId, requireRole, currentVersion: async (m) => (await currentProfile(db, m)).version });
 
     if (sub === "extractions") {
       await requireRole(db, orgId, user, M === "GET" ? "viewer" : "editor");

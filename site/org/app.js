@@ -2,6 +2,7 @@
 // Uses the page's loaded data through window.EC (index.html) and the API under /api/.
 import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completeness } from "./schema.js";
 import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS } from "./rules.js";
+import { rubricFor, erasmusAction } from "./rubric.js";
 
 const EC = window.EC;
 const esc = EC.esc;
@@ -39,9 +40,9 @@ const S = {
     field: "Field", proposed: "Proposed value", current: "Current value", evidence: "Source quote", conf: "Confidence", found: "Quote found in source", notFound: "Quote NOT found in source", valueNotInQuote: "Quote found, but the value is not written in it", weakQuote: "Quote found, but it does not clearly state this value", adds: (v) => `Adds: ${v}`, alreadyHas: "Already in the profile", same: "Same as the profile",
     apply: "Apply selected to profile", discard: "Discard", applied: (n) => `${n} field(s) added to the profile.`, runs: "Earlier extractions", status: { review: "to review", applied: "applied", discarded: "discarded" }, del: "Delete", open: "Open",
     confL: { high: "high", medium: "medium", low: "low" }, dropped: (n) => `${n} proposed value(s) were removed because they were invalid or contained personal data.`, noQuote: (n) => `${n} value(s) without a quote from the source were left out.`,
-    matchTitle: "Eligibility matching", matchLede: (n, d) => `${n} open and forthcoming calls checked against your profile (data of ${d}). Rule-based: mandatory requirements first, then a weighted compatibility score.`,
-    scoreLegend: "Score colours: red 0–49%, yellow 50–69%, green 70–100%. The colour shows the compatibility score only; whether you are eligible is decided by the mandatory requirements (status label).", tierL: { high: "70–100%", medium: "50–69%", low: "0–49%" },
-    notice: "Compatibility is an estimate, not a legal eligibility decision and not a probability of funding. The official call documents prevail.",
+    matchTitle: "Eligibility matching", matchLede: (n, d) => `We checked ${n} open and upcoming calls against your organisation profile (call data of ${d}). Each call shows two results. The status says whether you meet the call's mandatory conditions, such as country, type of organisation and partners. The percentage says how well the call fits your work. Only the status decides whether you can apply; the percentage helps you choose.`,
+    scoreLegend: "Fit with your work: red 0–49%, yellow 50–69%, green 70–100%.", tierL: { high: "70–100%", medium: "50–69%", low: "0–49%" },
+    notice: "Both results come from rules applied to your profile and the call data. They are not a legal decision and not a chance of funding: the call's official documents always prevail.",
     fStatus: "All statuses", fProg: "All programmes", fDl: "Any deadline", dl30: "Next 30 days", dl60: "Next 60 days", dl120: "Next 120 days", onlyHigh: "Only 75%+", sortScore: "Sort: compatibility", sortDl: "Sort: deadline",
     showing: (n, m) => `${n} of ${m} calls`, more: "Show more", strengths: "Strengths", problems: "Possible problems", missing: "Missing information", next: "Next step", report: "Detailed assessment", official: "Official page",
     deadline: "Deadline", funding: "Funding", notStated: "No requirement stated", missingCall: "The profile has the information this assessment uses for this call.", perGrant: "per grant", topicBudget: "total budget of the topic", programme: "Programme", noCountry: "Add your country and organisation type to the profile: without them no call can be checked.",
@@ -117,13 +118,16 @@ const S = {
     why: { low_confidence: "The model was not sure.", quote_not_found: "The quoted text was not found in the source.", value_not_in_evidence: "The value does not appear in the quoted text.", weak_evidence: "The quoted text only weakly supports the value." },
     reviewProfile: "Check the profile", autoNote: "Filled fields are marked with their source and stay editable.",
     runSummary: (f, c) => `${f} filled · ${c} to decide`,
-    evTitle: "Erasmus+ evaluation (indicative)", evLede: "Scores the idea against the official award criteria of the Erasmus+ Programme Guide for the action you choose. AI-assisted and indicative only; the official assessment is done by experts of the national agency.",
-    evAction: "Erasmus+ action", evOpt: { KA210: "KA210 Small-scale partnership", KA220: "KA220 Cooperation partnership" }, evRun: "Evaluate", evBusy: "Evaluating against the award criteria…", evDone: "Evaluation saved.",
+    evTitle: "Evaluation against the call's criteria (indicative)", evLede: "Scores the idea against the award criteria of the call it targets, as published in that call's documentation (Horizon Europe General Annex D, the call document, the funder's assessment page, or the Erasmus+ Programme Guide). AI-assisted and indicative only; the official assessment is done by the funder's experts.",
+    evWill: "Criteria used:", evCritList: (l) => `scored on ${l}`, evShown: "Evaluation shown", evRerun: "Evaluate again", evShortDoc: "Call criteria", evShortText: "Funder criteria",
+    evNoCriteria: "The award criteria of this call are not in our data (the funder publishes them only in documents we cannot read), so the idea cannot be evaluated here. Check the call's own documents:",
+    evTextScale: "the funder states no point scale: each criterion is scored 0 to 5 as an indication", evNoThreshold: "No threshold stated", evNoTotal: "the documentation states no overall threshold", evBasis: "Basis", evSourceDoc: "Call documentation",
+    evRun: "Evaluate", evBusy: "Evaluating against the call's award criteria…", evDone: "Evaluation saved.",
     evPass: "Above the thresholds", evFail: "Below a threshold",
-    evThreshold: (t, m) => `Funding threshold: ${t} of ${m} points in total,`, evPerCriterion: "and at least half of the points in each criterion.",
+    evThreshold: (t, m) => `funding threshold ${t} of ${m} points`,
     evGuide: (y, v) => `Programme Guide ${y}${v ? ", " + v : ""}`, evUsedProposal: "uses the detailed proposal",
     evScore: "Score", evTotal: "Total", evPriority: "What to improve first",
-    evDisclaimer: "AI-assisted indicative evaluation. It is not an official score and does not predict the national agency's decision.",
+    evDisclaimer: "AI-assisted indicative evaluation. It is not an official score and does not predict the funder's decision.",
     evMade: (t) => `Evaluated ${t}`,
     premiumTag: "Premium", premiumNeeded: "The detailed PDF and the evaluation are premium features.", premiumHow: "How to get access",
     premiumUntil: (t) => `Premium access active until ${t}.`,
@@ -150,8 +154,11 @@ const S = {
     pwRef: "Payment reference or note (optional)", pwPaidBtn: "I have paid", pwPaidDone: "Thank you. The administrator will check the payment and activate access.",
     pwPaid: (t) => `Payment reported ${t}. Waiting for the administrator to confirm it.`,
     pwStatus: { rejected: "Your last request was declined", revoked: "Your premium access was revoked", expired: "Your premium access has expired" },
-    working: "Working…",
-    adminTitle: "Administration", admLede: "Premium access requests, users and subscription settings. Changes take effect immediately.",
+    working: "Working…", loadingPage: "Loading…",
+    adminTitle: "Administration", auTitle: "AI usage today", auRefresh: "Refresh", auProvider: "Provider and model", auUsed: "Used", auBudget: "Daily budget", auOfBudget: "Of budget", auReq: "Requests",
+    auLede: (d, r, s) => `UTC day ${d}. Allowances reset at ${r} (Belgrade time). The site stops each provider at its budget and moves to the next one; the workspace may use at most ${s}% of each budget, so the public assistant keeps working.`,
+    auMsgs: (v, l) => `assistant messages from ${v} visitors (limit ${l} per visitor)`, auActions: (u, l) => `workspace AI actions by ${u} users (limit ${l} per user)`, auRequests: "AI requests in total",
+    auNeurons: "neurons", auTokens: "tokens", auFree: (f) => `free tier ${f}`, auOff: "not configured", auUsers: "Workspace AI actions per user", auWeek: "Last 7 days", auDay: "Day (UTC)", admLede: "Premium access requests, users and subscription settings. Changes take effect immediately.",
     admSt: { none: "No request", pending_payment: "Pending payment", payment_submitted: "Payment submitted", active: "Active", rejected: "Rejected", revoked: "Revoked", expired: "Expired" },
     admFilter: "Filter requests", admOpen: "Waiting", admAll: "All, with history", admRequests: "Access requests", admUsers: "Users",
     admWhen: "Requested", admUser: "User", admPlanCol: "Plan", admStatus: "Status", admJoined: "Joined", admRuns: "Idea runs",
@@ -164,7 +171,7 @@ const S = {
     admFree: "Free idea generations per user", admDaysDefault: "Default days of access (empty = until revoked)",
     admPlan: "Plan", admPlanId: "Code", admPlanName: "Name", admPlanPrice: "Price (as shown)", admPricePh: "e.g. 49 EUR per year", admPlanDesc: "Description", admAddPlan: "+ Add plan",
     admPay: "Payment instructions shown after a request (bank account, reference format)",
-    errors: { too_many_reports: "This organisation has reached 200 saved reports. Delete older ones first.", too_large: "This report is too large to save.", premium_required: "This needs premium access. See Premium access on the Project ideas page.", no_open_request: "There is no open access request. Request access first.", signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
+    errors: { no_criteria: "The award criteria of this call are not in our data, so the idea cannot be evaluated here.", too_many_reports: "This organisation has reached 200 saved reports. Delete older ones first.", too_large: "This report is too large to save.", premium_required: "This needs premium access. See Premium access on the Project ideas page.", no_open_request: "There is no open access request. Request access first.", signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
   },
   sr: {
     title: "Analiza organizacije", lede: "Profil vaše organizacije, proveren u odnosu na sve otvorene pozive na Eligible Calls.",
@@ -195,9 +202,9 @@ const S = {
     field: "Polje", proposed: "Predložena vrednost", current: "Trenutna vrednost", evidence: "Citat iz izvora", conf: "Pouzdanost", found: "Citat pronađen u izvoru", notFound: "Citat NIJE pronađen u izvoru", valueNotInQuote: "Citat je pronađen, ali vrednost u njemu nije napisana", weakQuote: "Citat je pronađen, ali ne navodi jasno ovu vrednost", adds: (v) => `Dodaje: ${v}`, alreadyHas: "Već postoji u profilu", same: "Isto kao u profilu",
     apply: "Primeni označeno na profil", discard: "Odbaci", applied: (n) => `Dodato polja u profil: ${n}.`, runs: "Ranija izdvajanja", status: { review: "za pregled", applied: "primenjeno", discarded: "odbačeno" }, del: "Obriši", open: "Otvori",
     confL: { high: "visoka", medium: "srednja", low: "niska" }, dropped: (n) => `Uklonjeno predloženih vrednosti: ${n} (neispravne ili sa ličnim podacima).`, noQuote: (n) => `Izostavljeno vrednosti bez citata iz izvora: ${n}.`,
-    matchTitle: "Provera podobnosti", matchLede: (n, d) => `${n} otvorenih i najavljenih poziva provereno u odnosu na vaš profil (podaci od ${d}). Provera po pravilima: prvo obavezni uslovi, zatim ponderisana ocena kompatibilnosti.`,
-    scoreLegend: "Boje ocene: crvena 0–49%, žuta 50–69%, zelena 70–100%. Boja prikazuje samo ocenu kompatibilnosti; da li ste podobni određuju obavezni uslovi (oznaka statusa).", tierL: { high: "70–100%", medium: "50–69%", low: "0–49%" },
-    notice: "Kompatibilnost je procena, a ne pravna odluka o podobnosti niti verovatnoća finansiranja. Merodavna su zvanična dokumenta poziva.",
+    matchTitle: "Provera podobnosti", matchLede: (n, d) => `Proverili smo ${n} otvorenih i najavljenih poziva u odnosu na profil vaše organizacije (podaci o pozivima od ${d}). Za svaki poziv prikazana su dva rezultata. Status pokazuje da li ispunjavate obavezne uslove poziva, kao što su država, vrsta organizacije i partneri. Procenat pokazuje koliko poziv odgovara vašem radu. Samo status odlučuje da li možete da se prijavite; procenat vam pomaže da izaberete.`,
+    scoreLegend: "Usklađenost sa vašim radom: crvena 0–49%, žuta 50–69%, zelena 70–100%.", tierL: { high: "70–100%", medium: "50–69%", low: "0–49%" },
+    notice: "Oba rezultata dobijena su primenom pravila na vaš profil i podatke o pozivu. Nisu pravna odluka niti verovatnoća finansiranja: uvek su merodavna zvanična dokumenta poziva.",
     fStatus: "Svi statusi", fProg: "Svi programi", fDl: "Bilo koji rok", dl30: "Narednih 30 dana", dl60: "Narednih 60 dana", dl120: "Narednih 120 dana", onlyHigh: "Samo 75%+", sortScore: "Redosled: kompatibilnost", sortDl: "Redosled: rok",
     showing: (n, m) => `${n} od ${m} poziva`, more: "Prikaži još", strengths: "Prednosti", problems: "Mogući problemi", missing: "Nedostajući podaci", next: "Sledeći korak", report: "Detaljna procena", official: "Zvanična stranica",
     deadline: "Rok", funding: "Iznos", notStated: "Uslov nije naveden", missingCall: "Profil sadrži podatke koje ova procena koristi za ovaj poziv.", perGrant: "po grantu", topicBudget: "ukupan budžet teme", programme: "Program", noCountry: "Dodajte državu i tip organizacije u profil: bez njih nijedan poziv ne može da se proveri.",
@@ -273,13 +280,16 @@ const S = {
     why: { low_confidence: "Model nije bio siguran.", quote_not_found: "Navedeni citat nije pronađen u izvoru.", value_not_in_evidence: "Vrednost se ne pojavljuje u citatu.", weak_evidence: "Citat slabo potkrepljuje vrednost." },
     reviewProfile: "Proverite profil", autoNote: "Popunjena polja su označena izvorom i mogu se menjati.",
     runSummary: (f, c) => `popunjeno ${f} · za odluku ${c}`,
-    evTitle: "Erasmus+ ocena (okvirna)", evLede: "Ideja se ocenjuje prema zvaničnim kriterijumima za dodelu iz Vodiča kroz program Erasmus+ za izabranu akciju. Ocena uz pomoć AI je samo okvirna; zvaničnu ocenu daju eksperti nacionalne agencije.",
-    evAction: "Erasmus+ akcija", evOpt: { KA210: "KA210 Mala partnerstva", KA220: "KA220 Partnerstva za saradnju" }, evRun: "Oceni", evBusy: "Ocenjivanje prema kriterijumima…", evDone: "Ocena je sačuvana.",
+    evTitle: "Ocena prema kriterijumima poziva (okvirna)", evLede: "Ideja se ocenjuje prema kriterijumima za dodelu poziva na koji se odnosi, onako kako su objavljeni u dokumentaciji tog poziva (Aneks D programa Horizont Evropa, dokument poziva, stranica finansijera o oceni ili Vodič kroz program Erasmus+). Ocena uz pomoć AI je samo okvirna; zvaničnu ocenu daju eksperti finansijera.",
+    evWill: "Kriterijumi:", evCritList: (l) => `ocenjuje se ${l}`, evShown: "Prikazana ocena", evRerun: "Oceni ponovo", evShortDoc: "Kriterijumi poziva", evShortText: "Kriterijumi finansijera",
+    evNoCriteria: "Kriterijumi za dodelu ovog poziva nisu u našim podacima (finansijer ih objavljuje samo u dokumentima koje ne možemo da pročitamo), pa ideja ovde ne može da se oceni. Pogledajte dokumenta poziva:",
+    evTextScale: "finansijer ne navodi skalu bodova: svaki kriterijum se okvirno ocenjuje od 0 do 5", evNoThreshold: "Prag nije naveden", evNoTotal: "dokumentacija ne navodi ukupni prag", evBasis: "Osnova", evSourceDoc: "Dokumentacija poziva",
+    evRun: "Oceni", evBusy: "Ocenjivanje prema kriterijumima poziva…", evDone: "Ocena je sačuvana.",
     evPass: "Iznad pragova", evFail: "Ispod nekog praga",
-    evThreshold: (t, m) => `Prag za finansiranje: ukupno ${t} od ${m} bodova,`, evPerCriterion: "i najmanje polovina bodova po svakom kriterijumu.",
+    evThreshold: (t, m) => `prag za finansiranje ${t} od ${m} bodova`,
     evGuide: (y, v) => `Vodič kroz program ${y}${v ? ", " + v : ""}`, evUsedProposal: "korišćen detaljan predlog",
     evScore: "Bodovi", evTotal: "Ukupno", evPriority: "Šta prvo poboljšati",
-    evDisclaimer: "Okvirna ocena uz pomoć AI. Nije zvanična ocena i ne predviđa odluku nacionalne agencije.",
+    evDisclaimer: "Okvirna ocena uz pomoć AI. Nije zvanična ocena i ne predviđa odluku finansijera.",
     evMade: (t) => `Ocenjeno ${t}`,
     premiumTag: "Premium", premiumNeeded: "Detaljan PDF i ocena su premium funkcije.", premiumHow: "Kako dobiti pristup",
     premiumUntil: (t) => `Premium pristup važi do ${t}.`,
@@ -306,8 +316,11 @@ const S = {
     pwRef: "Poziv na broj ili napomena (nije obavezno)", pwPaidBtn: "Platio/la sam", pwPaidDone: "Hvala. Administrator će proveriti uplatu i aktivirati pristup.",
     pwPaid: (t) => `Uplata prijavljena ${t}. Čeka se potvrda administratora.`,
     pwStatus: { rejected: "Vaš poslednji zahtev je odbijen", revoked: "Vaš premium pristup je opozvan", expired: "Vaš premium pristup je istekao" },
-    working: "Radi se…",
-    adminTitle: "Administracija", admLede: "Zahtevi za premium pristup, korisnici i podešavanja pretplate. Izmene važe odmah.",
+    working: "Radi se…", loadingPage: "Učitavanje…",
+    adminTitle: "Administracija", auTitle: "Potrošnja AI danas", auRefresh: "Osveži", auProvider: "Dobavljač i model", auUsed: "Potrošeno", auBudget: "Dnevni budžet", auOfBudget: "Od budžeta", auReq: "Zahtevi",
+    auLede: (d, r, s) => `UTC dan ${d}. Dozvoljena potrošnja se obnavlja u ${r} (po beogradskom vremenu). Sajt zaustavlja svakog dobavljača na njegovom budžetu i prelazi na sledećeg; radni prostor organizacija sme da potroši najviše ${s}% svakog budžeta, da bi javni asistent nastavio da radi.`,
+    auMsgs: (v, l) => `poruka asistentu od ${v} posetilaca (ograničenje ${l} po posetiocu)`, auActions: (u, l) => `AI radnji u radnom prostoru, ${u} korisnika (ograničenje ${l} po korisniku)`, auRequests: "AI zahteva ukupno",
+    auNeurons: "neurona", auTokens: "tokena", auFree: (f) => `besplatno ${f}`, auOff: "nije podešeno", auUsers: "AI radnje po korisniku", auWeek: "Poslednjih 7 dana", auDay: "Dan (UTC)", admLede: "Zahtevi za premium pristup, korisnici i podešavanja pretplate. Izmene važe odmah.",
     admSt: { none: "Bez zahteva", pending_payment: "Čeka uplatu", payment_submitted: "Uplata prijavljena", active: "Aktivno", rejected: "Odbijeno", revoked: "Opozvano", expired: "Isteklo" },
     admFilter: "Filter zahteva", admOpen: "Na čekanju", admAll: "Svi, sa istorijom", admRequests: "Zahtevi za pristup", admUsers: "Korisnici",
     admWhen: "Zatraženo", admUser: "Korisnik", admPlanCol: "Paket", admStatus: "Status", admJoined: "Registrovan", admRuns: "Generisanja",
@@ -320,7 +333,7 @@ const S = {
     admFree: "Besplatnih generisanja ideja po korisniku", admDaysDefault: "Podrazumevano dana pristupa (prazno = do opoziva)",
     admPlan: "Paket", admPlanId: "Šifra", admPlanName: "Naziv", admPlanPrice: "Cena (kako se prikazuje)", admPricePh: "npr. 49 EUR godišnje", admPlanDesc: "Opis", admAddPlan: "+ Dodaj paket",
     admPay: "Uputstvo za uplatu prikazano posle zahteva (račun, format poziva na broj)",
-    errors: { too_many_reports: "Organizacija je dostigla 200 sačuvanih izveštaja. Prvo obrišite starije.", too_large: "Izveštaj je prevelik za čuvanje.", premium_required: "Za ovo je potreban premium pristup. Pogledajte Premium pristup na strani Projektne ideje.", no_open_request: "Nema otvorenog zahteva za pristup. Prvo zatražite pristup.", signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera protiv botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran kao međusajtni. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila pravljenje ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, tip, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
+    errors: { no_criteria: "Kriterijumi za dodelu ovog poziva nisu u našim podacima, pa ideja ovde ne može da se oceni.", too_many_reports: "Organizacija je dostigla 200 sačuvanih izveštaja. Prvo obrišite starije.", too_large: "Izveštaj je prevelik za čuvanje.", premium_required: "Za ovo je potreban premium pristup. Pogledajte Premium pristup na strani Projektne ideje.", no_open_request: "Nema otvorenog zahteva za pristup. Prvo zatražite pristup.", signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera protiv botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran kao međusajtni. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila pravljenje ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, tip, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
   },
 };
 const T = (k, ...a) => { const v = k.split(".").reduce((o, x) => (o ? o[x] : undefined), S[L()]) ?? k.split(".").reduce((o, x) => (o ? o[x] : undefined), S.en); return typeof v === "function" ? v(...a) : v ?? k; };
@@ -349,7 +362,7 @@ const CODES = {
     "rule.engo": () => "The applicant must be a European NGO active in education and training or youth.", "rule.heis.warn": () => "This action is for higher education institutions and your organisation is not one. This can disqualify the application: check the call document.",
     "rule.heis.pass": () => "Higher education institution, as the action requires.", "rule.heis.missing": () => "Organisation type is missing; this action is for higher education institutions.",
     "str.sectors": (p) => `Shared areas of activity: ${listOf(p.sectors, sectorName)}.`, "str.words": (p) => `Words shared with the call text: ${p.words.join(", ")}.`, "str.groups": (p) => `The call mentions your target groups: ${listOf(p.groups, groupName)}.`,
-    "str.experience": (p) => `Experience as ${p.role} in ${p.programme === "ERASMUS" ? "Erasmus+" : "EU-funded"} projects.`, "str.capacity": () => "Team size fits the size of the grant.", "str.country": (p) => `${ccName(p.cc)} is fully eligible.`,
+    "str.experience": (p) => `Experience as ${p.role === "both" ? "partner and coordinator" : p.role} in ${p.programme === "ERASMUS" ? "Erasmus+" : "EU-funded"} projects.`, "str.capacity": () => "Team size fits the size of the grant.", "str.country": (p) => `${ccName(p.cc)} is fully eligible.`,
     "rec.notEligible": () => "A mandatory requirement is not met. Unless the call document says otherwise, focus on other calls.", "rec.complete": (p) => `Complete the profile: ${listOf(p.fields, fieldName)}.`,
     "rec.checkCountry": (p) => `Read the eligible-countries section of the call for ${ccName(p.cc)}.`, "rec.checkApplicant": () => "Confirm in the call conditions that your type of organisation can apply.",
     "rec.partners": (p) => `Find partners${p.need ? ` from at least ${p.need} other eligible countries` : ""} well before the deadline.`, "rec.rule": () => "Verify the quoted requirement in the official text.",
@@ -370,7 +383,7 @@ const CODES = {
     "rule.engo": () => "Podnosilac mora biti evropska nevladina organizacija aktivna u obrazovanju i obuci ili radu sa mladima.", "rule.heis.warn": () => "Ova aktivnost je namenjena visokoškolskim ustanovama, a vaša organizacija to nije. To može diskvalifikovati prijavu: proverite dokument poziva.",
     "rule.heis.pass": () => "Visokoškolska ustanova, kako aktivnost zahteva.", "rule.heis.missing": () => "Tip organizacije nedostaje; aktivnost je namenjena visokoškolskim ustanovama.",
     "str.sectors": (p) => `Zajedničke oblasti delovanja: ${listOf(p.sectors, sectorName)}.`, "str.words": (p) => `Reči zajedničke sa tekstom poziva: ${p.words.join(", ")}.`, "str.groups": (p) => `Poziv pominje vaše ciljne grupe: ${listOf(p.groups, groupName)}.`,
-    "str.experience": (p) => `Iskustvo kao ${p.role === "coordinator" ? "koordinator" : "partner"} u ${p.programme === "ERASMUS" ? "Erasmus+" : "EU"} projektima.`, "str.capacity": () => "Veličina tima odgovara veličini granta.", "str.country": (p) => `${ccName(p.cc)} je u potpunosti podobna.`,
+    "str.experience": (p) => `Iskustvo kao ${p.role === "both" ? "partner i koordinator" : p.role === "coordinator" ? "koordinator" : "partner"} u ${p.programme === "ERASMUS" ? "Erasmus+" : "EU"} projektima.`, "str.capacity": () => "Veličina tima odgovara veličini granta.", "str.country": (p) => `${ccName(p.cc)} je u potpunosti podobna.`,
     "rec.notEligible": () => "Obavezan uslov nije ispunjen. Osim ako dokument poziva ne kaže drugačije, usmerite se na druge pozive.", "rec.complete": (p) => `Dopunite profil: ${listOf(p.fields, fieldName)}.`,
     "rec.checkCountry": (p) => `Pročitajte deo poziva o podobnim zemljama za ${ccName(p.cc)}.`, "rec.checkApplicant": () => "Potvrdite u uslovima poziva da vaš tip organizacije može da aplicira.",
     "rec.partners": (p) => `Pronađite partnere${p.need ? ` iz najmanje ${p.need} druge podobne zemlje` : ""} na vreme pre roka.`, "rec.rule": () => "Proverite citirani uslov u zvaničnom tekstu.",
@@ -434,7 +447,7 @@ async function render(h) {
     if (parts[1] === "admin") return await renderAdmin(parts.slice(2));
     const id = parts[1];
     let sec = parts[2] || "overview", arg = parts.slice(3).join("/");
-    shell(id, sec, `<div class="loading">…</div>`);
+    shell(id, sec, `<div class="loading progress" role="status">${esc(T("loadingPage"))}</div>`);
     await loadOrg(id);
     const body = await ({ overview: secOverview, profile: secProfile, documents: secDocuments, matching: secMatching, match: secReport, ideas: secIdeas, evaluation: secEvaluation, reports: secReports, settings: secSettings }[sec] || secOverview)(arg);
     shell(id, sec === "match" ? "matching" : sec === "report" ? "reports" : sec, body);
@@ -470,8 +483,8 @@ const stBadge = (st) => `<span class="st st-${esc(st)}">${esc(T("admSt." + st))}
 async function renderAdmin(parts) {
   const me = ST.me;
   if (!me.user.admin) { app().innerHTML = `<div class="wrap page"><h1>${esc(T("adminTitle"))}</h1><p class="note err">${esc(T("errors.not_found"))}</p><p><a href="#org">${esc(T("nav.overview"))}</a></p></div>`; return; }
-  app().innerHTML = `<div class="wrap page adm"><div class="loading">…</div></div>`;
-  const d = await api("GET", "/admin/access");
+  app().innerHTML = `<div class="wrap page adm"><div class="loading progress" role="status">${esc(T("loadingPage"))}</div></div>`;
+  const [d, u] = await Promise.all([api("GET", "/admin/access"), api("GET", "/admin/usage").catch(() => null)]);
   const focus = parts[0] === "r" ? parts[1] : null;
   const f = ST.admFilter || "open";
   const isOpen = (r) => r.effective === "pending_payment" || r.effective === "payment_submitted";
@@ -505,6 +518,7 @@ async function renderAdmin(parts) {
   app().innerHTML = `<div class="wrap page adm">
     <p class="fine"><a href="#org">← ${esc(T("nav.overview"))}</a> · <a href="/api/admin/users.csv">${esc(T("admCsv"))}</a></p>
     <h1>${esc(T("adminTitle"))}</h1><p class="lede">${esc(T("admLede"))}</p>
+    ${usageHTML(u)}
     <div class="adm-f" role="group" aria-label="${esc(T("admFilter"))}">${["open", ...ADM_ST, "all"].map((k) => `<button type="button" class="chip${k === f ? " on" : ""}" data-f="${k}" aria-pressed="${k === f}">${esc(k === "open" ? T("admOpen") : k === "all" ? T("admAll") : T("admSt." + k))}${k === "open" ? ` (${counts.pending_payment + counts.payment_submitted})` : k === "all" ? "" : ` (${counts[k]})`}</button>`).join("")}</div>
     <section class="oi-card"><h2>${esc(T("admRequests"))}</h2><div role="status" id="admMsg"></div>
       ${shown.length ? `<div class="tscroll"><table class="oi-t adm-t"><thead><tr><th>${esc(T("admWhen"))}</th><th>${esc(T("admUser"))}</th><th>${esc(T("admPlanCol"))}</th><th>${esc(T("admStatus"))}</th><th></th></tr></thead><tbody>${shown.map(reqRow).join("")}</tbody></table></div>` : `<p class="fine">${esc(T("none"))}</p>`}</section>
@@ -520,6 +534,7 @@ async function renderAdmin(parts) {
         <div class="oi-row"><button class="btn" type="submit">${esc(T("admSave"))}</button></div><div role="status" id="asMsg"></div>
       </form></section></div>`;
   bindAccount();
+  const ur = document.getElementById("auRefresh"); if (ur) ur.addEventListener("click", () => renderAdmin(parts));
   document.querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", () => { ST.admFilter = b.dataset.f; renderAdmin([]); }));
   const busy = async (el, out, fn) => { el.disabled = true; out.className = "progress"; out.textContent = T("working"); try { await fn(); ST.admNote = T("admDone"); await renderAdmin(parts); } catch (e) { out.className = "note err"; out.textContent = errText(e); el.disabled = false; } };
   document.querySelectorAll("[data-ra]").forEach((b) => b.addEventListener("click", () => {
@@ -539,6 +554,25 @@ async function renderAdmin(parts) {
   });
   if (ST.admNote) { const m = document.getElementById("admMsg"); m.className = "note ok"; m.textContent = ST.admNote; ST.admNote = null; }
   if (focus) { const r = document.getElementById("ar-" + focus); if (r) r.scrollIntoView({ block: "center" }); }
+}
+
+// AI usage today (UTC day): each provider against the daily budget the site enforces, assistant and workspace use.
+function usageHTML(u) {
+  if (!u) return `<section class="oi-card"><h2>${esc(T("auTitle"))}</h2><p class="note err">${esc(T("errors.server_error"))}</p></section>`;
+  const n = (x) => Math.round(x || 0).toLocaleString(L() === "sr" ? "sr-Latn-RS" : "en-GB");
+  const bar = (used, budget) => { const p = budget ? Math.min(100, Math.round((100 * used) / budget)) : 0; return `<div class="au-bar" role="img" aria-label="${p}%"><span class="${p >= 90 ? "hi" : p >= 60 ? "mid" : "lo"}" style="width:${p}%"></span></div><span class="fine num">${p}%</span>`; };
+  const reset = new Intl.DateTimeFormat(L() === "sr" ? "sr-Latn-RS" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Belgrade" }).format(new Date(u.resetAt));
+  return `<section class="oi-card au"><div class="oi-row au-head"><h2>${esc(T("auTitle"))}</h2><button type="button" class="btn ghost" id="auRefresh">${esc(T("auRefresh"))}</button></div>
+    <p class="fine">${esc(T("auLede", u.day, reset, Math.round(u.workspaceShare * 100)))}</p>
+    <div class="au-stats"><div><b>${n(u.assistant.messages)}</b><span class="fine">${esc(T("auMsgs", u.assistant.visitors, u.visitorLimit))}</span></div>
+      <div><b>${n(u.workspace.actions)}</b><span class="fine">${esc(T("auActions", u.workspace.users.length, u.perUserLimit))}</span></div>
+      <div><b>${n(u.providers.reduce((s, p) => s + p.requests, 0))}</b><span class="fine">${esc(T("auRequests"))}</span></div></div>
+    <div class="tscroll"><table class="oi-t au-t"><thead><tr><th>${esc(T("auProvider"))}</th><th class="num">${esc(T("auUsed"))}</th><th class="num">${esc(T("auBudget"))}</th><th>${esc(T("auOfBudget"))}</th><th class="num">${esc(T("auReq"))}</th></tr></thead><tbody>
+      ${u.providers.map((p) => `<tr><td>${esc(p.key === "workers-ai" ? "Workers AI" : "Groq")}<div class="fine">${esc(p.name)}${p.configured ? "" : " · " + esc(T("auOff"))}</div></td><td class="num">${n(p.used)} <span class="fine">${esc(p.unit === "neurons" ? T("auNeurons") : T("auTokens"))}</span></td><td class="num">${n(p.budget)}${p.free ? `<div class="fine">${esc(T("auFree", n(p.free)))}</div>` : ""}</td><td><div class="au-p">${bar(p.used, p.budget)}</div></td><td class="num">${n(p.requests)}</td></tr>`).join("")}
+    </tbody></table></div>
+    ${u.workspace.users.length ? `<details><summary>${esc(T("auUsers"))}</summary><table class="oi-t"><tbody>${u.workspace.users.map((x) => `<tr><td>${esc(x.email)}</td><td class="num">${x.count} / ${u.perUserLimit}</td></tr>`).join("")}</tbody></table></details>` : ""}
+    <details><summary>${esc(T("auWeek"))}</summary><div class="tscroll"><table class="oi-t"><thead><tr><th>${esc(T("auDay"))}</th><th class="num">${esc(T("auReq"))}</th><th class="num">Workers AI (${esc(T("auNeurons"))})</th><th class="num">Groq (${esc(T("auTokens"))})</th></tr></thead><tbody>
+      ${u.days.map((x) => `<tr><td>${esc(x.day)}</td><td class="num">${n(x.requests)}</td><td class="num">${n(x.neurons)}</td><td class="num">${n(x.groqTokens)}</td></tr>`).join("")}</tbody></table></div></details></section>`;
 }
 
 /* ---------- sign-in ---------- */
@@ -637,7 +671,7 @@ async function secOverview(arg) {
   const strengths = [];
   if (p.activityAreas && p.activityAreas.length) strengths.push(`${T("dims.objectives")}: ${listOf(p.activityAreas, sectorName)}`);
   if (p.targetGroups && p.targetGroups.length) strengths.push(`${T("dims.targetGroups")}: ${listOf(p.targetGroups, groupName)}`);
-  if (p.euFunding === "coordinator" || p.erasmus === "coordinator") strengths.push(nm(FIELD.euFunding) + ": " + nm(EXPERIENCE.find((x) => x.id === "coordinator")));
+  for (const k of ["euFunding", "erasmus"]) if (p[k] === "coordinator" || p[k] === "both") { strengths.push(nm(FIELD[k]) + ": " + nm(EXPERIENCE.find((x) => x.id === p[k]))); break; }
   if (p.partnerCountries && p.partnerCountries.length) strengths.push(`${nm(FIELD.partnerCountries)}: ${listOf(p.partnerCountries, ccName)}`);
   const stat = (href, label, v, extra = "", hint = "") => `<a class="stat go" href="${href}"><span class="l">${esc(label)}</span><span class="v">${v}</span>${extra}<span class="hint">${esc(hint)} →</span></a>`;
   return `<h1>${esc(org.name)}</h1>
@@ -1136,28 +1170,41 @@ const IDEA_CALLS = 6;
 const ideaCandidates = () => results().filter((r) => (r.status === "eligible" || r.status === "potential") && r.score >= 50).slice(0, 12);
 const ideaReady = (p) => p.name && p.orgType && p.country && (p.description || p.objectives || p.mission);
 const premium = () => !!(ST.me && ST.me.access && ST.me.access.active);
-// Erasmus+ indicative evaluation of one idea: the user picks the action; scores, thresholds and advice per criterion.
+// Indicative evaluation of one idea against the award criteria of the call it targets (site/org/rubric.js):
+// Horizon Europe General Annex D, the call document, the funder's assessment page, or the Erasmus+ Programme Guide.
+const evTitle = (e) => e.title || `Erasmus+ ${e.action} · ${nm(e.actionName)}`;
+const evSource = (e) => e.sourceUrl ? `<a href="${esc(e.sourceUrl)}" target="_blank" rel="noopener">${esc(e.sourceTitle || T("evSourceDoc"))} ↗</a>` : e.guideUrl ? `<a href="${esc(e.guideUrl)}" target="_blank" rel="noopener">${esc(T("evGuide", e.guideYear, e.guideVersion))} ↗</a>` : esc(e.sourceTitle || "");
+const evShort = (e, k) => (e.kind === "horizon" ? "Horizon Europe" : e.kind === "document" ? T("evShortDoc") : e.kind === "text" ? T("evShortText") : k);
+const ptsTxt = (n) => (n === null || n === undefined ? "–" : String(Math.round(n * 10) / 10));
 function evalHTML(e) {
-  const pct = (a, b) => Math.round((100 * a) / b);
-  return `<div class="ev-res"><div class="oi-row"><b>${esc(e.action)} · ${esc(nm(e.actionName))}</b><span class="sc-chip ${tierCls(pct(e.total, e.max))}">${e.total} / ${e.max}</span>
-      <span class="st ${e.passed ? "eligible" : "ineligible"}">${esc(T(e.passed ? "evPass" : "evFail"))}</span></div>
-    <p class="fine">${esc(T("evThreshold", e.threshold, e.max))} ${esc(T("evPerCriterion"))} · ${esc(T("evGuide", e.guideYear, e.guideVersion))} · <a href="${esc(e.guideUrl)}" target="_blank" rel="noopener">Programme Guide ↗</a>${e.usedProposal ? " · " + esc(T("evUsedProposal")) : ""}</p>
+  const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
+  const verdict = e.passed === true ? `<span class="st eligible">${esc(T("evPass"))}</span>` : e.passed === false ? `<span class="st ineligible">${esc(T("evFail"))}</span>` : `<span class="st potential">${esc(T("evNoThreshold"))}</span>`;
+  const mark = (ok) => (ok === true ? " ✓" : ok === false ? " ✗" : "");
+  return `<div class="ev-res"><div class="oi-row"><b>${esc(evTitle(e))}</b><span class="sc-chip ${tierCls(pct(e.total, e.max))}">${ptsTxt(e.total)} / ${ptsTxt(e.max)}</span>${verdict}</div>
+    <p class="fine">${esc(T("evBasis"))}: ${evSource(e)}${e.threshold !== null && e.threshold !== undefined ? " · " + esc(T("evThreshold", ptsTxt(e.threshold), ptsTxt(e.max))) : " · " + esc(T("evNoTotal"))}${e.kind === "text" ? " · " + esc(T("evTextScale")) : ""}${e.usedProposal ? " · " + esc(T("evUsedProposal")) : ""}</p>
     <div class="tw"><table class="oi-t ev-t"><thead><tr><th>${esc(T("criterion"))}</th><th class="num">${esc(T("evScore"))}</th><th class="num">${esc(T("minPass"))}</th></tr></thead><tbody>
-      ${e.criteria.map((c) => `<tr><td>${esc(c.name)}</td><td class="num"><b class="scn ${tierCls(pct(c.score, c.max))}">${c.score} / ${c.max}</b></td><td class="num">${c.min} ${c.pass ? "✓" : "✗"}</td></tr>`).join("")}
-      <tr class="tot"><td>${esc(T("evTotal"))}</td><td class="num"><b>${e.total} / ${e.max}</b></td><td class="num">${e.threshold} ${e.passesTotal ? "✓" : "✗"}</td></tr></tbody></table></div>
-    ${e.criteria.map((c) => `<details class="ev-c"><summary>${esc(c.name)}: ${c.score} / ${c.max}</summary><p>${esc(c.justification)}</p>
-      ${[["strengths", "evStrengths"], ["weaknesses", "evWeak"], ["missing", "evMissing"], ["recommendations", "evRec"]].filter(([k]) => c[k].length).map(([k, l]) => `<h4>${esc(T(l))}</h4><ul>${c[k].map((y) => `<li>${esc(y)}</li>`).join("")}</ul>`).join("")}</details>`).join("")}
-    ${e.summary ? `<p>${esc(e.summary)}</p>` : ""}${e.priorityActions.length ? `<h4>${esc(T("evPriority"))}</h4><ol>${e.priorityActions.map((y) => `<li>${esc(y)}</li>`).join("")}</ol>` : ""}
+      ${e.criteria.map((c) => `<tr><td>${esc(c.name)}${c.quote ? `<div class="fine">“${esc(c.quote)}”</div>` : ""}</td><td class="num"><b class="scn ${tierCls(pct(c.score, c.max))}">${ptsTxt(c.score)} / ${ptsTxt(c.max)}</b></td><td class="num">${c.min === null || c.min === undefined ? "–" : ptsTxt(c.min) + mark(c.pass)}</td></tr>`).join("")}
+      <tr class="tot"><td>${esc(T("evTotal"))}</td><td class="num"><b>${ptsTxt(e.total)} / ${ptsTxt(e.max)}</b></td><td class="num">${e.threshold === null || e.threshold === undefined ? "–" : ptsTxt(e.threshold) + mark(e.passesTotal)}</td></tr></tbody></table></div>
+    ${(e.notes || []).length ? `<ul class="fine ev-notes">${e.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+    ${e.criteria.map((c) => `<details class="ev-c"><summary>${esc(c.name)}: ${ptsTxt(c.score)} / ${ptsTxt(c.max)}</summary><p>${esc(c.justification)}</p>
+      ${[["strengths", "evStrengths"], ["weaknesses", "evWeak"], ["missing", "evMissing"], ["recommendations", "evRec"]].filter(([k]) => (c[k] || []).length).map(([k, l]) => `<h4>${esc(T(l))}</h4><ul>${c[k].map((y) => `<li>${esc(y)}</li>`).join("")}</ul>`).join("")}</details>`).join("")}
+    ${e.summary ? `<p>${esc(e.summary)}</p>` : ""}${(e.priorityActions || []).length ? `<h4>${esc(T("evPriority"))}</h4><ol>${e.priorityActions.map((y) => `<li>${esc(y)}</li>`).join("")}</ol>` : ""}
     <p class="note">${esc(T("evDisclaimer"))}</p><p class="fine">${esc(T("evMade", fmtTime(e.at)))}</p></div>`;
 }
+// The rubric the next evaluation of this idea will use (null: the call's criteria are not in the data).
+const ideaRubric = (x) => { const c = (EC.CALLS || []).find((y) => y.id === x.callId) || { id: x.callId }; return ST.crit ? rubricFor({ id: x.callId, programme: c.programme }, ST.crit, ST.guide) : null; };
 function evalBox(x) {
-  const evs = x.evaluations || {}, keys = Object.keys(evs);
-  const sel = ST.evalSel[x.id] || keys[keys.length - 1] || "KA220";
-  return `<details class="ev-box"${keys.length ? " open" : ""}><summary>${esc(T("evTitle"))}${keys.length ? ` · ${keys.map((k) => `${k} ${evs[k].total}/${evs[k].max}`).join(" · ")}` : ""}</summary>
-    <p class="fine">${esc(T("evLede"))}</p>
-    ${canEdit() ? `<div class="oi-row"><select data-evact aria-label="${esc(T("evAction"))}">${["KA210", "KA220"].map((k) => `<option value="${k}"${sel === k ? " selected" : ""}>${esc(T("evOpt." + k))}</option>`).join("")}</select>
-      <button type="button" class="btn quiet" data-act="evaluate"${premium() ? "" : " disabled"}>${esc(T("evRun"))}${premium() ? "" : " · " + esc(T("premiumTag"))}</button><span class="fine" role="status" data-evmsg></span></div>` : ""}
-    ${evs[sel] ? evalHTML(evs[sel]) : keys.length ? evalHTML(evs[keys[keys.length - 1]]) : ""}</details>`;
+  const evs = x.evaluations || {}, keys = Object.keys(evs), rb = ideaRubric(x);
+  const sel = ST.evalSel[x.id] && evs[ST.evalSel[x.id]] ? ST.evalSel[x.id] : rb && evs[rb.key] ? rb.key : keys[keys.length - 1];
+  const call = (EC.CALLS || []).find((y) => y.id === x.callId);
+  const link = (ST.crit && ST.crit.calls[x.callId] && ST.crit.calls[x.callId].url) || (call && call.url);
+  const basis = rb ? `<p class="fine">${esc(T("evWill"))} <b>${esc(rb.title)}</b> · ${rb.url ? `<a href="${esc(rb.url)}" target="_blank" rel="noopener">${esc(rb.sourceTitle)} ↗</a>` : esc(rb.sourceTitle)}${rb.criteria ? ` · ${esc(T("evCritList", rb.criteria.map((c) => `${c.name} (${ptsTxt(c.max)})`).join(", ")))}` : ` · ${esc(T("evTextScale"))}`}</p>`
+    : `<p class="note">${esc(T("evNoCriteria"))}${link ? ` <a href="${esc(link)}" target="_blank" rel="noopener">${esc(T("official"))} ↗</a>` : ""}</p>`;
+  return `<details class="ev-box"${keys.length ? " open" : ""}><summary>${esc(T("evTitle"))}${keys.length ? ` · ${keys.map((k) => `${esc(evShort(evs[k], k))} ${ptsTxt(evs[k].total)}/${ptsTxt(evs[k].max)}`).join(" · ")}` : ""}</summary>
+    <p class="fine">${esc(T("evLede"))}</p>${basis}
+    ${keys.length > 1 ? `<div class="oi-row"><select data-evsel aria-label="${esc(T("evShown"))}">${keys.map((k) => `<option value="${esc(k)}"${sel === k ? " selected" : ""}>${esc(evTitle(evs[k]))}</option>`).join("")}</select></div>` : ""}
+    ${canEdit() && rb ? `<div class="oi-row"><button type="button" class="btn quiet" data-act="evaluate"${premium() ? "" : " disabled"}>${esc(T(evs[rb.key] ? "evRerun" : "evRun"))}${premium() ? "" : " · " + esc(T("premiumTag"))}</button><span class="fine" role="status" data-evmsg></span></div>` : ""}
+    ${sel ? evalHTML(evs[sel]) : ""}</details>`;
 }
 function ideaCard(x, res) {
   const org = ST.org, it = x.idea, live = res.find((r) => r.callId === x.callId);
@@ -1291,6 +1338,7 @@ async function secIdeas(arg) {
   const acc = ST.me.access || { active: false, freeLeft: 0, status: "none" };
   const canGen = acc.active || acc.freeLeft > 0;
   ST.ideas = ideas;
+  try { await loadCriteria(); if (ideas.some((x) => erasmusAction(x.callId))) await loadGuide(); } catch { /* the evaluation box says the criteria are unavailable */ }
   ST.compare = new Set([...(ST.compare || [])].filter((id) => ideas.some((x) => x.id === id)));
   const res = results(), cands = ideaCandidates();
   // Keep the member's choice while it still matches the shortlist; otherwise start from the most compatible calls.
@@ -1310,18 +1358,17 @@ async function secIdeas(arg) {
     ${saved.length ? `<h2 class="idea-h" id="oiSaved">${esc(T("ideasSaved"))} (${saved.length})</h2><div class="match-list">${saved.map((x) => ideaCard(x, res)).join("")}</div>` : ""}
     <h2 class="idea-h">${esc(T("ideasSuggested"))}</h2>${sugg.length ? `<div class="match-list">${sugg.map((x) => ideaCard(x, res)).join("")}</div>` : `<p class="fine">${esc(T("ideasNone"))}</p>`}`;
 }
-// Erasmus+ evaluation box of one idea card: switch between stored evaluations, run a new one, redraw in place.
+// Evaluation box of one idea card: switch between stored evaluations, run a new one, redraw in place.
 function bindEval(card, x) {
   const org = ST.org, id = x.id, box = card.querySelector(".ev-box"); if (!box) return;
-  const sel = box.querySelector("[data-evact]"), btn = box.querySelector('[data-act="evaluate"]'), m = box.querySelector("[data-evmsg]");
+  const sel = box.querySelector("[data-evsel]"), btn = box.querySelector('[data-act="evaluate"]'), m = box.querySelector("[data-evmsg]");
   const redraw = () => { const open = box.open; const nb = document.createElement("div"); nb.innerHTML = evalBox(x); const fresh = nb.firstElementChild; fresh.open = open || !!(x.evaluations || {})[ST.evalSel[id]]; box.replaceWith(fresh); bindEval(card, x); };
   if (sel) sel.addEventListener("change", () => { ST.evalSel[id] = sel.value; redraw(); });
   if (btn) btn.addEventListener("click", async () => {
-    const action = sel ? sel.value : "KA220";
     btn.disabled = true; m.className = "progress"; m.textContent = T("evBusy");
     try {
-      const r = await api("POST", `/orgs/${org.id}/ideas/${id}/evaluate`, { action, lang: L() });
-      x.evaluations = { ...(x.evaluations || {}), [action]: r.evaluation }; ST.evalSel[id] = action; redraw();
+      const r = await api("POST", `/orgs/${org.id}/ideas/${id}/evaluate`, { lang: L() });
+      x.evaluations = { ...(x.evaluations || {}), [r.evaluation.key]: r.evaluation }; ST.evalSel[id] = r.evaluation.key; redraw();
       const nm = card.querySelector("[data-evmsg]"); if (nm) { nm.className = "fine ok"; nm.textContent = T("evDone"); }
     } catch (e) { m.className = "fine err"; m.textContent = errText(e); btn.disabled = false; }
   });

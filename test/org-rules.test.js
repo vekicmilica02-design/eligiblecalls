@@ -36,6 +36,13 @@ t("eligible call: status eligible, score high, strengths name shared sectors and
   assert.ok(r.strengths.some((s) => s.code === "str.groups"));
 });
 
+t("experience 'both partner and coordinator' is a valid choice and counts like coordinator experience", () => {
+  assert.equal(cleanProfile({ ...ngo, euFunding: "both", erasmus: "both" }, contextFrom(TAX, 2026)).profile.euFunding, "both");
+  const both = assess({ ...ngo, euFunding: "both" }, call(), { now: NOW }), coord = assess({ ...ngo, euFunding: "coordinator" }, call(), { now: NOW });
+  assert.equal(both.dims.experience.s, coord.dims.experience.s);
+  assert.equal(both.strengths.find((s) => s.code === "str.experience").params.role, "both");
+});
+
 t("a failed country check makes the call ineligible, whatever the score", () => {
   const r = assess(ngo, call({ eligibility: { RS: ["N", 0] }, reasons: ["Not a participating country."] }), { now: NOW });
   assert.equal(r.status, "ineligible");

@@ -13,6 +13,7 @@ import { evaluateIdea } from "./evaluate.js";
 import { planFill } from "./autofill.js";
 import { reportsRoute } from "./reports.js";
 import { officialRoute } from "./official.js";
+import { translationRoute, loadTranslations, translationView } from "./translate.js";
 
 export const ROLES = { viewer: 1, editor: 2, owner: 3 };
 
@@ -52,7 +53,7 @@ async function saveProfile(db, org, user, profile, baseVersion, note, now) {
 }
 
 async function deleteOrg(db, orgId) {
-  await db.batch(["profile_versions", "extractions", "project_ideas", "reports", "official_checks", "org_invites", "org_members"].map((t) => db.prepare(`DELETE FROM ${t} WHERE org_id = ?`).bind(orgId))
+  await db.batch(["profile_versions", "extractions", "project_ideas", "reports", "official_checks", "profile_translations", "org_invites", "org_members"].map((t) => db.prepare(`DELETE FROM ${t} WHERE org_id = ?`).bind(orgId))
     .concat([db.prepare("DELETE FROM organizations WHERE id = ?").bind(orgId)]));
 }
 
@@ -175,7 +176,9 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
       if (M === "GET") {
         const m = await requireRole(db, orgId, user, "viewer");
         const cur = await currentProfile(db, m);
-        return json({ id: m.id, name: m.name, role: m.role, version: cur.version, profile: cur.profile, updatedAt: cur.updatedAt || null, completeness: completeness(cur.profile) });
+        const tr = await loadTranslations(db, m.id);
+        return json({ id: m.id, name: m.name, role: m.role, version: cur.version, profile: cur.profile, updatedAt: cur.updatedAt || null, completeness: completeness(cur.profile),
+          translation: tr ? translationView(cur.profile, tr) : null });
       }
       if (M === "DELETE") {
         await requireRole(db, orgId, user, "owner");
@@ -299,6 +302,13 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
         return json({ ok: true });
       }
       throw new HttpError(405, "method");
+    }
+
+    // ----- English copy of the profile's free text -----
+    if (sub === "translation") {
+      const m = await requireRole(db, orgId, user, "viewer");
+      const cur = await currentProfile(db, m);
+      return await translationRoute({ env, db, user, M, body, now, org: orgId, requireRole, profile: cur.profile, version: cur.version, fetchImpl, waitUntil });
     }
 
     // ----- AI check of the profile against a call's official eligibility text -----

@@ -7,6 +7,10 @@ import { assess, assessAll, buildDF, band, scoreTier, DEFAULT_WEIGHTS, callFinge
 import { detectLang, foldText, textHash } from "../site/org/lang.js";
 import { rubricFor } from "../site/org/rubric.js";
 import { scoreEvaluation } from "../src/org/evaluate.js";
+import { estTokens } from "../site/org/lang.js";
+import { complete } from "../src/org/ai.js";
+import { GROQ_FREE } from "../src/providers.js";
+import { mockD1, mockFetch } from "./mocks.js";
 import { cleanProfile, completeness, contextFrom, changedFields } from "../site/org/schema.js";
 
 const TAX = JSON.parse(readFileSync(path.join(ROOT, "site/data/taxonomy.json"), "utf8"));
@@ -371,5 +375,33 @@ t("CERV evaluation: only Relevance has an individual minimum (25/40); Quality an
   assert.deepEqual([e.criteria[2].score, e.total, e.passed], [20, 60, false]);
   e = ev(30, 28, 14);
   assert.deepEqual([e.total, e.passed, e.criteria[1].pass, e.criteria[2].pass], [72, true, null, null]);
+});
+
+t("token estimate: Cyrillic counts more per character than English; plain English text is estimated as before", () => {
+  const en = "The association works on lifelong learning, environmental protection, culture and the arts.";
+  assert.equal(estTokens(en), Math.ceil(en.length / 3.6));
+  const cyr = "Удружење ради на целоживотном образовању, заштити животне средине, култури и уметности.";
+  const lat = foldText(cyr);   // the same words in plain Latin letters
+  assert.ok(estTokens(cyr) > 1.5 * estTokens(lat), `${estTokens(cyr)} vs ${estTokens(lat)}`);
+  assert.equal(estTokens(""), 0); assert.equal(estTokens(null), 0);
+});
+
+t("document parts: Cyrillic text is cut into parts that fit one request; English parts stay at most 14,000 characters", () => {
+  const src = readFileSync(path.join(ROOT, "site/org/app.js"), "utf8");
+  const pick = (re) => { const m = src.match(re); assert.ok(m, String(re)); return m[0]; };
+  const code = [pick(/const CHUNK = \d+, MAX_PARTS = \d+, PART_TOKENS = \d+;/), pick(/function splitText\(text\) \{[\s\S]*?\n\}/), "return { splitText, CHUNK, MAX_PARTS, PART_TOKENS };"].join("\n");
+  const { splitText, CHUNK, MAX_PARTS, PART_TOKENS } = new Function("estTokens", code)(estTokens);
+  const para = "Члан 12. Удружење остварује циљеве кроз неформално образовање, радионице, трибине и сарадњу са установама културе.\n";
+  const cyr = para.repeat(Math.ceil(35000 / para.length)).slice(0, 35000);
+  const parts = splitText(cyr);
+  assert.equal(parts.join(""), cyr, "nothing lost or repeated");
+  assert.equal(parts.covered, cyr.length);
+  for (const x of parts) assert.ok(estTokens(x) <= PART_TOKENS, `part of ${estTokens(x)} tokens`);
+  assert.ok(parts.length >= 4 && parts.length <= MAX_PARTS, `${parts.length} parts`);
+  const en = ("Article 12. The association pursues its goals through non-formal education, workshops and cooperation with cultural institutions.\n").repeat(300);
+  const ep = splitText(en);
+  for (const x of ep) assert.ok(x.length <= CHUNK && estTokens(x) <= PART_TOKENS);
+  const huge = splitText(para.repeat(2000));
+  assert.equal(huge.length, MAX_PARTS); assert.ok(huge.covered < para.length * 2000, "a very long document is cut, and says how much was sent");
 });
 console.log(`${pass} passed`);

@@ -87,6 +87,16 @@ const S = {
     invited: "Invited (not signed up yet)", remove: "Remove", leave: "Leave this organisation", versions: "Profile history", changedF: "Changed fields", by: "by",
     account: "Your account", newsToggle: "News e-mails", deleteAccount: "Delete my account", deleteAccountNote: "Deletes your account, your sign-in sessions and the organisations where you are the only member.", deleteAccountConfirm: "Yes, delete my account permanently", cancel: "Cancel", signedInAs: (e) => `Signed in as ${e}`,
     deleteOrg: "Delete this organisation", deleteOrgNote: (n) => `Deletes the profile, its history and all extraction results. Type the organisation name (${n}) to confirm.`, confirmDel: "Delete permanently",
+    savedReportsN: "Saved reports", goReports: "Open saved reports",
+    repSaveTitle: "Save this report", repSaveLede: "Keeps this assessment as it is now, with the profile version and the call data date, so you can return to it, compare it later and download it as PDF.",
+    repNote: "Note", repNotePh: "e.g. discussed with the board, apply in March", repSave: "Save report", repSaved: "Report saved.", repOpenSaved: "Open in Saved reports",
+    reportsLede: "Eligibility reports saved from the matching page. Each one keeps the assessment as it was when saved; the Now column shows today's score for the same call and profile.",
+    reportsEmpty: "No saved reports yet. Open a call in Eligibility matching and press Save report.", reportsSearch: "Search in call names and notes",
+    repCsv: "Download list (CSV)", repColSaved: "Saved", repColCall: "Call", repColScore: "Score then", repColStatus: "Status then", repColNow: "Now",
+    repCallGone: "The call is no longer in the published data.", repSavedAt: (t) => `Saved ${t}`, repProfileV: (v) => `profile version ${v}`, repProfileNow: (v) => `(now ${v})`, repDataDate: (d) => `call data of ${d}`,
+    repNoteSave: "Save note", repNoteSaved: "Note saved.", repPdf: "Download report (PDF)", repDelete: "Delete report", repDeleteConfirm: "Click again to delete",
+    repChange: "Since this report was saved", repThen: "Saved", repNow: "Now", repNewCheck: "new check", repSameResult: "All requirements have the same result as when the report was saved.",
+    repOpenCurrent: "Open the current report", repSavedVersion: "Saved report", repPdfFooter: "preliminary self-assessment, the call documents prevail",
     goComplete: "Fill in missing fields", goProfile: "Edit profile", goList: "Show the calls", goIdeas: "Open saved ideas",
     missingHere: (n) => `${n} field${n === 1 ? " is" : "s are"} still empty. They are marked below.`, orFromDocs: "Or fill them from a document",
     ocrLoading: "Loading text recognition (OCR) for Serbian Cyrillic, Serbian Latin and English. The first time takes a little longer.",
@@ -154,7 +164,7 @@ const S = {
     admFree: "Free idea generations per user", admDaysDefault: "Default days of access (empty = until revoked)",
     admPlan: "Plan", admPlanId: "Code", admPlanName: "Name", admPlanPrice: "Price (as shown)", admPricePh: "e.g. 49 EUR per year", admPlanDesc: "Description", admAddPlan: "+ Add plan",
     admPay: "Payment instructions shown after a request (bank account, reference format)",
-    errors: { premium_required: "This needs premium access. See Premium access on the Project ideas page.", no_open_request: "There is no open access request. Request access first.", signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
+    errors: { too_many_reports: "This organisation has reached 200 saved reports. Delete older ones first.", too_large: "This report is too large to save.", premium_required: "This needs premium access. See Premium access on the Project ideas page.", no_open_request: "There is no open access request. Request access first.", signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
   },
   sr: {
     title: "Analiza organizacije", lede: "Profil vaše organizacije, proveren u odnosu na sve otvorene pozive na Eligible Calls.",
@@ -233,6 +243,16 @@ const S = {
     invited: "Pozvan (još nije registrovan)", remove: "Ukloni", leave: "Napusti ovu organizaciju", versions: "Istorija profila", changedF: "Izmenjena polja", by: "",
     account: "Vaš nalog", newsToggle: "E-mail vesti", deleteAccount: "Obriši moj nalog", deleteAccountNote: "Briše vaš nalog, sesije prijave i organizacije u kojima ste jedini član.", deleteAccountConfirm: "Da, trajno obriši moj nalog", cancel: "Otkaži", signedInAs: (e) => `Prijavljeni ste kao ${e}`,
     deleteOrg: "Obriši ovu organizaciju", deleteOrgNote: (n) => `Briše profil, njegovu istoriju i sve rezultate izdvajanja. Upišite naziv organizacije (${n}) da potvrdite.`, confirmDel: "Trajno obriši",
+    savedReportsN: "Sačuvani izveštaji", goReports: "Otvori sačuvane izveštaje",
+    repSaveTitle: "Sačuvajte ovaj izveštaj", repSaveLede: "Čuva ovu procenu kakva je sada, sa verzijom profila i datumom podataka o pozivu, da biste joj se vratili, kasnije je uporedili i preuzeli kao PDF.",
+    repNote: "Napomena", repNotePh: "npr. razgovarano sa upravom, prijava u martu", repSave: "Sačuvaj izveštaj", repSaved: "Izveštaj je sačuvan.", repOpenSaved: "Otvori u Sačuvanim izveštajima",
+    reportsLede: "Izveštaji o podobnosti sačuvani sa stranice provere. Svaki čuva procenu kakva je bila pri čuvanju; kolona Sada prikazuje današnju ocenu za isti poziv i profil.",
+    reportsEmpty: "Još nema sačuvanih izveštaja. Otvorite poziv u Proveri podobnosti i kliknite Sačuvaj izveštaj.", reportsSearch: "Pretraga po nazivu poziva i napomenama",
+    repCsv: "Preuzmi spisak (CSV)", repColSaved: "Sačuvano", repColCall: "Poziv", repColScore: "Ocena tada", repColStatus: "Status tada", repColNow: "Sada",
+    repCallGone: "Poziv više nije u objavljenim podacima.", repSavedAt: (t) => `Sačuvano ${t}`, repProfileV: (v) => `verzija profila ${v}`, repProfileNow: (v) => `(sada ${v})`, repDataDate: (d) => `podaci o pozivu od ${d}`,
+    repNoteSave: "Sačuvaj napomenu", repNoteSaved: "Napomena je sačuvana.", repPdf: "Preuzmi izveštaj (PDF)", repDelete: "Obriši izveštaj", repDeleteConfirm: "Kliknite ponovo za brisanje",
+    repChange: "Od čuvanja izveštaja", repThen: "Sačuvano", repNow: "Sada", repNewCheck: "nova provera", repSameResult: "Svi uslovi imaju isti rezultat kao pri čuvanju izveštaja.",
+    repOpenCurrent: "Otvori trenutni izveštaj", repSavedVersion: "Sačuvani izveštaj", repPdfFooter: "preliminarna samoprocena, dokumentacija poziva ima prednost",
     goComplete: "Popunite prazna polja", goProfile: "Uredite profil", goList: "Prikaži pozive", goIdeas: "Otvori sačuvane ideje",
     missingHere: (n) => `Prazno polja: ${n}. Označena su ispod.`, orFromDocs: "Ili ih popunite iz dokumenta",
     ocrLoading: "Učitava se prepoznavanje teksta (OCR) za srpsku ćirilicu, latinicu i engleski. Prvi put traje malo duže.",
@@ -300,7 +320,7 @@ const S = {
     admFree: "Besplatnih generisanja ideja po korisniku", admDaysDefault: "Podrazumevano dana pristupa (prazno = do opoziva)",
     admPlan: "Paket", admPlanId: "Šifra", admPlanName: "Naziv", admPlanPrice: "Cena (kako se prikazuje)", admPricePh: "npr. 49 EUR godišnje", admPlanDesc: "Opis", admAddPlan: "+ Dodaj paket",
     admPay: "Uputstvo za uplatu prikazano posle zahteva (račun, format poziva na broj)",
-    errors: { premium_required: "Za ovo je potreban premium pristup. Pogledajte Premium pristup na strani Projektne ideje.", no_open_request: "Nema otvorenog zahteva za pristup. Prvo zatražite pristup.", signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera protiv botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran kao međusajtni. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila pravljenje ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, tip, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
+    errors: { too_many_reports: "Organizacija je dostigla 200 sačuvanih izveštaja. Prvo obrišite starije.", too_large: "Izveštaj je prevelik za čuvanje.", premium_required: "Za ovo je potreban premium pristup. Pogledajte Premium pristup na strani Projektne ideje.", no_open_request: "Nema otvorenog zahteva za pristup. Prvo zatražite pristup.", signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera protiv botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran kao međusajtni. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila pravljenje ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, tip, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
   },
 };
 const T = (k, ...a) => { const v = k.split(".").reduce((o, x) => (o ? o[x] : undefined), S[L()]) ?? k.split(".").reduce((o, x) => (o ? o[x] : undefined), S.en); return typeof v === "function" ? v(...a) : v ?? k; };
@@ -414,11 +434,10 @@ async function render(h) {
     if (parts[1] === "admin") return await renderAdmin(parts.slice(2));
     const id = parts[1];
     let sec = parts[2] || "overview", arg = parts.slice(3).join("/");
-    if (sec === "matching") { sec = "overview"; arg = arg || "all"; }      // the matching list is part of the overview
     shell(id, sec, `<div class="loading">…</div>`);
     await loadOrg(id);
-    const body = await ({ overview: secOverview, profile: secProfile, documents: secDocuments, match: secReport, ideas: secIdeas, evaluation: secEvaluation, reports: secReports, settings: secSettings }[sec] || secOverview)(arg);
-    shell(id, sec === "match" ? "overview" : sec, body);
+    const body = await ({ overview: secOverview, profile: secProfile, documents: secDocuments, matching: secMatching, match: secReport, ideas: secIdeas, evaluation: secEvaluation, reports: secReports, settings: secSettings }[sec] || secOverview)(arg);
+    shell(id, sec === "match" ? "matching" : sec === "report" ? "reports" : sec, body);
     afterRender[sec] && afterRender[sec](arg);
   } catch (e) {
     if (e.status === 401) { ST.me = undefined; return renderLogin(null, (await loadMe(true)).signin); }
@@ -428,8 +447,8 @@ async function render(h) {
 
 function shell(id, sec, body) {
   const me = ST.me, org = ST.org && ST.org.id === id ? ST.org : null;
-  const items = ["overview", "profile", "documents", "ideas", "evaluation", "reports", "settings"];
-  const soon = new Set(["reports"]);
+  const items = ["overview", "profile", "documents", "matching", "ideas", "evaluation", "reports", "settings"];
+  const soon = new Set();
   app().innerHTML = `<div class="wrap oi">
     <aside class="oi-side">
       <div class="oi-org"><span class="eyebrow">${esc(T("title"))}</span><span class="n">${esc(org ? org.name : "")}</span>
@@ -604,17 +623,14 @@ const meter = (pct, cls = "") => `<div class="meter ${cls}"><i style="width:${Ma
 const tierCls = (score) => "t-" + scoreTier(score);
 const scoreMeter = (score) => meter(score, tierCls(score));
 const scoreNum = (score) => `<b class="scn ${tierCls(score)}">${score}%</b>`;
-// Overview: the organisation's position at a glance, then every analysed call with its eligibility and score.
-// The statistics are shortcuts: each one opens the matching list (or the page) it counts.
+// Overview: the organisation's position at a glance. The statistics are shortcuts: each one opens the
+// eligibility matching list with the filter it counts, the profile's missing fields or the saved ideas.
 const HIGH = 75;   // "highly compatible"
 async function secOverview(arg) {
   const org = ST.org, p = org.profile, c = completeness(p), id = org.id;
   let savedIdeas = 0; try { savedIdeas = (await api("GET", `/orgs/${id}/ideas`)).ideas.filter((x) => x.status === "saved").length; } catch { /* shown as 0 */ }
   const res = results();
-  const F = ST.filters;
-  if (arg === "all") Object.assign(F, { status: "", high: false, prog: "", dl: "", shown: 30 });
-  if (arg === "high") Object.assign(F, { status: "", high: true, prog: "", dl: "", shown: 30 });
-  if (arg === "eligible") Object.assign(F, { status: "eligible", high: false, prog: "", dl: "", shown: 30 });
+  let savedReports = 0; try { savedReports = (await api("GET", `/orgs/${id}/reports`)).reports.length; } catch { /* shown as 0 */ }
   const ok = res.filter((r) => r.status === "eligible" || r.status === "potential");
   const high = res.filter((r) => r.score >= HIGH);
   const soon = ok.filter((r) => r.score >= 60).map((r) => ({ r, dl: EC.nextDl(r.call) })).filter((x) => x.dl).sort((a, b) => a.dl.localeCompare(b.dl)).slice(0, 6);
@@ -623,31 +639,35 @@ async function secOverview(arg) {
   if (p.targetGroups && p.targetGroups.length) strengths.push(`${T("dims.targetGroups")}: ${listOf(p.targetGroups, groupName)}`);
   if (p.euFunding === "coordinator" || p.erasmus === "coordinator") strengths.push(nm(FIELD.euFunding) + ": " + nm(EXPERIENCE.find((x) => x.id === "coordinator")));
   if (p.partnerCountries && p.partnerCountries.length) strengths.push(`${nm(FIELD.partnerCountries)}: ${listOf(p.partnerCountries, ccName)}`);
-  const cur = (k) => (k === "high" ? F.high && !F.status : k === "eligible" ? F.status === "eligible" && !F.high : k === "all" ? !F.high && !F.status && !F.prog && !F.dl : false);
-  const stat = (href, k, label, v, extra = "", hint = "") => `<a class="stat go" href="${href}"${cur(k) ? ' aria-current="true"' : ""}><span class="l">${esc(label)}</span><span class="v">${v}</span>${extra}<span class="hint">${esc(hint)} →</span></a>`;
+  const stat = (href, label, v, extra = "", hint = "") => `<a class="stat go" href="${href}"><span class="l">${esc(label)}</span><span class="v">${v}</span>${extra}<span class="hint">${esc(hint)} →</span></a>`;
   return `<h1>${esc(org.name)}</h1>
     ${!p.country || !p.orgType ? `<p class="note warn">${esc(T("noCountry"))} <a href="#org/${id}/profile/missing">${esc(T("fillProfile"))}</a></p>` : ""}
     <div class="oi-grid">
-      ${stat(`#org/${id}/profile/missing`, "", T("complete"), c.pct + "%", meter(c.pct), c.missing.length ? T("goComplete") : T("goProfile"))}
-      ${stat(`#org/${id}/overview/all`, "all", T("analysed"), res.length, "", T("goList"))}
-      ${stat(`#org/${id}/overview/high`, "high", T("high"), high.length, "", T("goList"))}
-      ${stat(`#org/${id}/overview/eligible`, "eligible", T("eligibleN"), res.filter((r) => r.status === "eligible").length, "", T("goList"))}
-      ${stat(`#org/${id}/ideas/saved`, "", T("savedIdeasN"), savedIdeas, "", T("goIdeas"))}
+      ${stat(`#org/${id}/profile/missing`, T("complete"), c.pct + "%", meter(c.pct), c.missing.length ? T("goComplete") : T("goProfile"))}
+      ${stat(`#org/${id}/matching/all`, T("analysed"), res.length, "", T("goList"))}
+      ${stat(`#org/${id}/matching/high`, T("high"), high.length, "", T("goList"))}
+      ${stat(`#org/${id}/matching/eligible`, T("eligibleN"), res.filter((r) => r.status === "eligible").length, "", T("goList"))}
+      ${stat(`#org/${id}/ideas/saved`, T("savedIdeasN"), savedIdeas, "", T("goIdeas"))}
+      ${stat(`#org/${id}/reports`, T("savedReportsN"), savedReports, "", T("goReports"))}
     </div>
-    <div class="oi-cols">
-      <div class="oi-card"><h2>${esc(T("upcoming"))}</h2>${soon.length ? `<div class="tw"><table class="oi-t upc"><tbody>${soon.map(({ r, dl }) => `<tr><td class="num">${esc(EC.fmtDate(dl))}</td><td><a href="#org/${id}/match/${encodeURIComponent(r.call.key)}">${esc(r.call.title)}</a><div class="fine">${esc((EC.P[r.call.programme] || {}).short || r.call.programmeName || "")}</div></td><td class="num">${scoreNum(r.score)}</td><td>${statusBadge(r.status)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="fine">${esc(T("none"))}</p>`}</div>
+    <div class="oi-card"><h2>${esc(T("upcoming"))}</h2>${soon.length ? `<div class="tw"><table class="oi-t upc"><tbody>${soon.map(({ r, dl }) => `<tr><td class="num">${esc(EC.fmtDate(dl))}</td><td><a href="#org/${id}/match/${encodeURIComponent(r.call.key)}">${esc(r.call.title)}</a><div class="fine">${esc((EC.P[r.call.programme] || {}).short || r.call.programmeName || "")}</div></td><td class="num">${scoreNum(r.score)}</td><td>${statusBadge(r.status)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="fine">${esc(T("none"))}</p>`}</div>
+    <div class="oi-cols mt">
       <div class="oi-card"><h2>${esc(T("missingTitle"))}</h2>${c.missing.length ? `<p>${esc(listOf(c.missing.slice(0, 12), fieldName))}</p><p><a href="#org/${id}/profile/missing">${esc(T("fillProfile"))} →</a></p>` : `<p class="fine">${esc(T("missingNone"))}</p>`}
         <h2 class="mt">${esc(T("strengthsTitle"))}</h2>${strengths.length ? `<ul>${strengths.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</div>
     </div>
-    ${org.updatedAt ? `<p class="fine">${esc(T("lastUpdate", fmtTime(org.updatedAt), org.version))}</p>` : ""}
-    <section id="oiMatches" class="matches">${matchingHTML()}</section>`;
+    <p><a class="btn quiet" href="#org/${id}/matching/all">${esc(T("openMatching"))} →</a></p>
+    ${org.updatedAt ? `<p class="fine">${esc(T("lastUpdate", fmtTime(org.updatedAt), org.version))}</p>` : ""}`;
 }
-afterRender.overview = (arg) => {
-  // A shortcut to the page already shown still applies its filter.
-  document.querySelectorAll("a.stat.go").forEach((a) => a.addEventListener("click", (ev) => { ev.preventDefault(); go(a.getAttribute("href").slice(1)); }));
-  bindMatching();
-  if (arg && ["all", "high", "eligible"].includes(arg)) { const m = document.getElementById("oiMatches"); if (m) m.scrollIntoView({ block: "start" }); }
-};
+// Eligibility matching: every analysed call with its eligibility status and score. The argument sets a filter
+// (from the overview statistics): all, high (75%+), eligible.
+function secMatching(arg) {
+  const F = ST.filters;
+  if (arg === "all") Object.assign(F, { status: "", high: false, prog: "", dl: "", shown: 30 });
+  if (arg === "high") Object.assign(F, { status: "", high: true, prog: "", dl: "", shown: 30 });
+  if (arg === "eligible") Object.assign(F, { status: "eligible", high: false, prog: "", dl: "", shown: 30 });
+  return `<section id="oiMatches" class="matches">${matchingHTML()}</section>`;
+}
+afterRender.matching = () => bindMatching();
 
 /* ---------- profile ---------- */
 const GROUPS = { identity: ["name", "orgType", "country", "city", "registrationNumber", "oid", "yearEstablished", "website"], about: ["description", "mission", "objectives", "activityAreas", "targetGroups", "geoScope"],
@@ -940,7 +960,7 @@ function matchingHTML() {
   const F = ST.filters, all = results(), list = filtered();
   const progs = [...new Set(all.map((r) => r.call.programme))].sort();
   const sel = (id, opts, v, label) => `<select id="${id}" aria-label="${esc(label)}">${opts.map(([val, lb]) => `<option value="${val}"${String(v) === String(val) ? " selected" : ""}>${esc(lb)}</option>`).join("")}</select>`;
-  return `<h2>${esc(T("matchTitle"))}</h2><p class="lede">${esc(T("matchLede", all.length, EC.fmtDate(EC.META.generated)))}</p>
+  return `<h1>${esc(T("matchTitle"))}</h1><p class="lede">${esc(T("matchLede", all.length, EC.fmtDate(EC.META.generated)))}</p>
     <p class="note">${esc(T("notice"))}</p>
     <div class="tier-legend" aria-label="${esc(T("scoreLegend"))}">${["low", "medium", "high"].map((k) => `<span class="sc-chip t-${k}">${esc(T("tierL." + k))}</span>`).join("")}<span class="fine">${esc(T("scoreLegend"))}</span></div>
     <div class="oi-filters">${sel("ofStatus", [["", T("fStatus")], ...Object.keys(STATUS_ORDER).map((s) => [s, T("statusL." + s)])], F.status, T("fStatus"))}
@@ -952,7 +972,7 @@ function matchingHTML() {
     <div class="match-list">${list.slice(0, F.shown).map(matchCard).join("")}</div>
     ${list.length > F.shown ? `<div><button class="btn ghost" id="ofMore">${esc(T("more"))}</button></div>` : ""}`;
 }
-// Filters re-render the overview and keep the list in view.
+// Filters re-render the list and keep it in view.
 function bindMatching() {
   const F = ST.filters, re = () => { F.shown = 30; ST.keepList = true; EC.route(); };
   const on = (id, k, f = (e) => e.value) => { const el = document.getElementById(id); if (el) el.addEventListener("change", () => { F[k] = f(el); re(); }); };
@@ -961,28 +981,58 @@ function bindMatching() {
   if (ST.keepList) { ST.keepList = false; const l = document.getElementById("oiMatches"); if (l) l.scrollIntoView({ block: "start" }); }
 }
 
+// One call's assessment as plain data: what a saved report keeps (codes and parameters, not rendered text,
+// so a saved report reads in either language).
+function snapshot(c, r) {
+  const it = (x) => ({ code: x.code, params: x.params || {}, ...(x.result ? { result: x.result } : {}), ...(x.source ? { source: x.source } : {}) });
+  return {
+    call: { key: c.key, id: c.id, title: c.title, programme: c.programme, programmeName: (EC.P[c.programme] || {}).name || c.programmeName || "", url: c.url || "", deadline: EC.nextDl(c) || "", funding: fundingText(c) || "" },
+    assessment: { score: r.score, band: r.band, status: r.status, capApplied: !!r.capApplied, checks: r.checks.map(it), strengths: r.strengths.map(it), gaps: r.gaps.map(it), next: r.next.map(it), missing: r.missing,
+      dims: Object.fromEntries(Object.entries(r.dims).map(([k, v]) => [k, v.s])), weights: r.weights },
+    dataGenerated: EC.META.generated,
+  };
+}
+// Sections A-F of an eligibility report, from live or saved assessment data.
+function reportSections(a, id) {
+  const srcLabel = (s) => (s ? T("srcL." + s) : "");
+  return `<section class="oi-card"><h2>${esc(T("repA"))}</h2><div class="oi-row"><span class="score">${scoreNum(a.score)} ${esc(T("bandL." + a.band))}</span>${statusBadge(a.status)}</div>${scoreMeter(a.score)}<p class="fine">${esc(T("scoreLegend"))}</p>
+      <p>${esc(T("explain." + a.status))}</p>${a.capApplied ? `<p class="fine">${esc(T("capNote"))}</p>` : ""}<p class="note">${esc(T("notice"))}</p></section>
+    <section class="oi-card"><h2>${esc(T("repB"))}</h2><div class="tw"><table class="oi-t"><thead><tr><th>${esc(T("requirement"))}</th><th>${esc(T("result"))}</th><th>${esc(T("basis"))}</th></tr></thead><tbody>
+      ${a.checks.map((x) => `<tr><td>${esc(codeText(x))}${x.params.quote ? `<p class="quote">${esc(x.params.quote)}</p>` : ""}${x.params.url ? `<a class="fine" href="${esc(x.params.url)}" target="_blank" rel="noopener">Programme Guide ↗</a>` : ""}</td><td><span class="res ${x.result}">${esc(x.code === "partnership.unspecified" ? T("notStated") : T("resL." + x.result))}</span></td><td class="fine">${esc(srcLabel(x.source))}</td></tr>`).join("")}
+    </tbody></table></div>
+    <h3>${esc(T("repB2"))}</h3><div class="dims">${Object.keys(DEFAULT_WEIGHTS).filter((k) => a.dims[k] !== undefined).map((k) => `<div class="dim"><span>${esc(T("dims." + k))}</span><span class="fine num">${esc(T("weight"))} ${a.weights[k]}%</span>${scoreMeter(Math.round(100 * a.dims[k]))}</div>`).join("")}</div></section>
+    <section class="oi-card"><h2>${esc(T("repC"))}</h2>${a.strengths.length ? `<ul>${a.strengths.map((x) => `<li>${esc(codeText(x))}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</section>
+    <section class="oi-card"><h2>${esc(T("repD"))}</h2>${a.gaps.length ? `<ul>${a.gaps.map((x) => `<li><span class="res ${x.result}">${esc(T("resL." + x.result))}</span> ${esc(codeText(x))}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</section>
+    <section class="oi-card"><h2>${esc(T("repE"))}</h2>${a.missing.length ? `<p>${esc(listOf(a.missing, fieldName))}</p><p><a href="#org/${id}/profile">${esc(T("fillProfile"))} →</a></p>` : `<p class="fine">${esc(T("missingCall"))}</p>`}</section>
+    <section class="oi-card"><h2>${esc(T("repF"))}</h2><ol>${a.next.map((x) => `<li>${esc(codeText(x))}</li>`).join("")}</ol></section>`;
+}
+const callMeta = (c) => `<div class="oi-row"><span>${esc(c.programmeName || "")}</span>${c.deadline ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(c.deadline))}</b></span>` : ""}${c.funding ? `<span>${esc(T("funding"))}: ${esc(c.funding)}</span>` : ""}${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(T("official"))} ↗</a>` : ""}${EC.BYKEY[c.key] ? ` · <a href="#c-${encodeURIComponent(c.key)}">Eligible Calls</a>` : ""}</div>`;
 async function secReport(key) {
   const c = EC.BYKEY[decodeURIComponent(key)];
   if (!c) return `<p class="note err">${esc(T("errors.not_found"))}</p>`;
   const r = assess(ST.org.profile, c, { stats: ST.stats || buildDF(activeCalls()) });
-  const dl = EC.nextDl(c), id = ST.org.id;
-  const srcLabel = (s) => (s ? T("srcL." + s) : "");
-  return `<a class="back" href="#org/${id}/overview/all">← ${esc(T("matchTitle"))}</a>
-    <h1>${esc(c.title)}</h1>
-    <div class="oi-row"><span>${esc((EC.P[c.programme] || {}).name || c.programmeName || "")}</span>${dl ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(dl))}</b></span>` : ""}${fundingText(c) ? `<span>${esc(T("funding"))}: ${esc(fundingText(c))}</span>` : ""}<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(T("official"))} ↗</a> · <a href="#c-${encodeURIComponent(c.key)}">Eligible Calls</a></div>
-    <section class="oi-card"><h2>${esc(T("repA"))}</h2><div class="oi-row"><span class="score">${scoreNum(r.score)} ${esc(T("bandL." + r.band))}</span>${statusBadge(r.status)}</div>${scoreMeter(r.score)}<p class="fine">${esc(T("scoreLegend"))}</p>
-      <p>${esc(T("explain." + r.status))}</p>${r.capApplied ? `<p class="fine">${esc(T("capNote"))}</p>` : ""}<p class="note">${esc(T("notice"))}</p></section>
-    <section class="oi-card"><h2>${esc(T("repB"))}</h2><div class="tw"><table class="oi-t"><thead><tr><th>${esc(T("requirement"))}</th><th>${esc(T("result"))}</th><th>${esc(T("basis"))}</th></tr></thead><tbody>
-      ${r.checks.map((x) => `<tr><td>${esc(codeText(x))}${x.params.quote ? `<p class="quote">${esc(x.params.quote)}</p>` : ""}${x.params.url ? `<a class="fine" href="${esc(x.params.url)}" target="_blank" rel="noopener">Programme Guide ↗</a>` : ""}</td><td><span class="res ${x.result}">${esc(x.code === "partnership.unspecified" ? T("notStated") : T("resL." + x.result))}</span></td><td class="fine">${esc(srcLabel(x.source))}</td></tr>`).join("")}
-    </tbody></table></div>
-    <h3>${esc(T("repB2"))}</h3><div class="dims">${Object.keys(DEFAULT_WEIGHTS).map((k) => `<div class="dim"><span>${esc(T("dims." + k))}</span><span class="fine num">${esc(T("weight"))} ${r.weights[k]}%</span>${scoreMeter(Math.round(100 * r.dims[k].s))}</div>`).join("")}</div></section>
-    <section class="oi-card"><h2>${esc(T("repC"))}</h2>${r.strengths.length ? `<ul>${r.strengths.map((s) => `<li>${esc(codeText(s))}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</section>
-    <section class="oi-card"><h2>${esc(T("repD"))}</h2>${r.gaps.length ? `<ul>${r.gaps.map((x) => `<li><span class="res ${x.result}">${esc(T("resL." + x.result))}</span> ${esc(codeText(x))}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</section>
-    <section class="oi-card"><h2>${esc(T("repE"))}</h2>${r.missing.length ? `<p>${esc(listOf(r.missing, fieldName))}</p><p><a href="#org/${id}/profile">${esc(T("fillProfile"))} →</a></p>` : `<p class="fine">${esc(T("missingCall"))}</p>`}</section>
-    <section class="oi-card"><h2>${esc(T("repF"))}</h2><ol>${r.next.map((x) => `<li>${esc(codeText(x))}</li>`).join("")}</ol></section>
+  const snap = snapshot(c, r), id = ST.org.id;
+  ST.lastSnap = snap;
+  return `<a class="back" href="#org/${id}/matching">← ${esc(T("matchTitle"))}</a>
+    <h1>${esc(c.title)}</h1>${callMeta(snap.call)}
+    ${canEdit() ? `<section class="oi-card rep-save"><h2>${esc(T("repSaveTitle"))}</h2><p class="fine">${esc(T("repSaveLede"))}</p>
+      <div class="oi-row"><div class="fld grow"><label for="rsNote">${esc(T("repNote"))}</label><input type="text" id="rsNote" maxlength="1000" placeholder="${esc(T("repNotePh"))}"></div><button type="button" class="btn" id="rsSave">${esc(T("repSave"))}</button></div>
+      <div role="status" id="rsMsg"></div></section>` : ""}
+    ${reportSections(snap.assessment, id)}
     <section class="oi-card"><h2>${esc(T("repEval"))}</h2>${critHTML((await loadCriteria()).calls[c.id], c)}</section>
     <p class="fine">${esc(T("assessedAt", fmtTime(Date.now()), ST.org.version, EC.fmtDate(EC.META.generated)))}</p>`;
 }
+afterRender.match = () => {
+  const b = document.getElementById("rsSave"); if (!b) return;
+  const id = ST.org.id, m = document.getElementById("rsMsg");
+  b.addEventListener("click", async () => {
+    b.disabled = true; m.className = "progress"; m.textContent = T("working");
+    try {
+      const r = await api("POST", `/orgs/${id}/reports`, { ...ST.lastSnap, note: document.getElementById("rsNote").value });
+      m.className = "note ok"; m.innerHTML = `${esc(T("repSaved"))} <a href="#org/${id}/reports/${esc(r.report.id)}">${esc(T("repOpenSaved"))} →</a>`;
+    } catch (e) { m.className = "note err"; m.textContent = errText(e); b.disabled = false; }
+  });
+};
 
 /* ---------- evaluation guidelines ---------- */
 // Criteria per call (site/org/criteria.json, written by ingest/award_criteria.py) and Erasmus+ KA210/KA220 (erasmus-2026.json).
@@ -1254,7 +1304,7 @@ async function secIdeas(arg) {
       ${!ready ? `<p class="note warn">${esc(T("ideasNeed"))} <a href="#org/${org.id}/profile">${esc(T("fillProfile"))}</a></p>` : ""}
       ${cands.length ? `<p class="fine">${esc(T("ideasPickNote", IDEA_CALLS))}</p><div class="idea-picks">${cands.map((r) => `<label class="opt"><input type="checkbox" data-pick="${esc(r.callId)}"${ST.ideaPick.has(r.callId) ? " checked" : ""}><span>${esc(r.call.title)} <span class="fine">· ${esc((EC.P[r.call.programme] || {}).short || r.call.programme)}</span></span>${scoreNum(r.score)}</label>`).join("")}</div>
         <div class="oi-row"><button type="button" class="btn" id="oiGen"${ready && ST.ideaPick.size && canGen ? "" : " disabled"}>${esc(T(ideas.length ? "ideasRegenerate" : "ideasGenerate"))}</button><span class="fine">${esc(T("ideasUse"))}</span></div><div id="oiGenMsg" role="status"></div>`
-        : `<p class="note">${esc(T("ideasNoCalls"))} <a href="#org/${org.id}/overview/all">${esc(T("openMatching"))} →</a></p>`}</section>` : ""}
+        : `<p class="note">${esc(T("ideasNoCalls"))} <a href="#org/${org.id}/matching/all">${esc(T("openMatching"))} →</a></p>`}</section>` : ""}
     ${canEdit() ? paywallHTML(acc, ST.accessSet) : ""}
     ${ideas.length >= 2 ? `<section class="oi-card"><h2>${esc(T("compareTitle"))}</h2><div id="oiCmp">${compareHTML(ideas, res)}</div></section>` : ""}
     ${saved.length ? `<h2 class="idea-h" id="oiSaved">${esc(T("ideasSaved"))} (${saved.length})</h2><div class="match-list">${saved.map((x) => ideaCard(x, res)).join("")}</div>` : ""}
@@ -1339,7 +1389,125 @@ afterRender.ideas = (arg) => {
     });
   });
 };
-const secReports = () => `<h1>${esc(T("reportsTitle"))}</h1><p class="note">${esc(T("reportsSoon"))}</p>`;
+/* ---------- saved reports ---------- */
+// The live assessment of a saved report's call, if the call is still published.
+const liveOf = (key) => { const c = EC.BYKEY[key]; return c ? assess(ST.org.profile, c, { stats: ST.stats || buildDF(activeCalls()) }) : null; };
+function reportDoc(rep) {
+  const d = rep.data, a = d.assessment, c = d.call;
+  const ul = (xs) => (xs.length ? { ul: xs, margin: [0, 0, 0, 6] } : { text: T("none"), italics: true, color: "#777", margin: [0, 0, 0, 6] });
+  return {
+    info: { title: c.title, creator: "Eligible Calls" }, pageSize: "A4", pageMargins: [50, 56, 50, 56],
+    content: [
+      { text: T("reportsTitle"), style: "eyebrow" }, { text: c.title, style: "h1" },
+      { text: [ST.org.name ? `${T("pdf.applicant")}: ${ST.org.name}\n` : "", c.programmeName ? `${c.programmeName}\n` : "", c.deadline ? `${T("deadline")}: ${EC.fmtDate(c.deadline)}\n` : "", c.funding ? `${T("funding")}: ${c.funding}\n` : "",
+        T("repSavedAt", fmtTime(rep.createdAt)) + (rep.createdBy ? " · " + rep.createdBy : "") + "\n", T("repProfileV", rep.profileVersion) + (d.dataGenerated ? " · " + T("repDataDate", EC.fmtDate(d.dataGenerated)) : "") + "\n", c.url || ""], style: "meta" },
+      ...(rep.note ? [{ text: `${T("repNote")}: ${rep.note}`, margin: [0, 0, 0, 8] }] : []),
+      { text: T("repA"), style: "h2" }, { text: `${a.score}% · ${T("bandL." + a.band)} · ${T("statusL." + a.status)}`, bold: true, margin: [0, 0, 0, 4] },
+      { text: T("explain." + a.status), margin: [0, 0, 0, 4] }, { text: T("notice"), style: "note" },
+      { text: T("repB"), style: "h2" },
+      { table: { headerRows: 1, widths: ["*", "18%", "16%"], body: [[T("requirement"), T("result"), T("basis")].map((h) => ({ text: h, bold: true, fontSize: 9 })),
+        ...a.checks.map((x) => [{ stack: [codeText(x), ...(x.params.quote ? [{ text: x.params.quote, italics: true, color: "#555", fontSize: 8 }] : [])] }, x.code === "partnership.unspecified" ? T("notStated") : T("resL." + x.result), x.source ? T("srcL." + x.source) : ""])] }, layout: "lightHorizontalLines", margin: [0, 2, 0, 6] },
+      { text: T("repB2"), style: "h3" },
+      { table: { widths: ["*", "16%", "16%"], body: Object.keys(DEFAULT_WEIGHTS).filter((k) => a.dims[k] !== undefined).map((k) => [T("dims." + k), `${Math.round(100 * a.dims[k])}%`, `${T("weight")} ${a.weights[k]}%`]) }, layout: "lightHorizontalLines", margin: [0, 2, 0, 6] },
+      { text: T("repC"), style: "h2" }, ul(a.strengths.map(codeText)),
+      { text: T("repD"), style: "h2" }, ul(a.gaps.map((x) => `${T("resL." + x.result)}: ${codeText(x)}`)),
+      { text: T("repE"), style: "h2" }, a.missing.length ? { text: listOf(a.missing, fieldName), margin: [0, 0, 0, 6] } : { text: T("missingCall"), italics: true, color: "#777" },
+      { text: T("repF"), style: "h2" }, a.next.length ? { ol: a.next.map(codeText) } : { text: T("none"), italics: true, color: "#777" },
+    ],
+    footer: (cur, tot) => ({ columns: [{ text: "Eligible Calls · " + T("repPdfFooter"), fontSize: 7, color: "#888" }, { text: `${cur} / ${tot}`, alignment: "right", fontSize: 7, color: "#888" }], margin: [50, 20, 50, 0] }),
+    defaultStyle: { font: "Roboto", fontSize: 10, lineHeight: 1.25 },
+    styles: { eyebrow: { fontSize: 8, color: "#888", margin: [0, 0, 0, 2] }, h1: { fontSize: 17, bold: true, margin: [0, 0, 0, 6] }, h2: { fontSize: 12.5, bold: true, color: "#1f4e79", margin: [0, 10, 0, 4] }, h3: { fontSize: 10.5, bold: true, margin: [0, 6, 0, 2] },
+      meta: { fontSize: 9, color: "#444", margin: [0, 0, 0, 8] }, note: { fontSize: 8, italics: true, color: "#666", margin: [0, 0, 0, 4] } },
+  };
+}
+async function downloadReport(rep) {
+  const pm = await loadPdfMake();
+  await new Promise((res, rej) => { try { pm.createPdf(reportDoc(rep)).download(fileSafe(rep.data.call.title) + "-" + new Date(rep.createdAt).toISOString().slice(0, 10) + ".pdf", res); } catch (e) { rej(e); } });
+}
+function downloadReportsCsv(list) {
+  const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const head = ["saved_at", "call", "programme", "deadline", "score", "status", "profile_version", "score_now", "status_now", "note", "saved_by"];
+  const rows = list.map((r) => { const now = liveOf(r.callKey); return [new Date(r.createdAt).toISOString(), r.callTitle, r.programme, r.deadline, r.score, r.status, r.profileVersion, now ? now.score : "", now ? now.status : "", r.note, r.createdBy]; });
+  const blob = new Blob(["﻿" + [head, ...rows].map((r) => r.map(q).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `saved-reports-${new Date().toISOString().slice(0, 10)}.csv`; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const nowCell = (r) => { const now = liveOf(r.callKey); if (!now) return `<span class="fine">${esc(T("repCallGone"))}</span>`; const d = now.score - r.score; return `${scoreNum(now.score)}${d ? ` <span class="fine delta ${d > 0 ? "up" : "down"}">${d > 0 ? "+" : ""}${d}</span>` : ""}${now.status !== r.status ? `<div>${statusBadge(now.status)}</div>` : ""}`; };
+async function secReports(arg) {
+  const id = ST.org.id;
+  await loadOrg(id, true);   // the comparison with today's assessment needs the latest profile
+  if (arg) return await secSavedReport(arg);
+  const list = (await api("GET", `/orgs/${id}/reports`)).reports;
+  ST.reportList = list;
+  return `<h1>${esc(T("reportsTitle"))}</h1><p class="lede">${esc(T("reportsLede"))}</p>
+    ${list.length ? `<div class="oi-row rep-tools"><div class="fld grow"><label for="rpSearch">${esc(T("reportsSearch"))}</label><input type="search" id="rpSearch" value="${esc(ST.reportQuery || "")}"></div><button type="button" class="btn quiet" id="rpCsv">${esc(T("repCsv"))}</button></div>
+      <div class="tscroll"><table class="oi-t rep-t"><thead><tr><th>${esc(T("repColSaved"))}</th><th>${esc(T("repColCall"))}</th><th class="num">${esc(T("repColScore"))}</th><th>${esc(T("repColStatus"))}</th><th class="num">${esc(T("repColNow"))}</th><th></th></tr></thead><tbody>
+      ${list.map((r) => `<tr data-q="${esc((r.callTitle + " " + r.programme + " " + r.note).toLowerCase())}"><td>${esc(fmtTime(r.createdAt))}<div class="fine">${esc(T("repProfileV", r.profileVersion))}</div></td>
+        <td><a href="#org/${id}/reports/${esc(r.id)}">${esc(r.callTitle)}</a><div class="fine">${esc(r.programme)}${r.deadline ? " · " + esc(EC.fmtDate(r.deadline)) : ""}</div>${r.note ? `<div class="fine rep-note">“${esc(r.note)}”</div>` : ""}</td>
+        <td class="num">${scoreNum(r.score)}</td><td>${statusBadge(r.status)}</td><td class="num">${nowCell(r)}</td>
+        <td><div class="oi-row"><a class="btn ghost" href="#org/${id}/reports/${esc(r.id)}">${esc(T("open"))}</a><button type="button" class="btn ghost" data-rpdf="${esc(r.id)}">PDF</button></div></td></tr>`).join("")}
+      </tbody></table></div><div role="status" id="rpMsg"></div>`
+    : `<section class="oi-card"><p>${esc(T("reportsEmpty"))}</p><p><a class="btn quiet" href="#org/${id}/matching">${esc(T("openMatching"))} →</a></p></section>`}`;
+}
+afterRender.reports = (arg) => {
+  if (arg) return bindSavedReport();
+  const id = ST.org.id, q = document.getElementById("rpSearch");
+  const filter = () => { const v = (q.value || "").trim().toLowerCase(); ST.reportQuery = v; document.querySelectorAll(".rep-t tbody tr").forEach((tr) => { tr.hidden = v && !tr.dataset.q.includes(v); }); };
+  if (q) { q.addEventListener("input", filter); filter(); }
+  const csv = document.getElementById("rpCsv"); if (csv) csv.addEventListener("click", () => downloadReportsCsv(ST.reportList || []));
+  document.querySelectorAll("[data-rpdf]").forEach((b) => b.addEventListener("click", async () => {
+    const m = document.getElementById("rpMsg"); b.disabled = true; m.className = "progress"; m.textContent = T("pdfDrawing");
+    try { await downloadReport((await api("GET", `/orgs/${id}/reports/${b.dataset.rpdf}`)).report); m.className = "fine ok"; m.textContent = T("pdfDone"); }
+    catch (e) { m.className = "note err"; m.textContent = e && e.status ? errText(e) : T("pdfFail"); }
+    b.disabled = false;
+  }));
+};
+async function secSavedReport(rid) {
+  const id = ST.org.id;
+  const rep = (await api("GET", `/orgs/${id}/reports/${encodeURIComponent(rid)}`)).report;
+  ST.openReport = rep;
+  const d = rep.data, a = d.assessment, now = liveOf(rep.callKey);
+  // What changed since the report was saved: score, status and every requirement whose result moved.
+  let change = "";
+  if (now) {
+    const before = Object.fromEntries(a.checks.map((x) => [x.code, x.result]));
+    const moved = now.checks.filter((x) => before[x.code] !== undefined && before[x.code] !== x.result);
+    const added = now.checks.filter((x) => before[x.code] === undefined);
+    const delta = now.score - a.score;
+    change = `<section class="oi-card"><h2>${esc(T("repChange"))}</h2>
+      <div class="oi-row rep-cmp"><div><span class="fine">${esc(T("repThen"))}</span><div>${scoreNum(a.score)} ${statusBadge(a.status)}</div></div><span aria-hidden="true">→</span>
+        <div><span class="fine">${esc(T("repNow"))}</span><div>${scoreNum(now.score)} ${statusBadge(now.status)}${delta ? ` <span class="delta ${delta > 0 ? "up" : "down"}">${delta > 0 ? "+" : ""}${delta}</span>` : ""}</div></div></div>
+      ${moved.length || added.length ? `<ul>${moved.map((x) => `<li>${esc(codeText(x))}: <span class="res ${before[x.code]}">${esc(T("resL." + before[x.code]))}</span> → <span class="res ${x.result}">${esc(T("resL." + x.result))}</span></li>`).join("")}${added.map((x) => `<li>${esc(codeText(x))}: <span class="res ${x.result}">${esc(T("resL." + x.result))}</span> <span class="fine">(${esc(T("repNewCheck"))})</span></li>`).join("")}</ul>` : `<p class="fine">${esc(T("repSameResult"))}</p>`}
+      <p><a href="#org/${id}/match/${encodeURIComponent(rep.callKey)}">${esc(T("repOpenCurrent"))} →</a></p></section>`;
+  } else change = `<p class="note warn">${esc(T("repCallGone"))}</p>`;
+  return `<a class="back" href="#org/${id}/reports">← ${esc(T("reportsTitle"))}</a>
+    <h1>${esc(d.call.title)}</h1>${callMeta(d.call)}
+    <section class="oi-card rep-head"><p class="fine">${esc(T("repSavedAt", fmtTime(rep.createdAt)))}${rep.createdBy ? " · " + esc(rep.createdBy) : ""} · ${esc(T("repProfileV", rep.profileVersion))}${ST.org.version !== rep.profileVersion ? " " + esc(T("repProfileNow", ST.org.version)) : ""}${d.dataGenerated ? " · " + esc(T("repDataDate", EC.fmtDate(d.dataGenerated))) : ""}</p>
+      ${canEdit() ? `<div class="oi-row"><div class="fld grow"><label for="rpNote">${esc(T("repNote"))}</label><input type="text" id="rpNote" maxlength="1000" value="${esc(rep.note)}" placeholder="${esc(T("repNotePh"))}"></div><button type="button" class="btn quiet" id="rpNoteSave">${esc(T("repNoteSave"))}</button></div>` : rep.note ? `<p>${esc(T("repNote"))}: ${esc(rep.note)}</p>` : ""}
+      <div class="oi-row"><button type="button" class="btn" id="rpPdf"><span class="pdf-ic" aria-hidden="true">PDF</span> ${esc(T("repPdf"))}</button>${canEdit() ? `<button type="button" class="btn ghost" id="rpDel">${esc(T("repDelete"))}</button>` : ""}</div>
+      <div role="status" id="rpMsg"></div></section>
+    ${change}
+    <h2 class="idea-h">${esc(T("repSavedVersion"))}</h2>
+    ${reportSections(a, id)}`;
+}
+function bindSavedReport() {
+  const id = ST.org.id, rep = ST.openReport, m = document.getElementById("rpMsg");
+  const say = (cls, t) => { m.className = cls; m.textContent = t; };
+  const pdf = document.getElementById("rpPdf");
+  pdf.addEventListener("click", async () => { pdf.disabled = true; say("progress", T("pdfDrawing")); try { await downloadReport(rep); say("fine ok", T("pdfDone")); } catch (e) { say("note err", T("pdfFail")); } pdf.disabled = false; });
+  const ns = document.getElementById("rpNoteSave");
+  if (ns) ns.addEventListener("click", async () => {
+    ns.disabled = true; say("progress", T("working"));
+    try { const note = document.getElementById("rpNote").value; await api("PATCH", `/orgs/${id}/reports/${rep.id}`, { note }); rep.note = note; say("note ok", T("repNoteSaved")); } catch (e) { say("note err", errText(e)); }
+    ns.disabled = false;
+  });
+  // Two clicks delete: the first one asks, the second one (within five seconds) deletes.
+  const del = document.getElementById("rpDel");
+  if (del) del.addEventListener("click", async () => {
+    if (!del.dataset.armed) { del.dataset.armed = "1"; del.textContent = T("repDeleteConfirm"); del.classList.add("danger"); setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = T("repDelete"); del.classList.remove("danger"); } }, 5000); return; }
+    del.disabled = true; say("progress", T("working"));
+    try { await api("DELETE", `/orgs/${id}/reports/${rep.id}`); location.hash = `#org/${id}/reports`; } catch (e) { say("note err", errText(e)); del.disabled = false; }
+  });
+}
 
 /* ---------- settings ---------- */
 async function secSettings() {

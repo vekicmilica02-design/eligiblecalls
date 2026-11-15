@@ -2,7 +2,7 @@
 // Uses the page's loaded data through window.EC (index.html) and the API under /api/.
 import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completeness } from "./schema.js";
 import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS, HIGH, mandatorySummary, setGlossary, glossaryVersion } from "./rules.js";
-import { TEXT_FIELDS, textHash } from "./lang.js";
+import { TEXT_FIELDS, textHash, estTokens } from "./lang.js";
 import { rubricFor, erasmusAction } from "./rubric.js";
 
 const EC = window.EC;
@@ -34,7 +34,7 @@ const S = {
     prov: { manual: "entered by hand", document: "from document", web: "from website" }, unverified: "auto-filled: please check", verifiedBy: "approved",
     yes: "Yes", no: "No", unknown: "Not stated",
     docsTitle: "Documents and sources", docsLede: "Upload a statute, registration certificate, annual report or project document (also scanned, in Cyrillic or Latin script), or name your website. The text is read in your browser, with OCR for scans, and sent once to the AI model; the file itself is not stored. Values found with clear evidence fill empty profile fields automatically, each marked with its source. Values that differ from the profile are shown for you to decide.",
-    upload: "Choose a document or scan", reading: "Reading the document…", sending: (i, n) => `Analysing part ${i} of ${n}…`, scanned: "No text could be read from this file. Type the facts in the profile, or try another copy of the document.",
+    upload: "Choose a document or scan", reading: "Reading the document…", sending: (i, n) => `Analysing part ${i} of ${n}…`, aiWait: (i, n, s) => `Part ${i} of ${n}: the AI service's per-minute limit is reached, trying again in ${s} s…`, scanned: "No text could be read from this file. Type the facts in the profile, or try another copy of the document.",
     tooLong: (n, max) => `The document is long: only the first ${max} parts (${n} characters) are analysed.`,
     webTitle: "Read from your website", webLede: "We read the page you name and up to two linked pages about the organisation (\"About us\", \"Mission\", \"Projects\"), on the same site, respecting robots.txt. Only facts that are quoted from those pages are proposed.", url: "Website or page address", readSite: "Read website",
     review: "Review proposed fields", reviewLede: "Each value comes with the sentence it was taken from. Values that are not clearly supported by their quote, or that the profile already has, start unticked; check them yourself. Lists are added to what the profile already has.",
@@ -213,7 +213,7 @@ const S = {
     prov: { manual: "uneto ručno", document: "iz dokumenta", web: "sa sajta" }, unverified: "automatski popunjeno: proverite", verifiedBy: "odobreno",
     yes: "Da", no: "Ne", unknown: "Nije navedeno",
     docsTitle: "Dokumenti i izvori", docsLede: "Otpremite statut, rešenje o registraciji, godišnji izveštaj ili projektni dokument (i skeniran, na ćirilici ili latinici), ili navedite svoj sajt. Tekst se čita u vašem pregledaču, sa OCR-om za skenirane dokumente, i jednom šalje AI modelu; sama datoteka se ne čuva. Vrednosti sa jasnim dokazom automatski popunjavaju prazna polja profila, svaka označena izvorom. Vrednosti koje se razlikuju od profila prikazuju se da vi odlučite.",
-    upload: "Izaberite dokument ili sken", reading: "Čitanje dokumenta…", sending: (i, n) => `Analiza dela ${i} od ${n}…`, scanned: "Iz ove datoteke nije moguće pročitati tekst. Unesite podatke u profil ili pokušajte sa drugom kopijom dokumenta.",
+    upload: "Izaberite dokument ili sken", reading: "Čitanje dokumenta…", sending: (i, n) => `Analiza dela ${i} od ${n}…`, aiWait: (i, n, s) => `Deo ${i} od ${n}: dostignuto je ograničenje AI servisa po minutu, novi pokušaj za ${s} s…`, scanned: "Iz ove datoteke nije moguće pročitati tekst. Unesite podatke u profil ili pokušajte sa drugom kopijom dokumenta.",
     tooLong: (n, max) => `Dokument je dugačak: analizira se samo prvih ${max} delova (${n} znakova).`,
     webTitle: "Čitanje sa vašeg sajta", webLede: "Čitamo stranicu koju navedete i najviše dve povezane stranice o organizaciji („O nama“, „Misija“, „Projekti“) na istom sajtu, uz poštovanje robots.txt. Predlažu se samo podaci citirani sa tih stranica.", url: "Adresa sajta ili stranice", readSite: "Pročitaj sajt",
     review: "Pregled predloženih polja", reviewLede: "Uz svaku vrednost stoji rečenica iz koje je preuzeta. Vrednosti koje citat ne potvrđuje jasno, ili koje profil već ima, nisu označene; proverite ih sami. Liste se dodaju na ono što profil već ima.",
@@ -943,7 +943,10 @@ afterRender.profile = (arg) => {
 /* ---------- documents and web research ---------- */
 // Text is read in the browser. Pages without a text layer (scans), TIFF files and photos go through OCR
 // (Tesseract, Serbian Cyrillic + Serbian Latin + English), also in the browser; the file is never uploaded.
-const CHUNK = 14000, MAX_PARTS = 6;
+// One part of a document is one model request. It must fit the smallest per-minute limit of the provider chain
+// (Groq free plan: 8,000 tokens with the answer) together with the instructions (about 1,200 tokens) and the
+// answer (1,500): parts are cut by estimated tokens, so Cyrillic text gets shorter parts than English.
+const CHUNK = 14000, MAX_PARTS = 6, PART_TOKENS = 4200;
 const TESS = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
 const PAKO = "https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js";
 const UTIF_JS = "https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js";
@@ -1008,11 +1011,15 @@ function splitText(text) {
   const parts = []; let i = 0;
   while (i < text.length && parts.length < MAX_PARTS) {
     let end = Math.min(text.length, i + CHUNK);
-    if (end < text.length) { const cut = text.lastIndexOf("\n", end); if (cut > i + CHUNK * 0.6) end = cut; }
+    for (let k = 0, est; k < 8 && (est = estTokens(text.slice(i, end))) > PART_TOKENS; k++) end = i + Math.floor(((end - i) * PART_TOKENS) / est * 0.97);
+    const len = end - i;
+    if (end < text.length) { const cut = text.lastIndexOf("\n", end); if (cut > i + len * 0.6) end = cut; }
     parts.push(text.slice(i, end)); i = end;
   }
+  parts.covered = i;   // characters sent; the rest of a very long document is not analysed
   return parts;
 }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function valueText(f, v) {
   if (v === undefined || v === null || v === "") return "";
   if (f.kind === "enum") return nm(f.options.find((o) => o.id === v)) || v;
@@ -1094,13 +1101,22 @@ afterRender.documents = () => {
       let last = null, runId = null;
       for (let i = 0; i < parts.length; i++) {
         say(T("sending", i + 1, parts.length), "analysing", (100 * i) / parts.length);
-        last = await api("POST", `/orgs/${org.id}/extract`, { sourceName: f.name, text: parts[i], part: i + 1, parts: parts.length, runId });
+        // The AI providers' per-minute limits are shared by every request: when all of them are reached
+        // (ai_busy), wait and send the same part again, at most three times.
+        for (let k = 0; ; k++) {
+          try { last = await api("POST", `/orgs/${org.id}/extract`, { sourceName: f.name, text: parts[i], part: i + 1, parts: parts.length, runId }); break; }
+          catch (e) {
+            const wait = [20, 40, 60][k];
+            if (!(e && e.status === 503 && e.message === "ai_busy") || wait === undefined) throw e;
+            for (let sec = wait; sec > 0; sec--) { say(T("aiWait", i + 1, parts.length, sec), "analysing", (100 * i) / parts.length); await sleep(1000); }
+          }
+        }
         runId = last.id;
       }
       say(T("filling"), "saving");
       ST.runs = [{ id: runId, kind: "document", sourceName: f.name, fields: last.fields, status: "review", at: Date.now() }, ...ST.runs.filter((x) => x.id !== runId)];
       const run = await fill(runId);
-      opState(prog, "completed", [f.name, doc.ocrPages ? T("ocrDone", doc.ocrPages) : "", doc.lowConf ? T("ocrLow", doc.lowConf) : "", text.length > CHUNK * MAX_PARTS ? T("tooLong", CHUNK * MAX_PARTS, MAX_PARTS) : ""].filter(Boolean).join(" "));
+      opState(prog, "completed", [f.name, doc.ocrPages ? T("ocrDone", doc.ocrPages) : "", doc.lowConf ? T("ocrLow", doc.lowConf) : "", parts.covered < text.length ? T("tooLong", parts.covered, MAX_PARTS) : ""].filter(Boolean).join(" "));
       show(run);
     } catch (e) { opState(prog, "failed", e.message === "type" ? T("badType") : e.message === "ocr_unavailable" ? T("ocrUnavailable") : errText(e)); }
     finally { if (lbl) lbl.classList.remove("busy"); file.value = ""; }

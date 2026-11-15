@@ -238,4 +238,5 @@ export function buildMessages(index, req, now, { limit = 8 } = {}) {
   return { messages: [{ role: "system", content: sys }, ...msgs], hits: hits.map((h) => h.c.id), country };
 }
 
-export const estTokens = (s) => Math.ceil(String(s).length / 3.6);
+// Token estimate shared with the browser (site/org/lang.js): Cyrillic and other non-ASCII text counts more per character.
+export { estTokens } from "../site/org/lang.js";

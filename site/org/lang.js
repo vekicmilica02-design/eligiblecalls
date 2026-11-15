@@ -36,6 +36,17 @@ export function detectLang(text) {
 // The free-text profile fields used for the thematic match, and the ones that get an English copy.
 export const TEXT_FIELDS = ["description", "mission", "objectives", "expertise"];
 
+// Rough token count of a text, for budget and size checks before a request is sent. Letters outside ASCII
+// (Cyrillic, diacritics) cost far more tokens per character than English: measured with the o200k tokenizer on
+// 15 Nov 2026, an OCR'd Serbian Cyrillic statute had 2.6 characters per token and English call texts 5.6. The
+// divisors 2.2 and 3.6 keep the estimate above the real count for Cyrillic and for English.
+export function estTokens(s) {
+  const t = String(s ?? "");
+  let wide = 0;
+  for (let i = 0; i < t.length; i++) if (t.charCodeAt(i) > 127) wide++;
+  return Math.ceil((t.length - wide) / 3.6 + wide / 2.2);
+}
+
 // Short fingerprint of a source text, to tell whether an English copy was made from the current text.
 // FNV-1a over UTF-16 code units, hex; the same in the browser and in Workers.
 export function textHash(s) {

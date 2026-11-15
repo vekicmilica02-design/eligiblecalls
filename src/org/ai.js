@@ -37,7 +37,7 @@ export async function complete({ env, userId, messages, maxOut = 1500, now = Dat
   }
   if (!order.length) throw new HttpError(503, "ai_resting");
 
-  let lastErr = null;
+  const errs = [];
   for (const o of order) {
     try {
       const run = o.provider === "workers-ai" ? await workersAI(env, messages, maxOut) : await groq(env, messages, maxOut, fetchImpl, o.model);
@@ -48,13 +48,17 @@ export async function complete({ env, userId, messages, maxOut = 1500, now = Dat
       await countUser(env, userId, now);
       return { text, provider: run.provider, model: run.model };
     } catch (e) {
-      lastErr = e;
+      errs.push(e);
+      // Shown in the Pages Functions log: which provider failed and why (status and the provider's short message).
+      console.warn("org ai: provider failed", o.provider, o.model || "", (e && e.code) || "", (e && e.status) || "", String((e && e.detail) || (e && e.message) || "").slice(0, 200));
       if (e instanceof ProviderError && e.code === "quota") {
         waitUntil(addUsage(db, day, o.provider === "groq" ? groqKey(o.model) : "workers-ai", o.provider === "groq" ? 0 : num(env.DAILY_NEURON_BUDGET, 9000), o.provider === "groq" ? o.budget : 0).catch(() => {}));
       }
     }
   }
-  throw new HttpError(503, lastErr instanceof ProviderError && lastErr.code === "busy" ? "ai_busy" : "ai_unavailable");
+  // A per-minute limit anywhere in the chain is reported as such (the request can be repeated shortly), even when a
+  // later provider failed for another reason: the last error alone hid it.
+  throw new HttpError(503, errs.some((e) => e instanceof ProviderError && e.code === "busy") ? "ai_busy" : "ai_unavailable");
 }
 
 // First JSON object in a model answer (models sometimes wrap it in a code fence or add a sentence).

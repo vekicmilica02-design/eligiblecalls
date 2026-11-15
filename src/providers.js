@@ -16,8 +16,8 @@ export const NEURONS_PER_M = {
 export const GROQ_FREE = [
   { model: "openai/gpt-oss-120b", tpd: 200000, tpm: 8000 },
   { model: "openai/gpt-oss-20b", tpd: 200000, tpm: 8000 },
-  { model: "llama-3.3-70b-versatile", tpd: 100000, tpm: 12000 },
-  { model: "llama-3.1-8b-instant", tpd: 500000, tpm: 6000 },
+  // llama-3.3-70b-versatile and llama-3.1-8b-instant were shut down for free and developer accounts on
+  // 16 Aug 2026 (console.groq.com/docs/deprecations); a request to them only fails, so they are not in the chain.
 ];
 
 // The Groq chain for this deployment, with a daily budget at 95% of each limit.

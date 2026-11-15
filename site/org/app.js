@@ -52,7 +52,7 @@ const S = {
     deadline: "Deadline", funding: "Funding", notStated: "No requirement stated", missingCall: "The profile has the information this assessment uses for this call.", perGrant: "per grant", topicBudget: "total budget of the topic", programme: "Programme", noCountry: "Add your country and organisation type to the profile: without them no call can be checked.",
     statusL: { eligible: "Eligible based on available information", potential: "Potentially eligible: verification required", ineligible: "Ineligible: mandatory requirement not met", insufficient: "Insufficient information" },
     bandL: { high: "High compatibility", medium: "Medium compatibility", excellent: "Excellent compatibility", strong: "Strong compatibility", moderate: "Moderate compatibility", low: "Low compatibility", verylow: "Very low compatibility" },
-    repA: "A. Overall assessment", mandT: "Mandatory eligibility: can you apply?", stratT: "Strategic compatibility: how well does it fit?", stratWhat: "Weighted fit of the call with your mission and areas of activity, experience, target groups, capacity and partnerships. Country and organisation type are not part of it: they decide the status.", offT: "Official eligibility documentation", offLede: "The mandatory conditions above that are marked as an official call document come from this source. Eligible Calls reads the eligibility section of the call document (or the funder page) and keeps the quoted sentence of every condition.", offPub: "Publisher", offDoc: "Document", offPublished: "Published", offVerified: "Last verified", offNone: "No official eligibility document is read for this call.", aiT: "AI check against the official text", aiLede: "The AI lists every mandatory condition in the official text, quotes it, and checks your profile against it. Only conditions whose quote is found in the official text are kept; a result that does not rest on a filled profile field is shown as to verify. The results count in the eligibility status.", aiRun: "Check my profile against the official text", aiRerun: "Check again", aiStale: (v) => `Made with profile version ${v}; your profile has changed since. Run the check again to update the status.`, aiNoText: "There is no official text for an AI check of this call.", aiApplies: { applicant: "applicant", coordinator: "coordinator", consortium: "consortium", all: "all participants" }, aiMade: (t) => `Checked ${t}`, aiCounts: "These results count in the status above.", repB: "B. Requirements checked", repB2: "Compatibility by dimension", repC: "C. Organisational strengths", repD: "D. Eligibility gaps", repE: "E. Missing information", repF: "F. Recommendations",
+    repA: "A. Overall assessment", mandT: "Mandatory eligibility: can you apply?", stratT: "Strategic compatibility: how well does it fit?", stratWhat: "Weighted fit of the call with your mission and areas of activity, experience, target groups, capacity and partnerships. Country and organisation type are not part of it: they decide the status.", offT: "Official eligibility documentation", offLede: "The mandatory conditions above that are marked as an official call document come from this source. Eligible Calls reads the eligibility section of the call document (or the funder page) and keeps the quoted sentence of every condition.", offPub: "Publisher", offDoc: "Document", offPublished: "Published", offVerified: "Last verified", offNone: "No official eligibility document is read for this call.", aiT: "AI check against the official text", aiLede: "The AI lists every mandatory condition in the official text, quotes it, and checks your profile against it. Only conditions whose quote is found in the official text are kept; a result that does not rest on a filled profile field is shown as to verify. The results count in the eligibility status. The check runs on its own when an editor opens this report, once for each profile version.", aiRun: "Check my profile against the official text", aiRerun: "Check again", aiStale: (v) => `Made with profile version ${v}; your profile has changed since. Run the check again to update the status.`, aiNoText: "There is no official text for an AI check of this call.", aiApplies: { applicant: "applicant", coordinator: "coordinator", consortium: "consortium", all: "all participants" }, aiMade: (t) => `Checked ${t}`, aiCounts: "These results count in the status above.", repB: "B. Requirements checked", repB2: "Compatibility by dimension", repC: "C. Organisational strengths", repD: "D. Eligibility gaps", repE: "E. Missing information", repF: "F. Recommendations",
     requirement: "Requirement", result: "Result", basis: "Basis", weight: "Weight", part: "Score",
     resL: { pass: "Met", fail: "Not met", warn: "Possible problem", unknown: "To verify", missing: "Profile data missing" },
     srcL: { official: "official call document", "official-ai": "official document, AI-checked", "programme-list": "Commission list of participating countries", call: "call text", source: "source of the call", derived: "Eligible Calls rules on the call text", "call-rule": "official text quoted", none: "source data" },
@@ -130,6 +130,14 @@ const S = {
     evTextScale: "the funder states no point scale: each criterion is scored 0 to 5 as an indication", evNoThreshold: "No threshold stated", evNoTotal: "the documentation states no overall threshold", evBasis: "Basis", evSourceDoc: "Call documentation",
     evRun: "Evaluate", evBusy: "Evaluating against the call's award criteria…", evDone: "Evaluation saved.",
     evPass: "Above the thresholds", evFail: "Below a threshold",
+    evStrengths: "Strengths", evWeak: "Weaknesses", evMissing: "Missing elements", evRec: "Recommendations",
+    evNoMin: (names) => `No individual minimum for ${names}: the call document states none ("n/a"), so these criteria count only towards the overall threshold.`,
+    evAuto: (i, n) => `idea ${i} of ${n}`, evAutoDone: (n, f) => `Evaluated automatically: ${n} idea(s), ${f} below a threshold.`, evAutoStop: "Automatic evaluation stopped:",
+    evAutoPremium: "Ideas are evaluated automatically with premium access; without it, the evaluation stays empty.", evAutoNone: "The award criteria of the selected calls are not in our data, so no idea could be evaluated automatically.",
+    ideasBelow: "Below the evaluation threshold", ideaBelowChip: "Below the evaluation threshold", pickBelow: "your last idea for this call was below the evaluation threshold",
+    ideasBelowNote: "The indicative evaluation scored these concepts below the threshold of their call, so they are not recommended as written. They stay here so you can revise them and evaluate again; the call itself may still suit your organisation with a different concept.",
+    conceptFitBasis: "Estimated by the AI when the idea was written, from your saved profile and the call's description (title, programme, eligibility, funding and an excerpt of the call text). It rates this concept, not the organisation; the proposal PDF is not used.",
+    evalTabsNote: "Horizon Europe (General Annex D) and Erasmus+ KA210 and KA220 (Programme Guide) score every call with one set of criteria, so each has its own tab. Other programmes set their criteria in each call's own document; choose them under \"By call\" with the programme filter.",
     evThreshold: (t, m) => `funding threshold ${t} of ${m} points`,
     evGuide: (y, v) => `Programme Guide ${y}${v ? ", " + v : ""}`, evUsedProposal: "uses the detailed proposal",
     evScore: "Score", evTotal: "Total", evPriority: "What to improve first",
@@ -223,7 +231,7 @@ const S = {
     deadline: "Rok", funding: "Iznos", notStated: "Uslov nije naveden", missingCall: "Profil sadrži podatke koje ova procena koristi za ovaj poziv.", perGrant: "po grantu", topicBudget: "ukupan budžet teme", programme: "Program", noCountry: "Dodajte državu i tip organizacije u profil: bez njih nijedan poziv ne može da se proveri.",
     statusL: { eligible: "Podobna prema dostupnim podacima", potential: "Moguće podobna: potrebna provera", ineligible: "Nije podobna: obavezan uslov nije ispunjen", insufficient: "Nedovoljno podataka" },
     bandL: { high: "Visoka kompatibilnost", medium: "Srednja kompatibilnost", excellent: "Odlična kompatibilnost", strong: "Velika kompatibilnost", moderate: "Umerena kompatibilnost", low: "Niska kompatibilnost", verylow: "Veoma niska kompatibilnost" },
-    repA: "A. Ukupna procena", mandT: "Obavezna podobnost: da li možete da aplicirate?", stratT: "Strateška usklađenost: koliko poziv odgovara?", stratWhat: "Ponderisana usklađenost poziva sa vašom misijom i oblastima rada, iskustvom, ciljnim grupama, kapacitetom i partnerstvima. Država i vrsta organizacije nisu deo nje: one određuju status.", offT: "Zvanična dokumentacija o podobnosti", offLede: "Obavezni uslovi iznad koji su označeni kao zvanični dokument poziva potiču iz ovog izvora. Eligible Calls čita deo o podobnosti iz dokumenta poziva (ili sa stranice finansijera) i čuva citiranu rečenicu za svaki uslov.", offPub: "Izdavač", offDoc: "Dokument", offPublished: "Objavljeno", offVerified: "Poslednja provera", offNone: "Za ovaj poziv se ne čita zvanični dokument o podobnosti.", aiT: "AI provera prema zvaničnom tekstu", aiLede: "AI navodi svaki obavezan uslov iz zvaničnog teksta, citira ga i proverava vaš profil. Zadržavaju se samo uslovi čiji je citat pronađen u zvaničnom tekstu; rezultat koji se ne oslanja na popunjeno polje profila prikazuje se kao za proveru. Rezultati se računaju u status podobnosti.", aiRun: "Proveri profil prema zvaničnom tekstu", aiRerun: "Proveri ponovo", aiStale: (v) => `Urađeno sa verzijom profila ${v}; profil se od tada promenio. Ponovite proveru da biste ažurirali status.`, aiNoText: "Za ovaj poziv nema zvaničnog teksta za AI proveru.", aiApplies: { applicant: "podnosilac", coordinator: "koordinator", consortium: "konzorcijum", all: "svi učesnici" }, aiMade: (t) => `Provereno ${t}`, aiCounts: "Ovi rezultati se računaju u status iznad.", repB: "B. Provereni uslovi", repB2: "Kompatibilnost po dimenzijama", repC: "C. Prednosti organizacije", repD: "D. Nedostaci u podobnosti", repE: "E. Podaci koji nedostaju", repF: "F. Preporuke",
+    repA: "A. Ukupna procena", mandT: "Obavezna podobnost: da li možete da aplicirate?", stratT: "Strateška usklađenost: koliko poziv odgovara?", stratWhat: "Ponderisana usklađenost poziva sa vašom misijom i oblastima rada, iskustvom, ciljnim grupama, kapacitetom i partnerstvima. Država i vrsta organizacije nisu deo nje: one određuju status.", offT: "Zvanična dokumentacija o podobnosti", offLede: "Obavezni uslovi iznad koji su označeni kao zvanični dokument poziva potiču iz ovog izvora. Eligible Calls čita deo o podobnosti iz dokumenta poziva (ili sa stranice finansijera) i čuva citiranu rečenicu za svaki uslov.", offPub: "Izdavač", offDoc: "Dokument", offPublished: "Objavljeno", offVerified: "Poslednja provera", offNone: "Za ovaj poziv se ne čita zvanični dokument o podobnosti.", aiT: "AI provera prema zvaničnom tekstu", aiLede: "AI navodi svaki obavezan uslov iz zvaničnog teksta, citira ga i proverava vaš profil. Zadržavaju se samo uslovi čiji je citat pronađen u zvaničnom tekstu; rezultat koji se ne oslanja na popunjeno polje profila prikazuje se kao za proveru. Rezultati se računaju u status podobnosti. Provera se pokreće sama kada urednik otvori ovaj izveštaj, jednom za svaku verziju profila.", aiRun: "Proveri profil prema zvaničnom tekstu", aiRerun: "Proveri ponovo", aiStale: (v) => `Urađeno sa verzijom profila ${v}; profil se od tada promenio. Ponovite proveru da biste ažurirali status.`, aiNoText: "Za ovaj poziv nema zvaničnog teksta za AI proveru.", aiApplies: { applicant: "podnosilac", coordinator: "koordinator", consortium: "konzorcijum", all: "svi učesnici" }, aiMade: (t) => `Provereno ${t}`, aiCounts: "Ovi rezultati se računaju u status iznad.", repB: "B. Provereni uslovi", repB2: "Kompatibilnost po dimenzijama", repC: "C. Prednosti organizacije", repD: "D. Nedostaci u podobnosti", repE: "E. Podaci koji nedostaju", repF: "F. Preporuke",
     requirement: "Uslov", result: "Rezultat", basis: "Osnov", weight: "Ponder", part: "Ocena",
     resL: { pass: "Ispunjen", fail: "Nije ispunjen", warn: "Mogući problem", unknown: "Za proveru", missing: "Nedostaju podaci u profilu" },
     srcL: { official: "zvanični dokument poziva", "official-ai": "zvanični dokument, AI provera", "programme-list": "lista zemalja učesnica Evropske komisije", call: "tekst poziva", source: "izvor poziva", derived: "pravila Eligible Calls nad tekstom poziva", "call-rule": "citiran zvanični tekst", none: "izvorni podaci" },
@@ -301,6 +309,14 @@ const S = {
     evTextScale: "finansijer ne navodi skalu bodova: svaki kriterijum se okvirno ocenjuje od 0 do 5", evNoThreshold: "Prag nije naveden", evNoTotal: "dokumentacija ne navodi ukupni prag", evBasis: "Osnova", evSourceDoc: "Dokumentacija poziva",
     evRun: "Oceni", evBusy: "Ocenjivanje prema kriterijumima poziva…", evDone: "Ocena je sačuvana.",
     evPass: "Iznad pragova", evFail: "Ispod nekog praga",
+    evStrengths: "Snage", evWeak: "Slabosti", evMissing: "Elementi koji nedostaju", evRec: "Preporuke",
+    evNoMin: (names) => `Nema pojedinačnog minimuma za: ${names}. Dokument poziva ga ne navodi („n/a“), pa se ovi kriterijumi računaju samo u ukupni prag.`,
+    evAuto: (i, n) => `ideja ${i} od ${n}`, evAutoDone: (n, f) => `Automatski ocenjeno: ${n} ideja, ispod nekog praga: ${f}.`, evAutoStop: "Automatsko ocenjivanje je zaustavljeno:",
+    evAutoPremium: "Ideje se automatski ocenjuju uz premijum pristup; bez njega ocena ostaje prazna.", evAutoNone: "Kriterijumi za dodelu izabranih poziva nisu u našim podacima, pa nijedna ideja nije mogla automatski da se oceni.",
+    ideasBelow: "Ispod praga ocenjivanja", ideaBelowChip: "Ispod praga ocenjivanja", pickBelow: "vaša poslednja ideja za ovaj poziv bila je ispod praga ocenjivanja",
+    ideasBelowNote: "Okvirna ocena je ove koncepte bodovala ispod praga njihovog poziva, pa ih u ovom obliku ne preporučujemo. Ostaju ovde da biste ih doradili i ponovo ocenili; sam poziv i dalje može da odgovara vašoj organizaciji uz drugačiji koncept.",
+    conceptFitBasis: "AI procena napravljena kada je ideja napisana, na osnovu sačuvanog profila i opisa poziva (naziv, program, podobnost, finansiranje i deo teksta poziva). Ocenjuje ovaj koncept, a ne organizaciju; PDF predloga se ne koristi.",
+    evalTabsNote: "Horizont Evropa (Opšti aneks D) i Erasmus+ KA210 i KA220 (Vodič kroz program) ocenjuju svaki poziv istim kriterijumima, pa svaki ima svoju karticu. Ostali programi navode kriterijume u dokumentu svakog poziva; izaberite ih pod „Po pozivu“ pomoću filtera programa.",
     evThreshold: (t, m) => `prag za finansiranje ${t} od ${m} bodova`,
     evGuide: (y, v) => `Vodič kroz program ${y}${v ? ", " + v : ""}`, evUsedProposal: "korišćen detaljan predlog",
     evScore: "Bodovi", evTotal: "Ukupno", evPriority: "Šta prvo poboljšati",
@@ -386,7 +402,7 @@ const CODES = {
     "str.sectors": (p) => `Shared areas of activity: ${listOf(p.sectors, sectorName)}.`, "str.words": (p) => `Words shared with the call text: ${p.words.join(", ")}.`, "str.groups": (p) => `The call mentions your target groups: ${listOf(p.groups, groupName)}.`,
     "str.experience": (p) => `Experience as ${p.role === "both" ? "partner and coordinator" : p.role} in ${p.programme === "ERASMUS" ? "Erasmus+" : "EU-funded"} projects.`, "str.capacity": () => "Team size fits the size of the grant.", "str.country": (p) => `${ccName(p.cc)} is fully eligible.`,
     "off.unverified": (p) => (p.status === "not_researched" ? "Eligible Calls does not read the official documents of this call (it is published outside the EU Funding & Tenders Portal and UKRI). The mandatory conditions are not verified: read them in the call's own documents." : `The official eligibility text could not be read (${OFFST[p.status] || p.status}). The mandatory conditions are not verified: read them in the call document.`),
-    "off.read": (p) => `The official eligibility text was read (${p.title}). None of the conditions that can be checked automatically excludes your organisation; ask the AI check below for the full list.`,
+    "off.read": (p) => `The official eligibility text was read (${p.title}). None of the conditions that can be checked automatically excludes your organisation; the AI check below lists them all.`,
     "off.natural.pass": () => "Natural persons are not eligible; your organisation applies as an organisation.", "off.natural.fail": () => "Natural persons are not eligible for this call.", "off.natural.missing": () => "Natural persons are not eligible; the organisation type is missing in the profile.",
     "off.legal.fail": () => "Applicants must be legal entities; an informal group is not one.", "off.legal.exceptional": () => "Applicants must be legal entities; entities without legal personality may take part only exceptionally, if their representatives can take on legal obligations for them.",
     "off.coordinator.forProfit": () => "The coordinator (lead applicant) must be a non-profit entity: a for-profit organisation can take part only as a co-applicant.", "off.forProfit.partner": () => "For-profit organisations may apply only in partnership with public or non-profit organisations.",
@@ -417,7 +433,7 @@ const CODES = {
     "str.sectors": (p) => `Zajedničke oblasti delovanja: ${listOf(p.sectors, sectorName)}.`, "str.words": (p) => `Reči zajedničke sa tekstom poziva: ${p.words.join(", ")}.`, "str.groups": (p) => `Poziv pominje vaše ciljne grupe: ${listOf(p.groups, groupName)}.`,
     "str.experience": (p) => `Iskustvo kao ${p.role === "both" ? "partner i koordinator" : p.role === "coordinator" ? "koordinator" : "partner"} u ${p.programme === "ERASMUS" ? "Erasmus+" : "EU"} projektima.`, "str.capacity": () => "Veličina tima odgovara veličini granta.", "str.country": (p) => `${ccName(p.cc)} je u potpunosti podobna.`,
     "off.unverified": (p) => (p.status === "not_researched" ? "Eligible Calls ne čita zvanična dokumenta ovog poziva (objavljen je van portala EU Funding & Tenders i UKRI). Obavezni uslovi nisu provereni: pročitajte ih u dokumentima poziva." : `Zvanični tekst o podobnosti nije mogao da se pročita (${OFFST_SR[p.status] || p.status}). Obavezni uslovi nisu provereni: pročitajte ih u dokumentu poziva.`),
-    "off.read": (p) => `Zvanični tekst o podobnosti je pročitan (${p.title}). Nijedan uslov koji može automatski da se proveri ne isključuje vašu organizaciju; za ceo spisak pokrenite AI proveru ispod.`,
+    "off.read": (p) => `Zvanični tekst o podobnosti je pročitan (${p.title}). Nijedan uslov koji može automatski da se proveri ne isključuje vašu organizaciju; AI provera ispod navodi sve uslove.`,
     "off.natural.pass": () => "Fizička lica nisu podobna; vaša organizacija aplicira kao organizacija.", "off.natural.fail": () => "Fizička lica nisu podobna za ovaj poziv.", "off.natural.missing": () => "Fizička lica nisu podobna; u profilu nedostaje tip organizacije.",
     "off.legal.fail": () => "Podnosioci moraju biti pravna lica; neformalna grupa to nije.", "off.legal.exceptional": () => "Podnosioci moraju biti pravna lica; subjekti bez pravnog subjektiviteta mogu da učestvuju samo izuzetno, ako njihovi predstavnici mogu da preuzmu pravne obaveze za njih.",
     "off.coordinator.forProfit": () => "Koordinator (glavni podnosilac) mora biti neprofitna organizacija: profitna organizacija može da učestvuje samo kao partner.", "off.forProfit.partner": () => "Profitne organizacije mogu da apliciraju samo u partnerstvu sa javnim ili neprofitnim organizacijama.",
@@ -1229,19 +1245,25 @@ function officialHTML(c) {
   const can = e && e.hasText;
   return `<section class="oi-card off"><h2>${esc(T("offT"))}</h2><p class="fine">${esc(T("offLede"))}</p>${src}
     <h3>${esc(T("aiT"))}</h3><p class="fine">${esc(T("aiLede"))}</p>${res}
-    ${can ? (canEdit() ? `<div class="oi-row"><button type="button" class="btn quiet" id="offRun" data-call="${esc(c.id)}">${esc(T(chk ? "aiRerun" : "aiRun"))}</button></div><div class="op" id="offMsg" role="status" aria-live="polite"></div>` : "") : `<p class="fine">${esc(T("aiNoText"))}</p>`}</section>`;
+    ${can ? (canEdit() ? `<div class="oi-row"><button type="button" class="btn quiet" id="offRun" data-call="${esc(c.id)}"${!chk || stale ? ` data-auto="${esc(c.id + ":" + ST.org.version)}" hidden` : ""}>${esc(T(chk ? "aiRerun" : "aiRun"))}</button></div><div class="op" id="offMsg" role="status" aria-live="polite"></div>` : "") : `<p class="fine">${esc(T("aiNoText"))}</p>`}</section>`;
 }
 afterRender.match = () => {
   const run = document.getElementById("offRun");
-  if (run) run.addEventListener("click", async () => {
-    const m = document.getElementById("offMsg"), id = ST.org.id;
-    run.disabled = true; opState(m, "checking", T("op.checking"));
+  const check = async () => {
+    const m = document.getElementById("offMsg"), id = ST.org.id, route = location.hash;
+    run.disabled = true; opState(m, "checking");
     try {
       await api("POST", `/orgs/${id}/official-checks`, { callId: run.dataset.call, lang: L() });
       await loadOfficial(id); ST.resultsKey = null;
-      EC.route();
-    } catch (e) { opState(m, "failed", errText(e)); run.disabled = false; }
-  });
+      if (location.hash === route) EC.route();
+    } catch (e) { opState(m, "failed", errText(e)); run.hidden = false; run.disabled = false; }
+  };
+  if (run) run.addEventListener("click", check);
+  // No check yet for this call and profile version: it starts on its own when an editor opens the report. Tried once
+  // per call and version in this session, so a failure (limit, budget, model) is shown with the button, not repeated.
+  const auto = run && run.dataset.auto;
+  if (auto && !(ST.offTried || (ST.offTried = new Set())).has(auto)) { ST.offTried.add(auto); check(); }
+  else if (auto) run.hidden = false;
   const b = document.getElementById("rsSave"); if (!b) return;
   const id = ST.org.id, m = document.getElementById("rsMsg");
   b.addEventListener("click", async () => {
@@ -1290,8 +1312,8 @@ function critHTML(e, c) {
     const t = e.table;
     return `<p class="fine">${esc(T("critFromDoc"))}${e.version ? " (" + esc(e.version) + ")" : ""} · ${ext(e.url, T("callDoc"))}${e.evalForm ? " · " + ext(e.evalForm, T("evalForm")) : ""}</p>
       ${t ? `<div class="tw"><table class="oi-t crit-t"><thead><tr><th>${esc(T("criterion"))}</th><th class="num">${esc(T("minPass"))}</th><th class="num">${esc(T("maxScore"))}</th></tr></thead><tbody>
-        ${t.rows.map((r) => `<tr><td>${esc(r.name)}</td><td class="num">${esc(/^(n\/a|-)$/i.test(r.min) ? "–" : r.min)}</td><td class="num">${esc(pts(r.max))}</td></tr>`).join("")}
-        <tr class="tot"><td>${esc(t.total.name)}</td><td class="num">${esc(t.total.min)}</td><td class="num">${esc(pts(t.total.max))}</td></tr></tbody></table></div>` : ""}
+        ${t.rows.map((r) => `<tr><td>${esc(r.name)}</td><td class="num">${esc(/^n\/a$/i.test(r.min) ? "n/a" : /^-$/.test(r.min) ? "–" : r.min)}</td><td class="num">${esc(pts(r.max))}</td></tr>`).join("")}
+        <tr class="tot"><td>${esc(t.total.name)}</td><td class="num">${esc(t.total.min)}</td><td class="num">${esc(pts(t.total.max))}</td></tr></tbody></table></div>${t.rows.some((r) => /^n\/a$/i.test(r.min)) ? `<p class="fine">${esc(T("evNoMin", t.rows.filter((r) => /^n\/a$/i.test(r.min)).map((r) => r.name).join(", ")))}</p>` : ""}` : ""}
       ${e.summary && e.summary.length ? `<ul class="crit-sumtext">${e.summary.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
       <details class="crit-full"><summary>${esc(T("fullText"))}</summary>${textBlocks(e.blocks)}</details>${note}`;
   }
@@ -1306,7 +1328,8 @@ async function secEvaluation() {
   const tab = ST.evalTab || "calls", id = ST.org.id;
   const tabs = [["calls", T("evalTabCalls")], ["horizon", "Horizon Europe"], ["erasmus", "Erasmus+ KA210 · KA220"]];
   const head = `<h1>${esc(T("evalTitle"))}</h1><p class="lede">${esc(T("evalLede"))}</p>
-    <div class="etabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" class="etab${tab === k ? " on" : ""}" aria-selected="${tab === k}" data-etab="${k}">${esc(l)}</button>`).join("")}</div>`;
+    <div class="etabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" class="etab${tab === k ? " on" : ""}" aria-selected="${tab === k}" data-etab="${k}">${esc(l)}</button>`).join("")}</div>
+    <p class="fine">${esc(T("evalTabsNote"))}</p>`;
   if (tab === "horizon") {
     const fw = crit.frameworks["HE-GA-D"];
     if (!fw) return head + `<p class="note err">${esc(T("errors.data_unavailable"))}</p>`;
@@ -1361,6 +1384,13 @@ const evTitle = (e) => e.title || `Erasmus+ ${e.action} · ${nm(e.actionName)}`;
 const evSource = (e) => e.sourceUrl ? `<a href="${esc(e.sourceUrl)}" target="_blank" rel="noopener">${esc(e.sourceTitle || T("evSourceDoc"))} ↗</a>` : e.guideUrl ? `<a href="${esc(e.guideUrl)}" target="_blank" rel="noopener">${esc(T("evGuide", e.guideYear, e.guideVersion))} ↗</a>` : esc(e.sourceTitle || "");
 const evShort = (e, k) => (e.kind === "horizon" ? "Horizon Europe" : e.kind === "document" ? T("evShortDoc") : e.kind === "text" ? T("evShortText") : k);
 const ptsTxt = (n) => (n === null || n === undefined ? "–" : String(Math.round(n * 10) / 10));
+// Criteria without an individual minimum, when the documentation does set thresholds elsewhere (CERV: only Relevance
+// has one, Quality and Impact are "n/a" in the call document's table): said once, so "–" is not read as missing data.
+const noMinNote = (e) => {
+  const none = (e.criteria || []).filter((c) => c.min === null || c.min === undefined);
+  const hasRule = e.threshold !== null && e.threshold !== undefined || (e.criteria || []).some((c) => c.min !== null && c.min !== undefined);
+  return none.length && hasRule ? `<p class="fine">${esc(T("evNoMin", none.map((c) => c.name).join(", ")))}</p>` : "";
+};
 function evalHTML(e) {
   const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
   const verdict = e.passed === true ? `<span class="st eligible">${esc(T("evPass"))}</span>` : e.passed === false ? `<span class="st ineligible">${esc(T("evFail"))}</span>` : `<span class="st potential">${esc(T("evNoThreshold"))}</span>`;
@@ -1371,6 +1401,7 @@ function evalHTML(e) {
       ${e.criteria.map((c) => `<tr><td>${esc(c.name)}${c.quote ? `<div class="fine">“${esc(c.quote)}”</div>` : ""}</td><td class="num"><b class="scn ${tierCls(pct(c.score, c.max))}">${ptsTxt(c.score)} / ${ptsTxt(c.max)}</b></td><td class="num">${c.min === null || c.min === undefined ? "–" : ptsTxt(c.min) + mark(c.pass)}</td></tr>`).join("")}
       <tr class="tot"><td>${esc(T("evTotal"))}</td><td class="num"><b>${ptsTxt(e.total)} / ${ptsTxt(e.max)}</b></td><td class="num">${e.threshold === null || e.threshold === undefined ? "–" : ptsTxt(e.threshold) + mark(e.passesTotal)}</td></tr></tbody></table></div>
     ${(e.notes || []).length ? `<ul class="fine ev-notes">${e.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+    ${noMinNote(e)}
     ${e.criteria.map((c) => `<details class="ev-c"><summary>${esc(c.name)}: ${ptsTxt(c.score)} / ${ptsTxt(c.max)}</summary><p>${esc(c.justification)}</p>
       ${[["strengths", "evStrengths"], ["weaknesses", "evWeak"], ["missing", "evMissing"], ["recommendations", "evRec"]].filter(([k]) => (c[k] || []).length).map(([k, l]) => `<h4>${esc(T(l))}</h4><ul>${c[k].map((y) => `<li>${esc(y)}</li>`).join("")}</ul>`).join("")}</details>`).join("")}
     ${e.summary ? `<p>${esc(e.summary)}</p>` : ""}${(e.priorityActions || []).length ? `<h4>${esc(T("evPriority"))}</h4><ol>${e.priorityActions.map((y) => `<li>${esc(y)}</li>`).join("")}</ol>` : ""}
@@ -1378,6 +1409,15 @@ function evalHTML(e) {
 }
 // The rubric the next evaluation of this idea will use (null: the call's criteria are not in the data).
 const ideaRubric = (x) => { const c = (EC.CALLS || []).find((y) => y.id === x.callId) || { id: x.callId }; return ST.crit ? rubricFor({ id: x.callId, programme: c.programme }, ST.crit, ST.guide) : null; };
+// The evaluation that counts for an idea: the one made with the criteria its call uses now, otherwise the latest one.
+const ideaEval = (x) => {
+  const evs = x.evaluations || {}, rb = ideaRubric(x);
+  if (rb && evs[rb.key]) return evs[rb.key];
+  const all = Object.values(evs);
+  return all.length ? all.reduce((a, b) => ((b.at || 0) > (a.at || 0) ? b : a)) : null;
+};
+// Below a documented threshold (an individual minimum or the overall threshold): not offered as a recommendation.
+const belowThreshold = (x) => { const e = ideaEval(x); return !!e && e.passed === false; };
 function evalBox(x) {
   const evs = x.evaluations || {}, keys = Object.keys(evs), rb = ideaRubric(x);
   const sel = ST.evalSel[x.id] && evs[ST.evalSel[x.id]] ? ST.evalSel[x.id] : rb && evs[rb.key] ? rb.key : keys[keys.length - 1];
@@ -1408,7 +1448,7 @@ function ideaCard(x, res) {
   const sec = (k) => { const v = it[k]; if (!v || (Array.isArray(v) && !v.length)) return ""; return `<div><h4>${esc(T("ideaF." + k))}</h4>${Array.isArray(v) ? `<ul>${v.map((y) => `<li>${esc(y)}</li>`).join("")}</ul>` : `<p>${esc(v)}</p>`}</div>`; };
   const ratings = ["alignment", "priorities", "feasibility", "impact"].filter((k) => it.fit && it.fit[k]);
   return `<article class="oi-card idea" data-idea="${esc(x.id)}">
-    <div class="oi-row">${x.status === "saved" ? `<span class="sc-chip t-high">★ ${esc(T("ideaSavedChip"))}</span>` : `<span class="fine">#${x.rank}</span>`}<span class="ai-tag">AI</span><span class="fine">${esc(T("ideasAi"))}</span></div>
+    <div class="oi-row">${x.status === "saved" ? `<span class="sc-chip t-high">★ ${esc(T("ideaSavedChip"))}</span>` : belowThreshold(x) ? "" : `<span class="fine">#${x.rank}</span>`}${belowThreshold(x) ? `<span class="st ineligible">${esc(T("ideaBelowChip"))}</span>` : ""}<span class="ai-tag">AI</span><span class="fine">${esc(T("ideasAi"))}</span></div>
     <h3>${esc(it.title)}</h3>
     <p>${esc(it.concept)}</p>
     <div class="idea-call"><span class="fine">${esc(T("ideaCall"))}</span>
@@ -1418,6 +1458,7 @@ function ideaCard(x, res) {
       <div><span class="fine">${esc(T("compatRule"))}</span><div class="oi-row">${scoreNum(score)}${statusBadge(status)}</div>${scoreMeter(score)}</div>
       <div><span class="fine">${esc(T("conceptFitL"))}</span><div class="oi-row">${fit == null ? "<b>–</b>" : scoreNum(fit)}</div>${fit == null ? "" : scoreMeter(fit)}</div>
     </div>
+    <p class="fine">${esc(T("conceptFitBasis"))}</p>
     ${fit == null ? "" : fitExplainHTML(x)}
     ${x.profileVersion !== ST.org.version ? `<p class="fine">${esc(T("ideaStale", x.profileVersion))}</p>` : ""}
     <div class="idea-tools">
@@ -1536,21 +1577,53 @@ async function secIdeas(arg) {
   ST.compare = new Set([...(ST.compare || [])].filter((id) => ideas.some((x) => x.id === id)));
   const res = results(), cands = ideaCandidates();
   // Keep the member's choice while it still matches the shortlist; otherwise start from the most compatible calls.
+  // Calls whose ideas were all evaluated below a threshold are not ticked by default; they can still be chosen.
+  const okCalls = new Set(ideas.filter((x) => !belowThreshold(x)).map((x) => x.callId));
+  const weak = new Set(ideas.filter(belowThreshold).map((x) => x.callId).filter((c) => !okCalls.has(c)));
   const keep = ST.ideaPick && ST.ideaPickOrg === org.id ? [...ST.ideaPick].filter((id) => cands.some((r) => r.callId === id)) : [];
-  ST.ideaPick = new Set(keep.length ? keep : cands.slice(0, IDEA_CALLS).map((r) => r.callId)); ST.ideaPickOrg = org.id;
-  const saved = ideas.filter((x) => x.status === "saved"), sugg = ideas.filter((x) => x.status !== "saved").sort((a, b) => a.rank - b.rank);
+  ST.ideaPick = new Set(keep.length ? keep : cands.filter((r) => !weak.has(r.callId)).slice(0, IDEA_CALLS).map((r) => r.callId)); ST.ideaPickOrg = org.id;
+  const saved = ideas.filter((x) => x.status === "saved"), rest = ideas.filter((x) => x.status !== "saved").sort((a, b) => a.rank - b.rank);
+  const below = rest.filter(belowThreshold), sugg = rest.filter((x) => !belowThreshold(x));
   const ready = ideaReady(p);
   return `<h1>${esc(T("ideasTitle"))}</h1><p class="lede">${esc(T("ideasLede"))}</p>
     ${!canEdit() ? `<p class="note">${esc(T("ideasViewerNote"))}</p>` : ""}
     ${canEdit() ? `<section class="oi-card"><h2>${esc(T("ideasPick"))}</h2>
       ${!ready ? `<p class="note warn">${esc(T("ideasNeed"))} <a href="#org/${org.id}/profile">${esc(T("fillProfile"))}</a></p>` : ""}
-      ${cands.length ? `<p class="fine">${esc(T("ideasPickNote", IDEA_CALLS))}</p><div class="idea-picks">${cands.map((r) => `<label class="opt"><input type="checkbox" data-pick="${esc(r.callId)}"${ST.ideaPick.has(r.callId) ? " checked" : ""}><span>${esc(r.call.title)} <span class="fine">· ${esc((EC.P[r.call.programme] || {}).short || r.call.programme)}</span></span>${scoreNum(r.score)}</label>`).join("")}</div>
-        <div class="oi-row"><button type="button" class="btn" id="oiGen"${ready && ST.ideaPick.size && canGen ? "" : " disabled"}>${esc(T(ideas.length ? "ideasRegenerate" : "ideasGenerate"))}</button><span class="fine">${esc(T("ideasUse"))}</span></div><div id="oiGenMsg" role="status"></div>`
+      ${cands.length ? `<p class="fine">${esc(T("ideasPickNote", IDEA_CALLS))}</p><div class="idea-picks">${cands.map((r) => `<label class="opt"><input type="checkbox" data-pick="${esc(r.callId)}"${ST.ideaPick.has(r.callId) ? " checked" : ""}><span>${esc(r.call.title)} <span class="fine">· ${esc((EC.P[r.call.programme] || {}).short || r.call.programme)}</span>${weak.has(r.callId) ? ` <span class="fine warn">· ${esc(T("pickBelow"))}</span>` : ""}</span>${scoreNum(r.score)}</label>`).join("")}</div>
+        <div class="oi-row"><button type="button" class="btn" id="oiGen"${ready && ST.ideaPick.size && canGen ? "" : " disabled"}>${esc(T(ideas.length ? "ideasRegenerate" : "ideasGenerate"))}</button><span class="fine">${esc(T("ideasUse"))}</span></div><div id="oiGenMsg" role="status"></div><div id="oiEvalMsg" role="status"></div>`
         : `<p class="note">${esc(T("ideasNoCalls"))} <a href="#org/${org.id}/matching/all">${esc(T("openMatching"))} →</a></p>`}</section>` : ""}
     ${canEdit() ? paywallHTML(acc, ST.accessSet) : ""}
     ${ideas.length >= 2 ? `<section class="oi-card"><h2>${esc(T("compareTitle"))}</h2><div id="oiCmp">${compareHTML(ideas, res)}</div></section>` : ""}
     ${saved.length ? `<h2 class="idea-h" id="oiSaved">${esc(T("ideasSaved"))} (${saved.length})</h2><div class="match-list">${saved.map((x) => ideaCard(x, res)).join("")}</div>` : ""}
-    <h2 class="idea-h">${esc(T("ideasSuggested"))}</h2>${sugg.length ? `<div class="match-list">${sugg.map((x) => ideaCard(x, res)).join("")}</div>` : `<p class="fine">${esc(T("ideasNone"))}</p>`}`;
+    ${sugg.length || !below.length ? `<h2 class="idea-h">${esc(T("ideasSuggested"))}</h2>${sugg.length ? `<div class="match-list">${sugg.map((x) => ideaCard(x, res)).join("")}</div>` : `<p class="fine">${esc(T("ideasNone"))}</p>`}` : ""}
+    ${below.length ? `<h2 class="idea-h" id="oiBelow">${esc(T("ideasBelow"))} (${below.length})</h2><p class="fine">${esc(T("ideasBelowNote"))}</p><div class="match-list">${below.map((x) => ideaCard(x, res)).join("")}</div>` : ""}`;
+}
+// One evaluation request; the result is kept on the idea and shown as the selected evaluation.
+async function runEvaluation(x) {
+  const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/evaluate`, { lang: L() });
+  x.evaluations = { ...(x.evaluations || {}), [r.evaluation.key]: r.evaluation }; ST.evalSel[x.id] = r.evaluation.key;
+  return r.evaluation;
+}
+// Evaluates newly generated ideas one after another as soon as they are shown, so nobody has to press "Evaluate".
+// Each request counts against the same AI limits as a manual evaluation. A missing rubric or one unusable answer
+// skips that idea; a limit, the paywall or an unavailable model stops the run. The results are stored on the server,
+// so leaving the page keeps what was done.
+const AUTO_EVAL_STOP = new Set([402, 403, 429, 503, 0]);
+async function autoEvaluate(ids) {
+  const box = document.getElementById("oiEvalMsg"), route = location.hash;
+  const todo = ids.map((id) => (ST.ideas || []).find((x) => x.id === id)).filter((x) => { const rb = x && ideaRubric(x); return rb && !(x.evaluations || {})[rb.key]; });
+  if (!todo.length) { if (box && ids.length) { box.className = "note"; box.textContent = T("evAutoNone"); } return; }
+  let done = 0, below = 0, stop = null;
+  for (let i = 0; i < todo.length && !stop; i++) {
+    const x = todo[i], card = document.querySelector(`article.idea[data-idea="${CSS.escape(x.id)}"]`);
+    const cm = card && card.querySelector("[data-evmsg]"), cb = card && card.querySelector('[data-act="evaluate"]');
+    opState(box, "analysing", `${T("evBusy")} (${T("evAuto", i + 1, todo.length)})`, (100 * i) / todo.length);
+    if (cb) cb.disabled = true; opState(cm, "analysing", T("evBusy"));
+    try { const e = await runEvaluation(x); done++; if (e.passed === false) below++; opState(cm, "completed", T("evDone")); }
+    catch (err) { opState(cm, "failed", errText(err)); if (cb) cb.disabled = false; if (AUTO_EVAL_STOP.has(err && err.status)) stop = err; }
+  }
+  ST.evalNote = { ok: !stop, text: (done ? T("evAutoDone", done, below) : "") + (stop ? (done ? " " : "") + T("evAutoStop") + " " + errText(stop) : "") };
+  if (location.hash === route) { ST.ideaNote = ST.lastIdeaNote || null; EC.route(); }   // regroup the ideas: below-threshold concepts move to their own section
 }
 // Evaluation box of one idea card: switch between stored evaluations, run a new one, redraw in place.
 function bindEval(card, x) {
@@ -1561,8 +1634,7 @@ function bindEval(card, x) {
   if (btn) btn.addEventListener("click", async () => {
     btn.disabled = true; opState(m, "analysing", T("evBusy"));
     try {
-      const r = await api("POST", `/orgs/${org.id}/ideas/${id}/evaluate`, { lang: L() });
-      x.evaluations = { ...(x.evaluations || {}), [r.evaluation.key]: r.evaluation }; ST.evalSel[id] = r.evaluation.key; redraw();
+      await runEvaluation(x); redraw();
       const nm = card.querySelector("[data-evmsg]"); if (nm) { nm.className = "fine ok"; nm.textContent = T("evDone"); }
     } catch (e) { opState(m, "failed", errText(e)); btn.disabled = false; }
   });
@@ -1593,11 +1665,16 @@ afterRender.ideas = (arg) => {
       const miss = (r.missing || []).map((x) => ({ title: x.title || x.callId, why: T("ideaWhy." + x.why) }));
       ST.ideaNote = { ok: r.generated > 0 && !miss.length, text: r.generated ? T("ideasDone", r.generated, cands.length - miss.length) : T("ideasZero"), miss };
       await loadMe(true);
+      const fresh = (r.ideas || []).filter((x) => x.batchId === r.batchId).map((x) => x.id);
+      ST.lastIdeaNote = null;
+      if (fresh.length && premium()) ST.autoEval = fresh;
+      else if (fresh.length) ST.evalNote = { ok: true, text: T("evAutoPremium") };
       EC.route();
     } catch (e) { gen.disabled = false; opState(msg, "failed", errText(e)); }
   });
   if (ST.ideaNote) {
     const m = document.getElementById("oiGenMsg"), n = ST.ideaNote;
+    ST.lastIdeaNote = n;
     if (m) {
       m.className = n.ok ? "note ok" : "note warn";
       m.innerHTML = `<p>${esc(n.text)}</p>` + (n.miss.length ? `<p>${esc(T("ideasMissing"))}</p><ul>${n.miss.map((x) => `<li><b>${esc(x.title)}</b>: ${esc(x.why)}</li>`).join("")}</ul><p class="fine">${esc(T("ideasRetry"))}</p>` : "");
@@ -1646,6 +1723,10 @@ afterRender.ideas = (arg) => {
       const cmp = document.getElementById("oiCmp"); if (cmp) cmp.innerHTML = compareHTML(ST.ideas, results());
     });
   });
+  const evMsg = document.getElementById("oiEvalMsg");
+  if (ST.evalNote && evMsg && ST.evalNote.text) { evMsg.className = ST.evalNote.ok ? "note ok" : "note warn"; evMsg.textContent = ST.evalNote.text; }
+  ST.evalNote = null;
+  if (ST.autoEval && canEdit()) { const ids = ST.autoEval; ST.autoEval = null; autoEvaluate(ids); }
 };
 /* ---------- saved reports ---------- */
 // The live assessment of a saved report's call, if the call is still published.

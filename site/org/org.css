@@ -132,8 +132,10 @@ table.oi-t td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--line);
   .op.sweep::after { animation: none; width: 100%; opacity: .35; }
 }
 .loading.op { padding: 48px 0; gap: 14px; font-size: 15px; }
-.loading.op .op-ic { width: 80px; height: 28px; }
-.loading.op.busy { border: 0; background: none; padding: 48px 0; }
+/* switching sections: no animation; "Loading…" appears only if the page takes longer than half a second */
+.page-wait { padding: 48px 0; color: var(--muted); font-size: 14px; animation: wait-in .2s ease-out .5s both; }
+@keyframes wait-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .page-wait { animation: none; } }
 .crit-list { display: grid; gap: 10px; }
 .crit { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px 16px; background: var(--surface); }
 .crit h3 { font-size: 15.5px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -370,3 +372,7 @@ table.off-t th { text-align: left; font-weight: 600; color: var(--muted); width:
 @media (max-width: 600px) { .ec-job { bottom: 76px; } }
 /* the background-upload box at the bottom left is redrawn on each step: no panel or entry motion inside it */
 .ec-job .op.busy { padding: 0 0 6px; border: 0; background: none; animation: none; }
+/* a quick save is a plain line of text: no panel, bar or animation */
+.op.op-saving.busy { padding: 0; border: 0; background: none; animation: none; }
+.op.op-saving.busy .op-t b { animation: none; }
+.op.op-saving.sweep::after { display: none; }

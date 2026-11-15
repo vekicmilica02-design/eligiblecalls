@@ -94,7 +94,16 @@ table.oi-t td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--line);
 .auth .chk input { margin-top: 4px; accent-color: var(--green); }
 .devlink { font-family: var(--f-mono); font-size: 12px; overflow-wrap: anywhere; }
 .drop { border: 1.5px dashed var(--line); border-radius: var(--r-lg); padding: 20px; display: grid; gap: 10px; justify-items: start; background: var(--surface); }
-.progress { font-size: 13.5px; color: var(--muted); }
+.progress { font-size: 13.5px; color: var(--muted); position: relative; padding-left: 30px; min-height: 20px; }
+/* Loading mark: four dots in a square; the two diagonal pairs take turns turning half a circle, drawing in as they pass. */
+.progress::before, .progress::after { content: ""; position: absolute; left: 2px; top: 50%; width: 18px; height: 18px; margin-top: -9px;
+  background: radial-gradient(circle, currentColor 0 2.5px, transparent 3px) 0 0 / 7px 7px no-repeat, radial-gradient(circle, currentColor 0 2.5px, transparent 3px) 100% 100% / 7px 7px no-repeat; }
+.progress::before { color: var(--green); animation: ec-dots-a 1.6s ease-in-out infinite; }
+.progress::after { color: var(--ink-2); transform: rotate(90deg); animation: ec-dots-b 1.6s ease-in-out infinite; }
+@keyframes ec-dots-a { 0% { transform: rotate(0) scale(1); } 25% { transform: rotate(90deg) scale(.5); } 50%, 100% { transform: rotate(180deg) scale(1); } }
+@keyframes ec-dots-b { 0%, 50% { transform: rotate(90deg) scale(1); } 75% { transform: rotate(180deg) scale(.5); } 100% { transform: rotate(270deg) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .progress::before, .progress::after { animation: none; } }
+.loading.progress { display: block; padding-left: 30px; }
 .crit-list { display: grid; gap: 10px; }
 .crit { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px 16px; background: var(--surface); }
 .crit h3 { font-size: 15.5px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -234,3 +243,15 @@ table.rep-t td { vertical-align: top; }
 .rep-save .oi-row, .rep-head .oi-row { align-items: flex-end; }
 .btn.danger { background: var(--sc-low-soft); color: var(--sc-low); border-color: var(--sc-low-fill); }
 table.upc td.num { white-space: nowrap; }
+
+/* AI usage on the administration page */
+.au-head { justify-content: space-between; align-items: center; }
+.au-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 10px 0 14px; }
+.au-stats > div { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; display: grid; gap: 2px; background: var(--surface); }
+.au-stats b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.au-p { display: flex; align-items: center; gap: 8px; min-width: 150px; }
+.au-bar { flex: 1; height: 8px; border-radius: 999px; background: var(--sunk); overflow: hidden; min-width: 90px; }
+.au-bar > span { display: block; height: 100%; border-radius: inherit; }
+.au-bar > .lo { background: var(--sc-high-fill); } .au-bar > .mid { background: var(--sc-medium-fill); } .au-bar > .hi { background: var(--sc-low-fill); }
+.au details { margin-top: 10px; }
+.ev-notes { margin: 6px 0 0; padding-left: 18px; }

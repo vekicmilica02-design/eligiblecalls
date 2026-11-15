@@ -139,7 +139,7 @@ function dimObjectives(p, c, stats) {
 function dimExperience(p, c, stats) {
   const field = c.programme === "ERASMUS" ? (p.erasmus || p.euFunding) : p.euFunding;
   if (!field && !p.previousProjects) return { s: 0.5, missing: ["euFunding", "previousProjects"] };
-  let s = { coordinator: 1, partner: 0.75, none: 0.35 }[field] ?? 0.5;
+  let s = { both: 1, coordinator: 1, partner: 0.75, none: 0.35 }[field] ?? 0.5;
   const ov = p.previousProjects ? coverage(p.previousProjects, c, stats) : null;
   if (ov) s = Math.min(1, s + 0.15 * textScore(ov.ratio));
   return { s, role: field || null };
@@ -239,7 +239,7 @@ export function assess(profile, call, { now = Date.now(), weights = null, stats 
   if (dims.objectives.sharedSectors && dims.objectives.sharedSectors.length) strengths.push({ code: "str.sectors", params: { sectors: dims.objectives.sharedSectors } });
   if (dims.objectives.words && dims.objectives.words.length >= 3) strengths.push({ code: "str.words", params: { words: dims.objectives.words } });
   if (dims.targetGroups.matched && dims.targetGroups.matched.length) strengths.push({ code: "str.groups", params: { groups: dims.targetGroups.matched } });
-  if (dims.experience.role === "coordinator" || dims.experience.role === "partner") strengths.push({ code: "str.experience", params: { role: dims.experience.role, programme: c.programme } });
+  if (dims.experience.role === "coordinator" || dims.experience.role === "partner" || dims.experience.role === "both") strengths.push({ code: "str.experience", params: { role: dims.experience.role, programme: c.programme } });
   if (dims.capacity.s >= 1) strengths.push({ code: "str.capacity", params: { size: dims.capacity.size } });
   if (e && e[0] === "Y") strengths.push({ code: "str.country", params: { cc: p.country } });
 

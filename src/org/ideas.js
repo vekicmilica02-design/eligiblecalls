@@ -14,7 +14,10 @@ import { FIELD } from "../../site/org/schema.js";
 
 export const MAX_CANDIDATES = 6;   // calls sent to the model in one request (fits the smallest provider window)
 export const MAX_IDEAS = 8;
-const MAX_PER_CALL = 2;
+const MAX_PER_CALL = 1;
+// One model request per selected call: a single request for several calls let the model write ideas for only one of
+// them, and long answers did not fit the providers' output limits. Two requests run at a time.
+const IDEA_MAX_OUT = 2000, IDEA_PARALLEL = 2;
 
 let INDEX = null;
 export async function loadIndex(env, url) {
@@ -72,7 +75,7 @@ export function ideaMessages({ profile, blocks, lang, ids }) {
     "Rules:",
     "1. Use only the calls listed under CALLS. Every idea names exactly one callId copied from this list: " + ids.join(", ") + ". Never mention or invent any other call, programme rule, amount or deadline.",
     "2. Use only facts about the organisation that are in the profile. Do not invent staff, partners, past projects, results or figures. Where the organisation would need something it does not have (a partner type, a skill), say so in potentialPartners or whyItFits.",
-    `3. Give between 1 and ${MAX_IDEAS} ideas, at most ${MAX_PER_CALL} per call, only where the call's purpose and the organisation genuinely meet. Fewer good ideas are better than generic ones. If no call fits, return an empty list.`,
+    "3. The organisation chose these calls. Give exactly one idea for each call listed under CALLS. If the call and the organisation fit only weakly, still give the most realistic concept and show the weak fit in the ratings and the explanation. Return an empty list for a call only when the organisation clearly cannot take part in it at all (for example the call is only for a kind of body the organisation is not).",
     "4. Each idea is a concept, not an application: short, concrete, realistic for the organisation's size and experience.",
     "5. objectives: 3 to 5 measurable objectives (a number, a share or a deadline in each). expectedResults: measurable outputs and outcomes.",
     "6. fit: rate from 1 (weak) to 5 (strong) alignment (with the call's stated objectives), priorities (with the programme's priorities as stated in the call text), feasibility (for this organisation's capacity) and impact; give one sentence of reasons.",
@@ -93,7 +96,6 @@ export function verifyIdeas(answer, allowed) {
     if (!it || typeof it !== "object") { dropped.push({ why: "malformed" }); continue; }
     const callId = String(it.callId || "").trim();
     if (!allowed.has(callId)) { dropped.push({ callId: clip(callId, 80), why: "unknown_call" }); continue; }
-    if ((perCall[callId] = (perCall[callId] || 0) + 1) > MAX_PER_CALL) { dropped.push({ callId, why: "too_many_for_call" }); continue; }
     const idea = {
       callId, title: clip(it.title, 160), concept: clip(it.concept, 600), problem: clip(it.problem, 500), solution: clip(it.solution, 500),
       objectives: list(it.objectives, 5, 200), targetGroups: list(it.targetGroups, 6, 120), activities: list(it.activities, 8, 200),
@@ -104,6 +106,7 @@ export function verifyIdeas(answer, allowed) {
     const ex = cleanExplanation(fit.explanation, idea);
     if (ex) idea.fit.explanation = ex;
     if (!idea.title || !idea.concept || idea.objectives.length < 2) { dropped.push({ callId, why: "incomplete" }); continue; }
+    if ((perCall[callId] = (perCall[callId] || 0) + 1) > MAX_PER_CALL) { dropped.push({ callId, why: "too_many_for_call" }); continue; }
     out.push(idea);
     if (out.length >= MAX_IDEAS) break;
   }
@@ -190,31 +193,51 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
     .map((c) => ({ id: String((c && c.id) || ""), score: Math.max(0, Math.min(100, Math.round(+c.score || 0))), status: ["eligible", "potential", "insufficient"].includes(c && c.status) ? c.status : "potential", band: String((c && c.band) || "") }))
     .filter((c) => c.id);
   const index = await loadIndex(env, url);
-  const valid = [];
+  const valid = [], noIdea = [];
+  const skip = (cand, c, why) => noIdea.push({ callId: cand.id, title: c ? c.t : "", why });
   for (const cand of cands) {
     const c = index._byId.get(cand.id);
-    if (!c || !nextDeadline(c, now)) continue;                          // unknown or closed
+    if (valid.some((v) => v.c.id === cand.id)) continue;
+    if (!c) { skip(cand, null, "unknown_call"); continue; }
+    if (!nextDeadline(c, now)) { skip(cand, c, "closed"); continue; }
     const el = eligibilityFor(index, c, profile.country);
-    if (el && el.status === "N") continue;                             // closed to the organisation's country
-    if (!valid.some((v) => v.c.id === c.id)) valid.push({ c, cand });
-    if (valid.length >= MAX_CANDIDATES) break;
+    if (el && el.status === "N") { skip(cand, c, "not_eligible"); continue; } // closed to the organisation's country
+    if (valid.length >= MAX_CANDIDATES) { skip(cand, c, "too_many"); continue; }
+    valid.push({ c, cand });
   }
   if (!valid.length) throw new HttpError(400, "no_calls");
   const markUsed = await orgDailyLimit(env, db, org.id, now);
 
   const ids = valid.map((v) => v.c.id);
-  const messages = ideaMessages({ profile: profileBlock(profile), blocks: valid.map((v) => callBlock(index, v.c, profile.country, now, v.cand)), lang, ids });
-  const r = await complete({ env, userId: user.id, messages, maxOut: 3200, now, fetchImpl, waitUntil });
-  await markUsed();
-  const answer = parseJsonObject(r.text);
-  if (!answer) throw new HttpError(502, "ai_bad_answer");
-  const { ideas, dropped } = verifyIdeas(answer, new Set(ids));
+  const pb = profileBlock(profile);
+  const ideas = [], dropped = [], models = [];
+  let used = false, firstErr = null;
+  const runOne = async (v) => {
+    const id = v.c.id;
+    try {
+      const messages = ideaMessages({ profile: pb, blocks: [callBlock(index, v.c, profile.country, now, v.cand)], lang, ids: [id] });
+      const r = await complete({ env, userId: user.id, messages, maxOut: IDEA_MAX_OUT, now, fetchImpl, waitUntil });
+      if (!used) { used = true; await markUsed(); }
+      if (r.model && !models.includes(r.model)) models.push(r.model);
+      const answer = parseJsonObject(r.text);
+      if (!answer) { noIdea.push({ callId: id, title: v.c.t, why: "ai_bad_answer" }); return; }
+      const got = verifyIdeas(answer, new Set([id]));
+      dropped.push(...got.dropped);
+      for (const idea of got.ideas) ideas.push({ ...idea, _model: r.model || null });
+      if (!got.ideas.length) noIdea.push({ callId: id, title: v.c.t, why: got.dropped.some((d) => d.why === "incomplete") ? "incomplete" : "no_fit" });
+    } catch (e) {
+      if (!firstErr) firstErr = e;
+      noIdea.push({ callId: id, title: v.c.t, why: (e && e.code) || "ai_unavailable" });
+    }
+  };
+  for (let i = 0; i < valid.length; i += IDEA_PARALLEL) await Promise.all(valid.slice(i, i + IDEA_PARALLEL).map(runOne));
+  if (!ideas.length && firstErr) throw firstErr;                      // nothing generated: report the error itself
 
   const byId = new Map(valid.map((v) => [v.c.id, v]));
-  const ranked = ideas.map((idea) => {
+  const ranked = ideas.map(({ _model, ...idea }) => {
     const v = byId.get(idea.callId);
     const fit = conceptFit(idea.fit);
-    return { idea, v, fit, rank: rankScore(v.cand.score, fit) };
+    return { idea, v, fit, rank: rankScore(v.cand.score, fit), model: _model };
   }).sort((a, b) => b.rank - a.rank);
 
   const batch = randomId();
@@ -222,10 +245,12 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
   ranked.forEach((x, i) => {
     const match = { score: x.v.cand.score, status: x.v.cand.status, band: x.v.cand.band, conceptFit: x.fit, rankScore: x.rank };
     stmts.push(db.prepare("INSERT INTO project_ideas (id, org_id, batch_id, call_id, rank, status, idea, match, notes, lang, profile_version, call_title, call_deadline, model, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'suggested', ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(randomId(), org.id, batch, x.idea.callId, i + 1, JSON.stringify(x.idea), JSON.stringify(match), lang, version, x.v.c.t, (nextDeadline(x.v.c, now) || "").split("|")[0], r.model || null, user.id, now, now));
+      .bind(randomId(), org.id, batch, x.idea.callId, i + 1, JSON.stringify(x.idea), JSON.stringify(match), lang, version, x.v.c.t, (nextDeadline(x.v.c, now) || "").split("|")[0], x.model, user.id, now, now));
   });
   await db.batch(stmts);
-  return json({ batchId: batch, ideas: await listIdeas(db, org.id), generated: ranked.length, dropped, callsUsed: ids, model: r.model });
+  const order = new Map(cands.map((c, i) => [c.id, i]));
+  noIdea.sort((a, b) => (order.get(a.callId) ?? 99) - (order.get(b.callId) ?? 99));
+  return json({ batchId: batch, ideas: await listIdeas(db, org.id), generated: ranked.length, dropped, missing: noIdea, callsUsed: ids, model: models.join(", ") || null });
 }
 
 export async function updateIdea(db, orgId, id, body, now) {

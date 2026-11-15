@@ -6,6 +6,7 @@
 
 import { HttpError, json, randomId } from "./http.js";
 import { sendEmail } from "./email.js";
+import { usageReport } from "./usage.js";
 
 export const STATUSES = ["pending_payment", "payment_submitted", "active", "rejected", "revoked", "expired"];
 const OPEN = ["pending_payment", "payment_submitted"];
@@ -138,13 +139,14 @@ export async function userAccessRoute({ env, db, user, M, parts, body, now, fetc
   throw new HttpError(404, "not_found");
 }
 
-// ---------- administrator: /api/admin/access, /api/admin/users/:id/access, /api/admin/settings ----------
+// ---------- administrator: /api/admin/access, /api/admin/users/:id/access, /api/admin/settings, /api/admin/usage ----------
 const ACTIONS = {
   approve: "active", reject: "rejected", revoke: "revoked", expire: "expired",
   pending: "pending_payment", paid: "payment_submitted",
 };
 export async function adminRoute({ env, db, user, M, parts, body, now }) {
   if (!isAdmin(env, user)) throw new HttpError(404, "not_found");
+  if (parts[1] === "usage" && M === "GET" && !parts[2]) return json(await usageReport({ env, db, now }));
   const sub = await getSubscription(db);
   if (parts[1] === "settings") {
     if (M === "GET") return json({ subscription: sub });

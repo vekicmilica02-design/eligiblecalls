@@ -69,9 +69,13 @@ function demoAI(seen) {
         budget: { requestedTotal: 999999999, basis: "Lump sum", categories: [{ category: "Staff", share: 3, note: "" }, { category: "Travel", share: 1, note: "" }], considerations: "Check the call's lump sums." } };
       return sseStream([{ response: JSON.stringify(p) }, { response: "", usage: { prompt_tokens: 3000, completion_tokens: 1500 } }]);
     }
-    if (sys.startsWith("You are an experienced evaluator of Erasmus+")) {
-      const ids = [...sys.matchAll(/^### (c\d+):/gm)].map((m) => m[1]);
-      const criteria = ids.map((id, i) => ({ id, score: [22, 18, 14, 30][i] ?? 10, justification: "Test justification for " + id + ".", strengths: ["Clear target group"], weaknesses: ["Partners not named"], missing: ["Budget detail"], recommendations: ["Name the partners"] }));
+    if (sys.startsWith("You are an experienced evaluator")) {
+      // Scores at about 70% of each criterion's maximum; with only the funder's text, quote its first lines as criteria.
+      const ids = [...sys.matchAll(/^### (c\d+): .*\(score 0 to (\d+(?:\.\d+)?)/gm)].map((m) => [m[1], +m[2]]);
+      const why = { justification: "Test justification.", strengths: ["Clear target group"], weaknesses: ["Partners not named"], missing: ["Budget detail"], recommendations: ["Name the partners"] };
+      const doc = (sys.match(/<documentation>\n([\s\S]*?)\n<\/documentation>/) || [, ""])[1];
+      const criteria = ids.length ? ids.map(([id, max], i) => ({ id, score: Math.round(max * [0.7, 0.6, 0.8, 0.5][i % 4] * 2) / 2, ...why }))
+        : doc.split("\n").filter((l) => l.length > 25).slice(0, 2).map((l, i) => ({ name: "Criterion " + (i + 1), quote: l.slice(0, 60), score: 3 + i, ...why }));
       return sseStream([{ response: JSON.stringify({ criteria, summary: "Test evaluation summary.", priorityActions: ["Confirm partners"] }) }, { response: "", usage: { prompt_tokens: 2500, completion_tokens: 900 } }]);
     }
     const blocks = [...sys.matchAll(/^### (\S+)\nTitle: (.*)\n.*\nNext deadline: (\S+)/gm)].slice(0, 3);

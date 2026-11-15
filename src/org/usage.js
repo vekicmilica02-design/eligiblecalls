@@ -1,0 +1,41 @@
+// AI usage for the administration page: today's counters per provider against the daily budgets the site enforces,
+// assistant messages, workspace AI actions per user, and the last 7 days. Days are UTC (the free allowances reset
+// at 00:00 UTC). Read-only; the counters are written by src/budget.js and src/org/ai.js.
+
+import { utcDay, nextReset, getUsage, groqTokens } from "../budget.js";
+import { groqModels, GROQ_FREE } from "../providers.js";
+
+const num = (v, d) => (v !== undefined && v !== "" && !isNaN(+v) ? +v : d);
+const WORKERS_AI_FREE = 10000; // neurons a day on the Workers free plan
+
+export async function usageReport({ env, db, now }) {
+  const day = utcDay(now);
+  const usage = await getUsage(db, day);
+  const share = num(env.ORG_BUDGET_SHARE, 0.6);
+  const w = usage["workers-ai"] || { neurons: 0, tokens: 0, requests: 0 };
+  const providers = [{
+    key: "workers-ai", name: env.AI_MODEL || "@cf/meta/llama-4-scout-17b-16e-instruct", unit: "neurons", configured: !!env.AI,
+    used: Math.round(w.neurons), budget: num(env.DAILY_NEURON_BUDGET, 9000), free: WORKERS_AI_FREE, tokens: w.tokens, requests: w.requests,
+  }];
+  for (const g of groqModels(env)) {
+    const u = usage["groq:" + g.model] || { tokens: 0, requests: 0 };
+    const known = GROQ_FREE.find((m) => m.model === g.model);
+    providers.push({ key: "groq:" + g.model, name: g.model, unit: "tokens", configured: !!env.GROQ_API_KEY,
+      used: groqTokens(usage, g.model), budget: g.budget, free: known ? known.tpd : null, tokens: groqTokens(usage, g.model), requests: u.requests + (g.model === "openai/gpt-oss-120b" && usage.groq ? usage.groq.requests : 0) });
+  }
+  const vis = await db.prepare("SELECT COALESCE(SUM(count), 0) AS messages, COUNT(*) AS visitors FROM visitor_usage WHERE day = ?").bind(day).first();
+  const users = (await db.prepare("SELECT u.email, a.count FROM ai_usage a JOIN users u ON u.id = a.user_id WHERE a.day = ? ORDER BY a.count DESC LIMIT 50").bind(day).all()).results || [];
+  const since = utcDay(now - 6 * 864e5);
+  const week = (await db.prepare("SELECT day, provider, neurons, tokens, requests FROM usage WHERE day >= ? ORDER BY day DESC, provider").bind(since).all()).results || [];
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = utcDay(now - i * 864e5), rows = week.filter((r) => r.day === d);
+    days.push({ day: d, requests: rows.reduce((s, r) => s + r.requests, 0), neurons: Math.round(rows.filter((r) => r.provider === "workers-ai").reduce((s, r) => s + r.neurons, 0)),
+      groqTokens: rows.filter((r) => r.provider.startsWith("groq")).reduce((s, r) => s + r.tokens, 0) });
+  }
+  return {
+    day, resetAt: nextReset(now), workspaceShare: share, perUserLimit: num(env.ORG_AI_PER_USER, 20), visitorLimit: num(env.DAILY_VISITOR_LIMIT, 10),
+    providers, assistant: { messages: vis ? vis.messages : 0, visitors: vis ? vis.visitors : 0 },
+    workspace: { actions: users.reduce((s, u) => s + u.count, 0), users: users.map((u) => ({ email: u.email, count: u.count })) }, days,
+  };
+}

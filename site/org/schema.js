@@ -34,7 +34,7 @@ export const TARGET_GROUPS = [
 ].map(([id, en, sr]) => ({ id, en, sr }));
 
 export const SCOPES = [["local", "Local", "Lokalni"], ["regional", "Regional", "Regionalni"], ["national", "National", "Nacionalni"], ["international", "International", "Međunarodni"]].map(([id, en, sr]) => ({ id, en, sr }));
-export const EXPERIENCE = [["none", "None", "Nema"], ["partner", "As partner", "Kao partner"], ["coordinator", "As coordinator", "Kao koordinator"]].map(([id, en, sr]) => ({ id, en, sr }));
+export const EXPERIENCE = [["none", "None", "Nema"], ["partner", "As partner", "Kao partner"], ["coordinator", "As coordinator", "Kao koordinator"], ["both", "As partner and as coordinator", "Kao partner i kao koordinator"]].map(([id, en, sr]) => ({ id, en, sr }));
 
 // kind: text (one line), long (text area), int, year, enum (one of), multi (list of ids), url, bool, countries
 // w: weight in the completeness percentage. req: needed for any eligibility check.

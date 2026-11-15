@@ -473,7 +473,7 @@ function opState(el, state, detail = "", pct = null) {
       const s = Math.floor((Date.now() - t0) / 1000); tm.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
     }, 1000);
   } else { el._opStart = null; el._opState = null; }
-  el.innerHTML = `<span class="op-ic" aria-hidden="true"></span><span class="op-t"><b>${esc(T("op." + state))}</b>${detail ? ` <span>${esc(detail)}</span>` : ""}</span>${p !== null ? `<span class="op-bar" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p}%"></i></span><span class="fine num">${p}%</span>` : ""}${busy && OP_TIMED.has(state) ? `<span class="op-time fine num" aria-hidden="true">0:00</span>` : ""}`;
+  el.innerHTML = `<span class="op-ic${busy ? " ec-loader" : ""}" aria-hidden="true"></span><span class="op-t"><b>${esc(T("op." + state))}</b>${detail ? ` <span>${esc(detail)}</span>` : ""}</span>${p !== null ? `<span class="op-bar" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p}%"></i></span><span class="fine num">${p}%</span>` : ""}${busy && OP_TIMED.has(state) ? `<span class="op-time fine num" aria-hidden="true">0:00</span>` : ""}`;
 }
 // Placeholder cards with a soft shimmer where generated ideas will appear, one per selected call.
 const ideaSkeletons = (n) => `<div class="skel-list" aria-hidden="true">${Array.from({ length: Math.max(1, Math.min(n, 3)) }, () =>
@@ -561,7 +561,7 @@ async function render(h) {
     if (parts[1] === "admin") return await renderAdmin(parts.slice(2));
     const id = parts[1];
     let sec = parts[2] || "overview", arg = parts.slice(3).join("/");
-    shell(id, sec, `<div class="loading op busy" role="status" aria-busy="true"><span class="op-ic" aria-hidden="true"></span>${esc(T("loadingPage"))}</div>`);
+    shell(id, sec, `<div class="loading op busy" role="status" aria-busy="true"><span class="op-ic ec-loader" aria-hidden="true"></span><span class="op-t">${esc(T("loadingPage"))}</span></div>`);
     await loadOrg(id);
     const body = await ({ overview: secOverview, profile: secProfile, documents: secDocuments, matching: secMatching, match: secReport, ideas: secIdeas, evaluation: secEvaluation, reports: secReports, settings: secSettings }[sec] || secOverview)(arg);
     shell(id, sec === "match" ? "matching" : sec === "report" ? "reports" : sec, body);
@@ -597,7 +597,7 @@ const stBadge = (st) => `<span class="st st-${esc(st)}">${esc(T("admSt." + st))}
 async function renderAdmin(parts) {
   const me = ST.me;
   if (!me.user.admin) { app().innerHTML = `<div class="wrap page"><h1>${esc(T("adminTitle"))}</h1><p class="note err">${esc(T("errors.not_found"))}</p><p><a href="#org">${esc(T("nav.overview"))}</a></p></div>`; return; }
-  app().innerHTML = `<div class="wrap page adm"><div class="loading op busy" role="status" aria-busy="true"><span class="op-ic" aria-hidden="true"></span>${esc(T("loadingPage"))}</div></div>`;
+  app().innerHTML = `<div class="wrap page adm"><div class="loading op busy" role="status" aria-busy="true"><span class="op-ic ec-loader" aria-hidden="true"></span><span class="op-t">${esc(T("loadingPage"))}</span></div></div>`;
   const [d, u] = await Promise.all([api("GET", "/admin/access"), api("GET", "/admin/usage").catch(() => null)]);
   const focus = parts[0] === "r" ? parts[1] : null;
   const f = ST.admFilter || "open";

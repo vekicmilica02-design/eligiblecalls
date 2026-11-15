@@ -99,16 +99,11 @@ table.oi-t td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--line);
 .op:empty { display: none; }
 .op .op-t { display: inline; overflow-wrap: anywhere; } .op .op-t span { color: var(--muted); }
 .op .op-ic { position: relative; flex: none; width: 18px; height: 18px; }
+.op .op-t { min-width: 0; }
 .op .op-bar { flex: 1 1 120px; max-width: 240px; height: 6px; border-radius: 999px; background: var(--sunk); overflow: hidden; }
 .op .op-bar > i { display: block; height: 100%; background: var(--green); border-radius: inherit; transition: width .3s ease; }
-/* the mark: four dots in a square; the two diagonal pairs take turns turning half a circle, drawing in as they pass */
-.op.busy .op-ic::before, .op.busy .op-ic::after { content: ""; position: absolute; inset: 0;
-  background: radial-gradient(circle, currentColor 0 2.5px, transparent 3px) 0 0 / 7px 7px no-repeat, radial-gradient(circle, currentColor 0 2.5px, transparent 3px) 100% 100% / 7px 7px no-repeat; }
-.op.busy .op-ic::before { color: var(--green); animation: ec-dots-a 1.6s ease-in-out infinite; }
-.op.busy .op-ic::after { color: var(--ink-2); transform: rotate(90deg); animation: ec-dots-b 1.6s ease-in-out infinite; }
-@keyframes ec-dots-a { 0% { transform: rotate(0) scale(1); } 25% { transform: rotate(90deg) scale(.5); } 50%, 100% { transform: rotate(180deg) scale(1); } }
-@keyframes ec-dots-b { 0%, 50% { transform: rotate(90deg) scale(1); } 75% { transform: rotate(180deg) scale(.5); } 100% { transform: rotate(270deg) scale(1); } }
-.op.op-ocr .op-ic::before { color: var(--orange); } .op.op-analysing .op-ic::before, .op.op-generating .op-ic::before, .op.op-checking .op-ic::before { color: var(--sc-medium-fill); }
+/* while work runs the mark is the loading animation (.ec-loader in index.html), with the text to its right */
+.op.busy .op-ic { width: 60px; height: 21px; }
 .op.op-completed .op-ic, .op.op-failed .op-ic { border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; }
 .op.op-completed .op-ic { background: var(--sc-high-fill); } .op.op-completed .op-ic::before { content: "✓"; }
 .op.op-failed .op-ic { background: var(--sc-low-fill); } .op.op-failed .op-ic::before { content: "!"; }
@@ -133,10 +128,12 @@ table.oi-t td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--line);
 .skel-card .sk.w40 { width: 40%; height: 15px; } .skel-card .sk.w90 { width: 90%; } .skel-card .sk.w75 { width: 75%; } .skel-card .sk.w60 { width: 60%; }
 @keyframes sk-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .op.busy .op-ic::before, .op.busy .op-ic::after, .op.busy, .op.busy .op-t b, .op.busy .op-bar > i, .skel-card, .skel-card .sk { animation: none; }
+  .op.busy, .op.busy .op-t b, .op.busy .op-bar > i, .skel-card, .skel-card .sk { animation: none; }
   .op.sweep::after { animation: none; width: 100%; opacity: .35; }
 }
-.loading.op { padding: 48px 0; }
+.loading.op { padding: 48px 0; gap: 14px; font-size: 15px; }
+.loading.op .op-ic { width: 80px; height: 28px; }
+.loading.op.busy { border: 0; background: none; padding: 48px 0; }
 .crit-list { display: grid; gap: 10px; }
 .crit { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px 16px; background: var(--surface); }
 .crit h3 { font-size: 15.5px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }

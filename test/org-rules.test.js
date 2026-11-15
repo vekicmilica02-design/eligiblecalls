@@ -440,4 +440,17 @@ t("order: ranked by compatibility; calls that fail a mandatory check last; equal
   for (let i = 1; i < open.length; i++) assert.ok(open[i - 1].score >= open[i].score);
   assert.ok(all.slice(open.length).every((r) => r.status === "ineligible"));
 });
+t("a fuller profile text does not lower the thematic match; the closest calls reach 70%+", () => {
+  const stats = buildDF(CALLS);
+  const base = { orgType: "ngo", country: "RS", activityAreas: ["environment", "climate", "energy", "youth", "education", "civil-society", "human-rights"],
+    targetGroups: ["youth", "general-public", "rural", "civil-society"], employees: 6, volunteers: 25, euFunding: "partner", partnerCountries: ["HR", "HU", "SI"] };
+  const short = { ...base, description: "Environmental association working on climate action, renewable energy and youth education.", objectives: "Raise awareness of climate change and energy efficiency among young people." };
+  const full = { ...short, description: short.description + " We run non-formal education programmes, public campaigns, community renewable energy initiatives, research on air quality and biodiversity, and advocacy towards local and national authorities.",
+    mission: "Make the green transition fair, democratic and inclusive for communities in Serbia and the Western Balkans.",
+    expertise: "Environmental education, campaigns and communication, citizen science and air quality monitoring, policy analysis, training of trainers, volunteer management." };
+  const high = (p) => assessAll(p, CALLS, { now: NOW, stats }).filter((r) => r.status !== "ineligible" && r.score >= HIGH).length;
+  const a = high(short), b = high(full);
+  assert.ok(b >= 3, `full profile has calls at 70%+: ${b}`);
+  assert.ok(b >= a * 0.7, `full profile ${b} vs short ${a}: more text must not sink the scores`);
+});
 console.log(`${pass} passed`);

@@ -2,23 +2,29 @@
 // Pure functions shared by the browser (all calls, instantly) and the API (stored reports).
 //
 // Two separate outputs, as required:
-//   status  eligible | potential | ineligible | insufficient    (hard requirements only)
-//   score   0..100 weighted compatibility                         (never changes the status)
-// A failed mandatory check always sets status "ineligible", whatever the score.
+//   status  eligible | potential | ineligible | insufficient    mandatory eligibility: can the organisation apply?
+//           (country, organisation type, consortium and the conditions read from the call's official documents)
+//   score   0..100 strategic compatibility                        how well the call fits the organisation's mission,
+//           experience, target groups and capacity; country and organisation type are not part of it
+// A failed mandatory check always sets status "ineligible", whatever the score. A condition that could not be
+// verified (no official document read, data missing) is "unknown", never counted as met.
 //
 // Results carry codes and parameters, not sentences: the page renders them in English or Serbian.
 
 import { ORG_TYPES, completeness } from "./schema.js";
 import { CALL_RULES } from "./call_rules.js";
 
-export const DEFAULT_WEIGHTS = { orgType: 20, country: 20, objectives: 20, experience: 15, targetGroups: 10, capacity: 10, partnerships: 5 };
+// Strategic compatibility only: mandatory conditions (country, organisation type, consortium) decide the status.
+export const DEFAULT_WEIGHTS = { objectives: 35, experience: 25, targetGroups: 20, capacity: 10, partnerships: 10 };
 // Per-programme overrides (same keys). Empty until a programme's guide gives a reason to differ.
 export const PROGRAMME_WEIGHTS = {};
-export const BANDS = [[90, "excellent"], [75, "strong"], [60, "moderate"], [40, "low"], [0, "verylow"]];
+// Compatibility classes, the same everywhere (labels, colours, filters, "70%+" statistics): high from 70, medium 50-69, low below 50.
+export const HIGH = 70, MEDIUM = 50;
+export const BANDS = [[HIGH, "high"], [MEDIUM, "medium"], [0, "low"]];
 export const band = (score) => BANDS.find(([min]) => score >= min)[1];
 // Colour tier of a compatibility score: red below 50, yellow 50-69, green from 70. It describes the score only;
 // the eligibility status comes from the mandatory checks and is never derived from this tier.
-export const SCORE_TIERS = [[70, "high"], [50, "medium"], [0, "low"]];
+export const SCORE_TIERS = BANDS;
 export const scoreTier = (score) => SCORE_TIERS.find(([min]) => (Number(score) || 0) >= min)[1];
 export const STATUS_ORDER = { eligible: 0, potential: 1, insufficient: 2, ineligible: 3 };
 
@@ -50,6 +56,20 @@ function callSet(c, stats) {
   if (stats && stats.sets) stats.sets.set(c, v);
   return v;
 }
+// The profile's own words for each stem, so strengths show "young", not the stem "youn".
+const surfMemo = new Map();
+function surface(text) {
+  let m = surfMemo.get(text);
+  if (m) return m;
+  m = new Map();
+  for (const w of String(text || "").toLowerCase().split(/[^\p{L}\p{N}]+/u)) {
+    const t = terms(w)[0];
+    if (t && !m.has(t)) m.set(t, w);
+  }
+  if (surfMemo.size > 200) surfMemo.clear();
+  surfMemo.set(text, m);
+  return m;
+}
 const termMemo = new Map();
 function termSet(text) {
   let v = termMemo.get(text);
@@ -69,7 +89,8 @@ function coverage(aText, c, stats) {
     if (callWords.has(t)) { shared += w; hits.push([t, w]); }
   }
   if (!total) return null;
-  return { ratio: shared / total, words: hits.sort((x, y) => y[1] - x[1]).slice(0, 8).map(([t]) => t) };
+  const surf = surface(aText);
+  return { ratio: shared / total, words: hits.sort((x, y) => y[1] - x[1]).slice(0, 8).map(([t]) => surf.get(t) || t) };
 }
 // Coverage of 7% or less is what unrelated calls share through common words; 30% is a close thematic match.
 const TEXT_FLOOR = 0.07, TEXT_FULL = 0.3;
@@ -118,6 +139,48 @@ function partnershipCheck(p, c, rule) {
   if (needCountries !== null && have >= needCountries) return chk("partnership", "pass", "partnership.consortiumMet", { have, need: needCountries });
   // Partners can still be found before the deadline: a gap, not a disqualification.
   return chk("partnership", "unknown", "partnership.consortiumGap", { have, need: needCountries, note: c.partnershipNote || "" });
+}
+
+// ---------- conditions read from the call's official documents (site/org/eligibility.json) ----------
+// elig: the call's entry ({status, title, docUrl, verified, conditions: [{type, value, quote | ref}]}); quotes of
+// framework conditions (Horizon Europe General Annex B) come from frameworks. ai: conditions checked by the AI against
+// the official text for this profile ({result, condition, quote, reason, field}), each quote verified by the server.
+const FOR_PROFIT = new Set(["sme", "startup", "company"]);
+const PUBLIC = new Set(["public-authority", "public-body", "university", "school", "research"]);
+function officialChecks(p, c, elig, frameworks, ai) {
+  const out = [];
+  if (!elig || elig.status !== "verified") {
+    out.push(chk("official", "unknown", "off.unverified", { status: (elig && elig.status) || "not_researched", url: (elig && elig.docUrl) || c.url || "" }, "official"));
+  } else {
+    const src = { title: elig.title || "", url: elig.docUrl || c.url || "", verified: elig.verified || "", published: elig.published || "" };
+    const q = (x) => ({ ...src, quote: x.quote || (x.ref && frameworks && frameworks[x.ref] ? frameworks[x.ref].consortium.quote : ""), ...(x.ref && frameworks && frameworks[x.ref] ? { title: frameworks[x.ref].title, url: frameworks[x.ref].url } : {}) });
+    const by = Object.fromEntries((elig.conditions || []).map((x) => [x.type, x]));
+    const t = p.orgType, typ = TYPE[t];
+    if (by.naturalPersons && by.naturalPersons.value === false) {
+      out.push(!t ? chk("off.natural", "missing", "off.natural.missing", { ...q(by.naturalPersons), fields: ["orgType"] }, "official")
+        : INDIVIDUAL_ONLY.has(t) ? chk("off.natural", "fail", "off.natural.fail", q(by.naturalPersons), "official") : chk("off.natural", "pass", "off.natural.pass", q(by.naturalPersons), "official"));
+    }
+    if (by.legalEntity && t && typ && !typ.legal && !INDIVIDUAL_ONLY.has(t)) {
+      out.push(by.noLegalPersonality ? chk("off.legal", "warn", "off.legal.exceptional", q(by.noLegalPersonality), "official") : chk("off.legal", "fail", "off.legal.fail", q(by.legalEntity), "official"));
+    }
+    if (by.coordinatorNonProfit && t && FOR_PROFIT.has(t)) out.push(chk("off.coordinator", "warn", "off.coordinator.forProfit", q(by.coordinatorNonProfit), "official"));
+    else if (by.forProfitPartnerOnly && t && FOR_PROFIT.has(t)) out.push(chk("off.coordinator", "warn", "off.forProfit.partner", q(by.forProfitPartnerOnly), "official"));
+    if (by.publicOnly && t) out.push(PUBLIC.has(t) ? chk("off.public", "pass", "off.public.pass", q(by.publicOnly), "official") : chk("off.public", "warn", "off.public.check", q(by.publicOnly), "official"));
+    const minA = by.minApplicants && by.minApplicants.value, minC = by.minCountries && by.minCountries.value;
+    if ((minA && minA > 1) || (minC && minC > 1)) {
+      const needC = minC ? minC - 1 : null, have = (p.partnerCountries || []).filter((x) => x !== p.country).length;
+      const prm = { ...q(by.minCountries || by.minApplicants), minApplicants: minA || null, minCountries: minC || null, have, need: needC };
+      out.push(!p.partnerCountries && !p.partnerships ? chk("off.consortium", "missing", "off.consortium.missing", { ...prm, fields: ["partnerCountries"] }, "official")
+        : (needC === null || have >= needC) ? chk("off.consortium", "pass", "off.consortium.met", prm, "official")
+        : chk("off.consortium", "unknown", "off.consortium.gap", prm, "official"));
+    } else if (minA === 1) out.push(chk("off.consortium", "pass", "off.consortium.single", q(by.minApplicants), "official"));
+    if (!out.length) out.push(chk("official", "pass", "off.read", { ...src, n: (elig.conditions || []).length }, "official"));
+  }
+  for (const a of ai || []) {
+    if (!a || !["pass", "fail", "unknown"].includes(a.result)) continue;
+    out.push(chk("ai." + (a.id || out.length), a.result, "off.ai", { condition: a.condition, quote: a.quote, reason: a.reason, field: a.field || "", title: a.title || (elig && elig.title) || "", url: a.url || (elig && elig.docUrl) || "" }, "official-ai"));
+  }
+  return out;
 }
 
 // ---------- weighted dimensions (each 0..1, plus whether profile data was missing) ----------
@@ -196,14 +259,18 @@ const RESULT_SCORE = { pass: 1, unknown: 0.5, warn: 0.3, missing: 0.5, fail: 0 }
 const COUNTRY_SCORE = { Y: 1, P: 0.6, C: 0.4, N: 0 };
 
 // ---------- assessment ----------
-export function assess(profile, call, { now = Date.now(), weights = null, stats = null, relevanceCap = true } = {}) {
+export function assess(profile, call, { now = Date.now(), weights = null, stats = null, relevanceCap = true, elig = null, ai = null } = {}) {
   const p = profile || {};
   const c = call;
   const ruleFns = CALL_RULES.filter((r) => r.match(c));
   const ruleInfo = Object.assign({}, ...ruleFns.map((r) => r.info || {}));
 
-  const checks = [countryCheck(p, c), applicantCheck(p, c), partnershipCheck(p, c, ruleInfo)];
+  const e0 = elig && elig.calls ? elig.calls[c.id] : null;
+  const official = elig ? officialChecks(p, c, e0, elig.frameworks, ai && ai[c.id]) : [];
+  // The official consortium condition replaces the one derived from the call data.
+  const checks = [countryCheck(p, c), applicantCheck(p, c), ...(official.some((x) => x.id === "off.consortium") ? [] : [partnershipCheck(p, c, ruleInfo)])];
   for (const r of ruleFns) for (const x of r.checks(p, c, { now })) checks.push(x);
+  checks.push(...official);
 
   const w = { ...DEFAULT_WEIGHTS, ...(PROGRAMME_WEIGHTS[c.programme] || {}), ...(weights || {}) };
   const e = (c.eligibility || {})[p.country];
@@ -220,8 +287,8 @@ export function assess(profile, call, { now = Date.now(), weights = null, stats 
   let sum = 0, tot = 0;
   for (const k of Object.keys(DEFAULT_WEIGHTS)) { sum += (w[k] || 0) * dims[k].s; tot += w[k] || 0; }
   let score = tot ? Math.round((100 * sum) / tot) : 0;
-  // Relevance cap: eligibility alone (type + country = 40% of the weights) must not make an unrelated call look
-  // compatible. With no thematic match the score stays at most 40 (low); a full match lifts the cap to 95.
+  // Relevance cap: experience, target groups and capacity alone must not make an unrelated call look compatible.
+  // With no thematic match the score stays at most 40 (low); a full match lifts the cap to 95.
   const capped = relevanceCap && !dims.objectives.missing ? Math.min(score, Math.round(40 + 55 * dims.objectives.s)) : score;
   const capApplied = capped < score;
   score = capped;
@@ -256,11 +323,21 @@ function recommendations(p, c, checks, dims, missing) {
   if (by.country && (by.country.result === "unknown")) out.push({ code: "rec.checkCountry", params: { cc: p.country } });
   if (by.applicant && ["unknown", "warn"].includes(by.applicant.result)) out.push({ code: "rec.checkApplicant" });
   if (by.partnership && ["unknown", "missing"].includes(by.partnership.result)) out.push({ code: "rec.partners", params: { need: by.partnership.params.need } });
-  for (const x of checks) if (x.result === "warn" || (x.result === "unknown" && x.source === "call-rule")) out.push({ code: "rec.rule", params: { id: x.id } });
+  if (by["off.consortium"] && ["unknown", "missing"].includes(by["off.consortium"].result)) out.push({ code: "rec.partners", params: { need: by["off.consortium"].params.need } });
+  if (by.official && by.official.result === "unknown") out.push({ code: "rec.verifyOfficial" });
+  for (const x of checks) if ((x.result === "warn" || (x.result === "unknown" && x.source === "call-rule")) && !String(x.id).startsWith("off") && !String(x.id).startsWith("ai.")) out.push({ code: "rec.rule", params: { id: x.id } });
+  if (checks.some((x) => x.source === "official" && x.result === "warn")) out.push({ code: "rec.officialWarn" });
   if (dims.targetGroups.s <= 0.2) out.push({ code: "rec.groups" });
   if (c.conditionsTruncated || c.descriptionTruncated || /described in the call document/i.test(c.conditions || "")) out.push({ code: "rec.readDocument" });
   out.push({ code: "rec.officialPage" });
   return out;
+}
+
+// Mandatory eligibility in numbers: requirements met, failed and still to verify (unknown, warn, missing).
+export function mandatorySummary(checks) {
+  const n = { pass: 0, fail: 0, verify: 0 };
+  for (const x of checks || []) n[x.result === "pass" ? "pass" : x.result === "fail" ? "fail" : "verify"]++;
+  return n;
 }
 
 // All calls at once, sorted: eligible and potential first, then by score. Ineligible calls go last,

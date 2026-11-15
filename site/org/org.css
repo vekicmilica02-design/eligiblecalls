@@ -113,7 +113,29 @@ table.oi-t td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--line);
 .op.op-completed .op-ic { background: var(--sc-high-fill); } .op.op-completed .op-ic::before { content: "✓"; }
 .op.op-failed .op-ic { background: var(--sc-low-fill); } .op.op-failed .op-ic::before { content: "!"; }
 .op.op-failed .op-t b { color: var(--sc-low); }
-@media (prefers-reduced-motion: reduce) { .op.busy .op-ic::before, .op.busy .op-ic::after { animation: none; } }
+/* While work runs: a soft panel with a thin bar that sweeps across when progress cannot be counted, a sheen on the
+   bar when it can, and the time elapsed for AI work. */
+.op.busy { position: relative; overflow: hidden; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); animation: op-in .25s ease-out; }
+.op.busy .op-time { margin-left: auto; color: var(--muted); }
+.op.sweep::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 35%; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent); animation: op-sweep 1.6s cubic-bezier(.45, 0, .55, 1) infinite; }
+.op.busy .op-bar > i { background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .35) 50%, transparent 70%); background-size: 200% 100%; animation: op-sheen 1.8s linear infinite; }
+.op.busy .op-t b { animation: op-breathe 2.4s ease-in-out infinite; }
+@keyframes op-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes op-sweep { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
+@keyframes op-sheen { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+@keyframes op-breathe { 50% { opacity: .6; } }
+/* placeholder idea cards while ideas are written */
+.skel-list { display: grid; gap: 12px; margin-top: 12px; }
+.skel-card { display: grid; gap: 10px; padding: 18px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); animation: op-in .3s ease-out both; }
+.skel-card:nth-child(2) { animation-delay: .08s; } .skel-card:nth-child(3) { animation-delay: .16s; }
+.skel-card .sk { display: block; height: 11px; border-radius: 6px; background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 50%, var(--sunk) 75%); background-size: 300% 100%; animation: sk-shimmer 1.6s ease-in-out infinite; }
+.skel-card .sk.w40 { width: 40%; height: 15px; } .skel-card .sk.w90 { width: 90%; } .skel-card .sk.w75 { width: 75%; } .skel-card .sk.w60 { width: 60%; }
+@keyframes sk-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .op.busy .op-ic::before, .op.busy .op-ic::after, .op.busy, .op.busy .op-t b, .op.busy .op-bar > i, .skel-card, .skel-card .sk { animation: none; }
+  .op.sweep::after { animation: none; width: 100%; opacity: .35; }
+}
 .loading.op { padding: 48px 0; }
 .crit-list { display: grid; gap: 10px; }
 .crit { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px 16px; background: var(--surface); }
@@ -146,7 +168,7 @@ a.stat { color: inherit; text-decoration: none; } a.stat:hover .l { color: var(-
 .idea-notes label { font-size: 13px; color: var(--ink-2); }
 .idea-notes textarea { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); color: var(--ink); font: inherit; resize: vertical; }
 .idea-picks { display: grid; gap: 6px; }
-.idea-picks .opt { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 14px; }
+.idea-picks .opt { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: start; font-size: 14px; }
 table.cmp th { text-align: left; vertical-align: top; width: 160px; font-size: 13px; color: var(--ink-2); }
 table.cmp td { vertical-align: top; min-width: 180px; }
 table.cmp ul { padding-left: 16px; }
@@ -349,3 +371,5 @@ table.off-t th { text-align: left; font-weight: 600; color: var(--muted); width:
 .ec-job-x { margin-left: auto; font-size: 18px; line-height: 1; }
 .ec-job a { display: inline-block; margin-top: 6px; }
 @media (max-width: 600px) { .ec-job { bottom: 76px; } }
+/* the background-upload box at the bottom left is redrawn on each step: no panel or entry motion inside it */
+.ec-job .op.busy { padding: 0 0 6px; border: 0; background: none; animation: none; }

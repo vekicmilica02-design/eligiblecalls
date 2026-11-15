@@ -62,7 +62,7 @@ export function setGlossary(g) {
     }
   }
   GLOSS = idx.size ? { idx, version: (g && g.version) || "" } : null;
-  termMemo.clear(); surfMemo.clear(); expMemo.clear(); unknownOf.clear(); textOf = new WeakMap(); profMemo = new WeakMap();
+  termMemo.clear(); surfMemo.clear(); expMemo.clear(); vecMemo.clear(); unknownOf.clear(); textOf = new WeakMap(); profMemo = new WeakMap();
 }
 export const glossaryVersion = () => (GLOSS ? GLOSS.version : "");
 const wordMatch = (w, p, not) => (p.eq !== undefined ? w === p.eq : w.startsWith(p.pre) && w.length - p.pre.length <= MAX_ENDING && !not.some((x) => w.startsWith(x)));
@@ -126,9 +126,12 @@ const profileText = (p) => {
 
 // Word sets of every call and document frequencies over all calls (rare words count more). Built once per data load.
 export function buildDF(calls) {
-  const df = new Map(), sets = new WeakMap();
-  for (const c of calls) { const u = new Set(terms(callText(c))); sets.set(c, u); for (const t of u) df.set(t, (df.get(t) || 0) + 1); }
-  return { df, n: calls.length, sets, text: new WeakMap(), calls };
+  const df = new Map(), sets = new WeakMap(), tfs = new WeakMap();
+  for (const c of calls) {
+    const tf = new Map(); for (const t of terms(callText(c))) tf.set(t, (tf.get(t) || 0) + 1);
+    tfs.set(c, tf); sets.set(c, new Set(tf.keys())); for (const t of tf.keys()) df.set(t, (df.get(t) || 0) + 1);
+  }
+  return { df, n: calls.length, sets, tfs, text: new WeakMap(), calls };
 }
 const idfOf = (t, stats) => (stats ? Math.log(1 + stats.n / (1 + (stats.df.get(t) || 0))) : 1);
 function callSet(c, stats) {
@@ -180,9 +183,56 @@ function coverage(aText, c, stats) {
   const surf = surface(aText);
   return { ratio: shared / total, words: hits.sort((x, y) => y[1] - x[1]).slice(0, 8).map(([t]) => surf.get(t) || t) };
 }
+// TF-IDF vectors (term counts dampened with 1 + log, times rarity across calls) and their lengths.
+function tfVec(list, stats, counted = null) {
+  let tf = counted;
+  if (!tf) { tf = new Map(); for (const t of list) tf.set(t, (tf.get(t) || 0) + 1); }
+  const v = new Map(); let n2 = 0;
+  for (const [t, k] of tf) { if (stats && !stats.df.get(t)) continue; const w = (1 + Math.log(k)) * idfOf(t, stats); v.set(t, w); n2 += w * w; }
+  return { v, n: Math.sqrt(n2) };
+}
+function callVec(c, stats) {
+  if (stats && !stats.vec) stats.vec = new WeakMap();
+  let x = stats && stats.vec.get(c);
+  if (!x) { const tf = stats && stats.tfs && stats.tfs.get(c); x = tf ? tfVec(null, stats, tf) : tfVec(terms(callText(c)), stats); if (stats) stats.vec.set(c, x); }
+  return x;
+}
+const vecMemo = new Map();
+// Thematic similarity of a profile text and a call: cosine of the two TF-IDF vectors. Both lengths are
+// normalised, so a fuller profile or a longer call text neither lowers nor raises the match by itself; what
+// counts is whether the words that carry most weight in the profile also carry weight in the call.
+function similarity(aText, c, stats) {
+  let a = vecMemo.get(aText);
+  if (!a || a.stats !== stats) {
+    a = tfVec(terms(aText), stats); a.stats = stats;
+    // Untranslated words of a non-English text that no call uses still belong to the text: they lengthen its vector
+    // at UNKNOWN_SHARE of the mean word weight, so a few translated generic words do not make a "perfect" match.
+    const rest = stats && unknownOf.get(aText);
+    if (rest && rest.size && a.v.size) {
+      let k = 0; for (const t of rest) if (!a.v.has(t)) k++;
+      const mean = a.n / Math.sqrt(a.v.size);
+      a.n = Math.sqrt(a.n * a.n + k * (UNKNOWN_SHARE * mean) ** 2);
+    }
+    if (vecMemo.size > 50) vecMemo.clear();
+    vecMemo.set(aText, a);
+  }
+  if (!a.n) return null;
+  const b = callVec(c, stats);
+  if (!b.n) return { ratio: 0, words: [] };
+  let dot = 0; const hits = [];
+  const [small, big] = a.v.size < b.v.size ? [a.v, b.v] : [b.v, a.v];
+  for (const [t, w] of small) { const u = big.get(t); if (u) { dot += w * u; hits.push([t, w * u]); } }
+  const surf = surface(aText);
+  return { ratio: dot / (a.n * b.n), words: hits.sort((x, y) => y[1] - x[1]).slice(0, 8).map(([t]) => surf.get(t) || t) };
+}
 // Coverage of 7% or less is what unrelated calls share through common words; 30% is a close thematic match.
 const TEXT_FLOOR = 0.07, TEXT_FULL = 0.3;
 const textScore = (ratio) => Math.max(0, Math.min(1, (ratio - TEXT_FLOOR) / (TEXT_FULL - TEXT_FLOOR)));
+// Cosine of 3% or less is what unrelated calls share; 13% is a close thematic match. Measured on 15 Nov 2026 over
+// the open calls with six sample profiles (environment short and full, youth, culture, AI company, Cyrillic): the
+// median call scores about 2%, the closest calls 13% to 25%, and a full profile no longer scores lower than a short one.
+const SIM_FLOOR = 0.03, SIM_FULL = 0.13;
+const simScore = (r) => Math.max(0, Math.min(1, (r - SIM_FLOOR) / (SIM_FULL - SIM_FLOOR)));
 
 // Target groups as they are written in (English) call texts.
 const GROUP_RE = {
@@ -325,9 +375,9 @@ function dimObjectives(p, c, stats) {
   const ptext = profileText(p);
   // Free text when the profile has it (area names are then scored by the sector match, not twice); otherwise the
   // area names themselves, so a profile with areas only still gets a match on the call's text.
-  const ov = ptext ? coverage(ptext, c, stats) : null;
+  const ov = ptext ? similarity(ptext, c, stats) : null;
   const am = !ptext && areas.length ? areaMatch(areas, c, stats) : null;
-  const text = ov ? textScore(ov.ratio) : am ? am.score : null;
+  const text = ov ? simScore(ov.ratio) : am ? am.score : null;
   if (sect === null && text === null) return { s: 0.5, missing: ["activityAreas", "objectives"] };
   const s = sect === null ? text : text === null ? 0.6 * sect : 0.3 * sect + 0.7 * text;
   return { s, sect, text, textFrom: ov ? "profile" : am ? "areas" : null, sharedSectors: shared, words: text > 0 ? (ov ? ov.words : am.words) : [] };

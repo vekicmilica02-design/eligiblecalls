@@ -78,7 +78,7 @@ const S = {
     ideasTitle: "Project ideas", ideasLede: "Concepts for projects your organisation could develop, each linked to an open call listed on Eligible Calls. An AI model writes them from your saved profile and the calls you select; the calls, deadlines, eligibility and compatibility scores come from the platform's data and rules.",
     ideasAi: "AI-generated proposal: check it against the call documents before relying on it.", ideasPick: "Calls to build ideas on", ideasPickNote: (n) => `Your most compatible open calls: eligible or to verify, with a score of 50% or more. Up to ${n} can be used in one run.`,
     ideasNoCalls: "No open call reaches 50% compatibility with the profile yet. Complete the profile or look at the matching page.", ideasNeed: "To generate ideas the profile needs a name, organisation type, country, and a description, mission or objectives.",
-    ideasGenerate: "Generate ideas", ideasRegenerate: "Generate new ideas", ideasBusy: "Writing one idea for each selected call… about 20 seconds per call.", ideasUse: "Uses one AI action per selected call. Unsaved suggestions are replaced; saved ideas stay.",
+    ideasGenerate: "Generate ideas", ideasRegenerate: "Generate new ideas", ideasBusy: "Writing one idea for each selected call… about 20 seconds per call.", ideasUse: "Each selected call uses 1 of your daily AI actions. Generating again replaces the earlier suggestions you did not save; saved ideas are kept.",
     ideasDone: (n, k) => `${n} idea(s) generated for ${k} selected call(s).`, ideasZero: "No idea could be generated for the selected calls.",
     ideasMissing: "No idea for:", ideasRetry: "To try these calls again, save the ideas you want to keep first: generating again replaces unsaved suggestions.",
     ideaWhy: { closed: "the call is closed", not_eligible: "organisations from your country cannot apply", unknown_call: "the call is no longer published", too_many: "more than 6 calls were selected", no_fit: "the AI found that the organisation cannot take part in this call", incomplete: "the AI answer was incomplete", ai_bad_answer: "the AI answer could not be read", ai_user_limit: "your AI actions for today are used up", ai_resting: "the AI allowance for today is used up", ai_busy: "the AI service was busy", ai_unavailable: "the AI service did not answer" },
@@ -257,7 +257,7 @@ const S = {
     ideasTitle: "Projektne ideje", ideasLede: "Koncepti projekata koje vaša organizacija može da razvije, svaki vezan za otvoren poziv sa Eligible Calls. Piše ih AI model na osnovu sačuvanog profila i poziva koje izaberete; pozivi, rokovi, podobnost i ocene kompatibilnosti potiču iz podataka i pravila platforme.",
     ideasAi: "Predlog koji je napisao AI: proverite ga u dokumentaciji poziva pre nego što se na njega oslonite.", ideasPick: "Pozivi za ideje", ideasPickNote: (n) => `Vaši najkompatibilniji otvoreni pozivi: podobni ili za proveru, sa ocenom od najmanje 50%. U jednom pokretanju može se koristiti najviše ${n}.`,
     ideasNoCalls: "Nijedan otvoren poziv još nema 50% kompatibilnosti sa profilom. Dopunite profil ili pogledajte stranicu provere podobnosti.", ideasNeed: "Za ideje profil mora imati naziv, tip organizacije, državu i opis, misiju ili ciljeve.",
-    ideasGenerate: "Napravi ideje", ideasRegenerate: "Napravi nove ideje", ideasBusy: "Pišem po jednu ideju za svaki izabrani poziv… oko 20 sekundi po pozivu.", ideasUse: "Troši jednu AI akciju po izabranom pozivu. Nesačuvani predlozi se zamenjuju; sačuvane ideje ostaju.",
+    ideasGenerate: "Napravi ideje", ideasRegenerate: "Napravi nove ideje", ideasBusy: "Pišem po jednu ideju za svaki izabrani poziv… oko 20 sekundi po pozivu.", ideasUse: "Svaki izabrani poziv troši 1 od vaših dnevnih AI akcija. Novo generisanje zamenjuje ranije predloge koje niste sačuvali; sačuvane ideje ostaju.",
     ideasDone: (n, k) => `Napravljeno ideja: ${n}, za izabrane pozive: ${k}.`, ideasZero: "Za izabrane pozive nije bilo moguće napraviti nijednu ideju.",
     ideasMissing: "Nema ideje za:", ideasRetry: "Da biste ponovo probali ove pozive, prvo sačuvajte ideje koje želite da zadržite: novo pokretanje zamenjuje nesačuvane predloge.",
     ideaWhy: { closed: "poziv je zatvoren", not_eligible: "organizacije iz vaše države ne mogu da apliciraju", unknown_call: "poziv više nije objavljen", too_many: "izabrano je više od 6 poziva", no_fit: "AI je utvrdio da organizacija ne može da učestvuje u ovom pozivu", incomplete: "odgovor AI modela je bio nepotpun", ai_bad_answer: "odgovor AI modela nije mogao da se pročita", ai_user_limit: "iskoristili ste današnje AI akcije", ai_resting: "današnja AI kvota je potrošena", ai_busy: "AI servis je bio zauzet", ai_unavailable: "AI servis nije odgovorio" },
@@ -455,14 +455,29 @@ const codeText = (x) => { const f = CODES[L()][x.code] || CODES.en[x.code]; retu
 // (reading, ocr, analysing, researching, generating, drawing, saving) shows the moving mark and, where the work can
 // be counted (pages read, OCR progress, parts analysed), a progress bar; completed and failed end the animation.
 const OP_BUSY = new Set(["uploading", "reading", "ocr", "analysing", "researching", "generating", "drawing", "saving", "checking", "translating"]);
+// AI work that takes seconds to minutes: the status shows how long it has been running.
+const OP_TIMED = new Set(["generating", "analysing", "checking", "translating", "researching"]);
 function opState(el, state, detail = "", pct = null) {
   if (!el) return;
+  if (el._opTimer) { clearInterval(el._opTimer); el._opTimer = null; }
   if (state === "idle") { el.className = "op"; el.removeAttribute("aria-busy"); el.innerHTML = ""; return; }
   const busy = OP_BUSY.has(state), p = pct === null || pct === undefined || isNaN(pct) ? null : Math.max(0, Math.min(100, Math.round(pct)));
-  el.className = `op op-${state}${busy ? " busy" : ""}`;
+  el.className = `op op-${state}${busy ? " busy" : ""}${busy && p === null ? " sweep" : ""}`;
   el.setAttribute("aria-busy", busy ? "true" : "false");
-  el.innerHTML = `<span class="op-ic" aria-hidden="true"></span><span class="op-t"><b>${esc(T("op." + state))}</b>${detail ? ` <span>${esc(detail)}</span>` : ""}</span>${p !== null ? `<span class="op-bar" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p}%"></i></span><span class="fine num">${p}%</span>` : ""}`;
+  if (busy && OP_TIMED.has(state)) {
+    const t0 = el._opStart && el._opState === state ? el._opStart : Date.now();
+    el._opStart = t0; el._opState = state;
+    el._opTimer = setInterval(() => {
+      const tm = el.isConnected && el.querySelector(".op-time");
+      if (!tm) { clearInterval(el._opTimer); el._opTimer = null; return; }
+      const s = Math.floor((Date.now() - t0) / 1000); tm.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    }, 1000);
+  } else { el._opStart = null; el._opState = null; }
+  el.innerHTML = `<span class="op-ic" aria-hidden="true"></span><span class="op-t"><b>${esc(T("op." + state))}</b>${detail ? ` <span>${esc(detail)}</span>` : ""}</span>${p !== null ? `<span class="op-bar" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p}%"></i></span><span class="fine num">${p}%</span>` : ""}${busy && OP_TIMED.has(state) ? `<span class="op-time fine num" aria-hidden="true">0:00</span>` : ""}`;
 }
+// Placeholder cards with a soft shimmer where generated ideas will appear, one per selected call.
+const ideaSkeletons = (n) => `<div class="skel-list" aria-hidden="true">${Array.from({ length: Math.max(1, Math.min(n, 3)) }, () =>
+  `<div class="skel-card"><i class="sk w40"></i><i class="sk w90"></i><i class="sk w75"></i><i class="sk w60"></i></div>`).join("")}</div>`;
 
 /* ---------- API ---------- */
 async function api(method, path, body) {
@@ -1285,12 +1300,12 @@ async function secReport(key) {
   ST.lastSnap = snap;
   return `<a class="back" href="#org/${id}/matching">← ${esc(T("matchTitle"))}</a>
     <h1>${esc(c.title)}</h1>${callMeta(snap.call)}
-    ${canEdit() ? `<section class="oi-card rep-save"><h2>${esc(T("repSaveTitle"))}</h2><p class="fine">${esc(T("repSaveLede"))}</p>
-      <div class="oi-row"><div class="fld grow"><label for="rsNote">${esc(T("repNote"))}</label><input type="text" id="rsNote" maxlength="1000" placeholder="${esc(T("repNotePh"))}"></div><button type="button" class="btn" id="rsSave">${esc(T("repSave"))}</button></div>
-      <div role="status" id="rsMsg"></div></section>` : ""}
     ${reportSections(snap.assessment, id)}
     ${officialHTML(c)}
     <section class="oi-card"><h2>${esc(T("repEval"))}</h2>${critHTML((await loadCriteria()).calls[c.id], c)}</section>
+    ${canEdit() ? `<section class="oi-card rep-save"><h2>${esc(T("repSaveTitle"))}</h2><p class="fine">${esc(T("repSaveLede"))}</p>
+      <div class="oi-row"><div class="fld grow"><label for="rsNote">${esc(T("repNote"))}</label><input type="text" id="rsNote" maxlength="1000" placeholder="${esc(T("repNotePh"))}"></div><button type="button" class="btn" id="rsSave">${esc(T("repSave"))}</button></div>
+      <div role="status" id="rsMsg"></div></section>` : ""}
     <p class="fine">${esc(T("assessedAt", fmtTime(Date.now()), ST.org.version, EC.fmtDate(EC.META.generated)))}</p>`;
 }
 // Where a call's mandatory conditions come from, and the AI check of the profile against that official text.
@@ -1722,6 +1737,8 @@ afterRender.ideas = (arg) => {
     const msg = document.getElementById("oiGenMsg");
     const cands = ideaCandidates().filter((r) => ST.ideaPick.has(r.callId)).map((r) => ({ id: r.callId, score: r.score, status: r.status, band: r.band }));
     gen.disabled = true; opState(msg, "generating", T("ideasBusy"));
+    msg.insertAdjacentHTML("afterend", ideaSkeletons(cands.length));
+    const skel = msg.nextElementSibling;
     try {
       const r = await api("POST", `/orgs/${org.id}/ideas`, { candidates: cands, lang: L() });
       const miss = (r.missing || []).map((x) => ({ title: x.title || x.callId, why: T("ideaWhy." + x.why) }));
@@ -1733,6 +1750,7 @@ afterRender.ideas = (arg) => {
       else if (fresh.length) ST.evalNote = { ok: true, text: T("evAutoPremium") };
       EC.route();
     } catch (e) { gen.disabled = false; opState(msg, "failed", errText(e)); }
+    finally { if (skel && skel.classList.contains("skel-list")) skel.remove(); }
   });
   if (ST.ideaNote) {
     const m = document.getElementById("oiGenMsg"), n = ST.ideaNote;
@@ -1767,13 +1785,13 @@ afterRender.ideas = (arg) => {
       btn.disabled = true; opState(pdfMsg, fresh || !x.proposal ? "generating" : "drawing", T(fresh || !x.proposal ? "pdfBusy" : "pdfDrawing"));
       try {
         let p;
-        if (fresh || !x.proposal) { p = (await api("POST", `/orgs/${org.id}/ideas/${id}/proposal`, { lang: L() })).proposal; x.proposal = { at: p.at, model: p.model, lang: p.lang }; pdfMsg.textContent = T("pdfDrawing"); }
+        if (fresh || !x.proposal) { p = (await api("POST", `/orgs/${org.id}/ideas/${id}/proposal`, { lang: L() })).proposal; x.proposal = { at: p.at, model: p.model, lang: p.lang }; opState(pdfMsg, "drawing", T("pdfDrawing")); }
         else p = (await api("GET", `/orgs/${org.id}/ideas/${id}/proposal`)).proposal;
         await downloadProposal(x, p);
-        pdfMsg.className = "fine ok"; pdfMsg.textContent = T("pdfDone");
+        opState(pdfMsg, "completed", T("pdfDone"));
         const b = card.querySelector('[data-act="pdf"]'); if (b) b.lastChild.textContent = " " + T("pdfDownload");
         if (!card.querySelector('[data-act="pdfnew"]') && canEdit()) { const r = document.createElement("button"); r.type = "button"; r.className = "linkbtn"; r.dataset.act = "pdfnew"; r.textContent = T("pdfRegenerate"); pdfMsg.before(r); r.addEventListener("click", () => makePdf(true, r)); }
-      } catch (e) { pdfMsg.className = "fine err"; pdfMsg.textContent = e && e.status ? errText(e) : T("pdfFail"); }
+      } catch (e) { opState(pdfMsg, "failed", e && e.status ? errText(e) : T("pdfFail")); }
       btn.disabled = false;
     };
     on("pdf", "click", (ev) => makePdf(false, ev.currentTarget));

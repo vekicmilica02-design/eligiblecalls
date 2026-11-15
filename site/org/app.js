@@ -77,8 +77,10 @@ const S = {
     ideasTitle: "Project ideas", ideasLede: "Concepts for projects your organisation could develop, each linked to an open call listed on Eligible Calls. An AI model writes them from your saved profile and the calls you select; the calls, deadlines, eligibility and compatibility scores come from the platform's data and rules.",
     ideasAi: "AI-generated proposal: check it against the call documents before relying on it.", ideasPick: "Calls to build ideas on", ideasPickNote: (n) => `Your most compatible open calls: eligible or to verify, with a score of 50% or more. Up to ${n} can be used in one run.`,
     ideasNoCalls: "No open call reaches 50% compatibility with the profile yet. Complete the profile or look at the matching page.", ideasNeed: "To generate ideas the profile needs a name, organisation type, country, and a description, mission or objectives.",
-    ideasGenerate: "Generate ideas", ideasRegenerate: "Generate new ideas", ideasBusy: "Writing ideas… this can take up to a minute.", ideasUse: "Uses one of your daily AI actions. Unsaved suggestions are replaced; saved ideas stay.",
-    ideasDone: (n, d) => `${n} idea(s) generated.` + (d ? ` ${d} proposal(s) were discarded because they named a call that was not selected or were incomplete.` : ""), ideasZero: "The model found no selected call that genuinely fits the profile. Try other calls or complete the profile.",
+    ideasGenerate: "Generate ideas", ideasRegenerate: "Generate new ideas", ideasBusy: "Writing one idea for each selected call… about 20 seconds per call.", ideasUse: "Uses one AI action per selected call. Unsaved suggestions are replaced; saved ideas stay.",
+    ideasDone: (n, k) => `${n} idea(s) generated for ${k} selected call(s).`, ideasZero: "No idea could be generated for the selected calls.",
+    ideasMissing: "No idea for:", ideasRetry: "To try these calls again, save the ideas you want to keep first: generating again replaces unsaved suggestions.",
+    ideaWhy: { closed: "the call is closed", not_eligible: "organisations from your country cannot apply", unknown_call: "the call is no longer published", too_many: "more than 6 calls were selected", no_fit: "the AI found that the organisation cannot take part in this call", incomplete: "the AI answer was incomplete", ai_bad_answer: "the AI answer could not be read", ai_user_limit: "your AI actions for today are used up", ai_resting: "the AI allowance for today is used up", ai_busy: "the AI service was busy", ai_unavailable: "the AI service did not answer" },
     ideasNone: "No ideas yet.", ideasSaved: "Saved ideas", ideasSuggested: "Latest suggestions", ideasViewerNote: "You can read the ideas. Editors and owners generate, save and annotate them.",
     ideaSavedChip: "Saved", ideaSave: "Save", ideaUnsave: "Remove from saved", ideaNotes: "Notes", ideaNotesSave: "Save notes", ideaNotesSaved: "Notes saved.", ideaCompare: "Compare", ideaDelete: "Delete",
     ideaF: { concept: "Project concept", problem: "Problem addressed", solution: "Proposed solution", objectives: "Main objectives", targetGroups: "Target groups", activities: "Proposed activities", expectedResults: "Expected results and impact", potentialPartners: "Potential partners", whyItFits: "Why this project makes sense" },
@@ -242,8 +244,10 @@ const S = {
     ideasTitle: "Projektne ideje", ideasLede: "Koncepti projekata koje vaša organizacija može da razvije, svaki vezan za otvoren poziv sa Eligible Calls. Piše ih AI model na osnovu sačuvanog profila i poziva koje izaberete; pozivi, rokovi, podobnost i ocene kompatibilnosti potiču iz podataka i pravila platforme.",
     ideasAi: "Predlog koji je napisao AI: proverite ga u dokumentaciji poziva pre nego što se na njega oslonite.", ideasPick: "Pozivi za ideje", ideasPickNote: (n) => `Vaši najkompatibilniji otvoreni pozivi: podobni ili za proveru, sa ocenom od najmanje 50%. U jednom pokretanju može se koristiti najviše ${n}.`,
     ideasNoCalls: "Nijedan otvoren poziv još nema 50% kompatibilnosti sa profilom. Dopunite profil ili pogledajte stranicu provere podobnosti.", ideasNeed: "Za ideje profil mora imati naziv, tip organizacije, državu i opis, misiju ili ciljeve.",
-    ideasGenerate: "Napravi ideje", ideasRegenerate: "Napravi nove ideje", ideasBusy: "Pišem ideje… to može trajati do jednog minuta.", ideasUse: "Troši jednu od vaših dnevnih AI akcija. Nesačuvani predlozi se zamenjuju; sačuvane ideje ostaju.",
-    ideasDone: (n, d) => `Napravljeno ideja: ${n}.` + (d ? ` Odbačeno predloga: ${d} (naveli su poziv koji nije izabran ili su bili nepotpuni).` : ""), ideasZero: "Model nije našao izabran poziv koji zaista odgovara profilu. Probajte druge pozive ili dopunite profil.",
+    ideasGenerate: "Napravi ideje", ideasRegenerate: "Napravi nove ideje", ideasBusy: "Pišem po jednu ideju za svaki izabrani poziv… oko 20 sekundi po pozivu.", ideasUse: "Troši jednu AI akciju po izabranom pozivu. Nesačuvani predlozi se zamenjuju; sačuvane ideje ostaju.",
+    ideasDone: (n, k) => `Napravljeno ideja: ${n}, za izabrane pozive: ${k}.`, ideasZero: "Za izabrane pozive nije bilo moguće napraviti nijednu ideju.",
+    ideasMissing: "Nema ideje za:", ideasRetry: "Da biste ponovo probali ove pozive, prvo sačuvajte ideje koje želite da zadržite: novo pokretanje zamenjuje nesačuvane predloge.",
+    ideaWhy: { closed: "poziv je zatvoren", not_eligible: "organizacije iz vaše države ne mogu da apliciraju", unknown_call: "poziv više nije objavljen", too_many: "izabrano je više od 6 poziva", no_fit: "AI je utvrdio da organizacija ne može da učestvuje u ovom pozivu", incomplete: "odgovor AI modela je bio nepotpun", ai_bad_answer: "odgovor AI modela nije mogao da se pročita", ai_user_limit: "iskoristili ste današnje AI akcije", ai_resting: "današnja AI kvota je potrošena", ai_busy: "AI servis je bio zauzet", ai_unavailable: "AI servis nije odgovorio" },
     ideasNone: "Još nema ideja.", ideasSaved: "Sačuvane ideje", ideasSuggested: "Najnoviji predlozi", ideasViewerNote: "Možete da čitate ideje. Urednici i vlasnici ih prave, čuvaju i dopisuju beleške.",
     ideaSavedChip: "Sačuvano", ideaSave: "Sačuvaj", ideaUnsave: "Ukloni iz sačuvanih", ideaNotes: "Beleške", ideaNotesSave: "Sačuvaj beleške", ideaNotesSaved: "Beleške su sačuvane.", ideaCompare: "Uporedi", ideaDelete: "Obriši",
     ideaF: { concept: "Koncept projekta", problem: "Problem koji se rešava", solution: "Predloženo rešenje", objectives: "Glavni ciljevi", targetGroups: "Ciljne grupe", activities: "Predložene aktivnosti", expectedResults: "Očekivani rezultati i uticaj", potentialPartners: "Mogući partneri", whyItFits: "Zašto ovaj projekat ima smisla" },
@@ -1506,12 +1510,20 @@ afterRender.ideas = (arg) => {
     gen.disabled = true; opState(msg, "generating", T("ideasBusy"));
     try {
       const r = await api("POST", `/orgs/${org.id}/ideas`, { candidates: cands, lang: L() });
-      ST.ideaNote = r.generated ? T("ideasDone", r.generated, r.dropped.length) : T("ideasZero");
+      const miss = (r.missing || []).map((x) => ({ title: x.title || x.callId, why: T("ideaWhy." + x.why) }));
+      ST.ideaNote = { ok: r.generated > 0 && !miss.length, text: r.generated ? T("ideasDone", r.generated, cands.length - miss.length) : T("ideasZero"), miss };
       await loadMe(true);
       EC.route();
     } catch (e) { gen.disabled = false; opState(msg, "failed", errText(e)); }
   });
-  if (ST.ideaNote) { const m = document.getElementById("oiGenMsg"); if (m) { m.className = "note ok"; m.textContent = ST.ideaNote; } ST.ideaNote = null; }
+  if (ST.ideaNote) {
+    const m = document.getElementById("oiGenMsg"), n = ST.ideaNote;
+    if (m) {
+      m.className = n.ok ? "note ok" : "note warn";
+      m.innerHTML = `<p>${esc(n.text)}</p>` + (n.miss.length ? `<p>${esc(T("ideasMissing"))}</p><ul>${n.miss.map((x) => `<li><b>${esc(x.title)}</b>: ${esc(x.why)}</li>`).join("")}</ul><p class="fine">${esc(T("ideasRetry"))}</p>` : "");
+    }
+    ST.ideaNote = null;
+  }
   const pwMsg = document.getElementById("pwMsg");
   const pwDo = async (path, body) => {
     opState(pwMsg, "saving");

@@ -340,3 +340,12 @@ table.off-t th { text-align: left; font-weight: 600; color: var(--muted); width:
 .tr-orig summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 .tr-orig p { font-size: 13.5px; color: var(--ink-2); margin-top: 4px; white-space: pre-wrap; }
 .fine.warn { color: var(--orange); }
+/* Document upload running in the background: shown on every page except its own Documents page. */
+.ec-job { position: fixed; left: 16px; bottom: 16px; z-index: 60; width: min(380px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 14px; }
+.ec-job[hidden] { display: none; }
+.ec-job-h { display: flex; gap: 8px; align-items: baseline; }
+.ec-job-h b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+.ec-job-h .fine { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ec-job-x { margin-left: auto; font-size: 18px; line-height: 1; }
+.ec-job a { display: inline-block; margin-top: 6px; }
+@media (max-width: 600px) { .ec-job { bottom: 76px; } }

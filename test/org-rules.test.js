@@ -5,6 +5,8 @@ import path from "node:path";
 import { ROOT } from "./mocks.js";
 import { assess, assessAll, buildDF, band, scoreTier, DEFAULT_WEIGHTS, callFingerprint, mandatorySummary, HIGH, MEDIUM, setGlossary, expandText, norm, terms } from "../site/org/rules.js";
 import { detectLang, foldText, textHash } from "../site/org/lang.js";
+import { rubricFor } from "../site/org/rubric.js";
+import { scoreEvaluation } from "../src/org/evaluate.js";
 import { cleanProfile, completeness, contextFrom, changedFields } from "../site/org/schema.js";
 
 const TAX = JSON.parse(readFileSync(path.join(ROOT, "site/data/taxonomy.json"), "utf8"));
@@ -339,5 +341,35 @@ t("an English copy is used only for the free-text fields it covers; the original
   const sr = assess({ ...ngoSr, objectives: undefined, description: "Udruženje iz Novog Sada." }, c, { now: NOW }).score;
   const withCopy = assess({ ...ngoSr, objectives: undefined, description: "Udruženje iz Novog Sada.", textEn: { description: "Builds digital skills of young people with fewer opportunities." } }, c, { now: NOW }).score;
   assert.ok(withCopy > sr, `${withCopy} > ${sr}`);
+});
+
+t("every label the organisation pages use has an English and a Serbian text (no raw keys such as evStrengths)", () => {
+  const src = readFileSync(path.join(ROOT, "site/org/app.js"), "utf8"), lines = src.split("\n");
+  const a0 = lines.findIndex((l) => l.startsWith("const S = {")), a1 = lines.findIndex((l, i) => i > a0 && l === "};");
+  const S = new Function(lines.slice(a0, a1 + 1).join("\n").replace(/^const S = /, "return "))();
+  const get = (o, k) => k.split(".").reduce((x, y) => (x ? x[y] : undefined), o);
+  const literal = [...src.matchAll(/\bT\("([A-Za-z0-9_.]+)"/g)].map((m) => m[1]).filter((k) => !k.endsWith("."));
+  const viaPairs = [...src.matchAll(/\[\s*"[A-Za-z]+"\s*,\s*"([a-z][A-Za-z0-9]*[A-Z][A-Za-z0-9]*)"\s*\]/g)].map((m) => m[1]);
+  const missing = [...new Set([...literal, ...viaPairs])].flatMap((k) => ["en", "sr"].filter((l) => get(S[l], k) === undefined).map((l) => l + ":" + k));
+  assert.deepEqual(missing, []);
+  for (const k of ["evStrengths", "evWeak", "evMissing", "evRec"]) assert.ok(viaPairs.includes(k), k + " is still found by the check");
+});
+
+t("CERV evaluation: only Relevance has an individual minimum (25/40); Quality and Impact count towards the overall 70", () => {
+  const CRIT = JSON.parse(readFileSync(path.join(ROOT, "site/org/criteria.json"), "utf8"));
+  const id = Object.keys(CRIT.calls).find((k) => k.startsWith("CERV-") && CRIT.calls[k].kind === "document" && CRIT.calls[k].table);
+  if (!id) return;   // no CERV call document in the current data
+  const rb = rubricFor({ id, programme: "CERV" }, CRIT, null);
+  assert.deepEqual(rb.criteria.map((c) => [c.name, c.max, c.min]), [["Relevance", 40, 25], ["Quality", 40, null], ["Impact", 20, null]]);
+  assert.equal(rb.total.threshold, 70);
+  const ev = (r, q, i) => scoreEvaluation(rb, { criteria: [{ id: "c1", score: r }, { id: "c2", score: q }, { id: "c3", score: i }] });
+  let e = ev(28, 20, 10);   // Relevance passes, total 58 < 70
+  assert.deepEqual([e.total, e.passesCriteria, e.passesTotal, e.passed], [58, true, false, false]);
+  e = ev(24, 40, 20);       // total 84, but Relevance below 25
+  assert.deepEqual([e.passesCriteria, e.passesTotal, e.passed], [false, true, false]);
+  e = ev(30, 10, 30);       // Impact capped at its maximum 20; Quality 10 has no minimum of its own
+  assert.deepEqual([e.criteria[2].score, e.total, e.passed], [20, 60, false]);
+  e = ev(30, 28, 14);
+  assert.deepEqual([e.total, e.passed, e.criteria[1].pass, e.criteria[2].pass], [72, true, null, null]);
 });
 console.log(`${pass} passed`);

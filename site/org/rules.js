@@ -13,6 +13,7 @@
 
 import { ORG_TYPES, completeness } from "./schema.js";
 import { CALL_RULES } from "./call_rules.js";
+import { foldText, TEXT_FIELDS, detectLang } from "./lang.js";
 
 // Strategic compatibility only: mandatory conditions (country, organisation type, consortium) decide the status.
 export const DEFAULT_WEIGHTS = { objectives: 35, experience: 25, targetGroups: 20, capacity: 10, partnerships: 10 };
@@ -36,12 +37,92 @@ const STOP = new Set(("the and for with that this from are our we you your have 
   "call calls topic project projects proposal proposals action actions programme programmes program programs support supports supported funding fund funded eu european union expected outcome outcomes scope objective objectives activities activity applicant applicants " +
   "non form forms make makes making help helps large small new based including include includes use used using well within across towards toward each one two three first level high key per year years way ways part parts work works working org organisation organisations organization organizations " +
   "i u na za sa se je su da od do po iz kao koji koja koje ili ali smo ste sam bi biti mi vi oni ona ono to taj ta te tu ovo ovaj ova kako sta šta gde kada zašto zasto koliko").split(/\s+/));
-export function norm(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "dj"); }
+// Lowercase, Cyrillic transliterated to Latin, diacritics folded (č ć -> c, š -> s, ž -> z, đ -> dj): Serbian text in
+// either script and the calls' English text meet on the same plain letters.
+export const norm = foldText;
 export function terms(s) {
   return norm(s).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP.has(w) && !/^\d+$/.test(w)).map((w) => (w.length > 5 ? w.slice(0, w.length - 2) : w));
 }
-const callText = (c) => [c.title, c.callTitle, (c.keywords || []).join(" "), c.description, c.programmeName].join(" ");
-const profileText = (p) => [p.description, p.mission, p.objectives, p.expertise].filter(Boolean).join(" ");
+
+// Serbian to English glossary (site/org/glossary-sr-en.json, loaded by the page with setGlossary): when Serbian
+// words of an entry occur in a text, its English words are added, so a Serbian profile meets English call texts
+// and an English profile meets Serbian call texts. Without a glossary the text is used as it is.
+let GLOSS = null;
+const MAX_ENDING = 6;
+export function setGlossary(g) {
+  const idx = new Map();
+  for (const e of (g && g.terms) || []) {
+    const words = String(e.sr || "").trim().split(/\s+/).filter(Boolean);
+    if (!words.length || !e.en) continue;
+    // each word slot: one or more alternatives (a|b|c), each exact or a beginning (ending in *)
+    const entry = { words: words.map((w) => w.split("|").map((a) => (a.endsWith("*") ? { pre: a.slice(0, -1) } : { eq: a }))), en: String(e.en), not: e.not || [] };
+    for (const k of new Set(words[0].split("|").map((a) => a.replace(/\*$/, "").slice(0, 3)))) {
+      if (!idx.has(k)) idx.set(k, []);
+      idx.get(k).push(entry);
+    }
+  }
+  GLOSS = idx.size ? { idx, version: (g && g.version) || "" } : null;
+  termMemo.clear(); surfMemo.clear(); expMemo.clear(); unknownOf.clear(); textOf = new WeakMap(); profMemo = new WeakMap();
+}
+export const glossaryVersion = () => (GLOSS ? GLOSS.version : "");
+const wordMatch = (w, p, not) => (p.eq !== undefined ? w === p.eq : w.startsWith(p.pre) && w.length - p.pre.length <= MAX_ENDING && !not.some((x) => w.startsWith(x)));
+// English text is left as it is, so English profiles and calls score exactly as without the glossary.
+const EN_FAST = /\b(the|and|of|for|with|to)\b/g, NOT_EN = /[čćšžđČĆŠŽĐ\u0400-\u04FF]/;
+function looksEnglish(text) {
+  const head = text.slice(0, 800);
+  if (NOT_EN.test(head)) return false;
+  const n = (head.toLowerCase().match(EN_FAST) || []).length;
+  return n >= 3 || (n >= 1 && detectLang(head).lang === "en");
+}
+const expMemo = new Map();
+export function expandText(text) {
+  if (!GLOSS || !text) return text || "";
+  const hit = expMemo.get(text);
+  if (hit !== undefined) return hit;
+  const out = looksEnglish(text) ? text : expandWords(text);
+  if (expMemo.size > 400) { expMemo.clear(); unknownOf.clear(); }
+  expMemo.set(text, out);
+  return out;
+}
+function expandWords(text) {
+  const words = norm(text).split(/[^a-z0-9]+/).filter(Boolean);
+  const add = [], used = new Set();
+  for (let i = 0; i < words.length; i++) {
+    const cand = GLOSS.idx.get(words[i].slice(0, 3));
+    if (!cand) continue;
+    for (const e of cand) {
+      if (i + e.words.length > words.length) continue;
+      let ok = true;
+      for (let j = 0; j < e.words.length && ok; j++) ok = e.words[j].some((p) => wordMatch(words[i + j], p, e.not));
+      if (ok) { add.push(e.en); for (let j = 0; j < e.words.length; j++) used.add(i + j); }
+    }
+  }
+  const out = add.length ? text + " " + add.join(" ") : text;
+  // Words the glossary did not translate: they still belong to the text's vocabulary, so the thematic share
+  // counts them as unmatched (see coverage). Without this, a translated handful of generic terms would cover a
+  // Serbian text "fully" and score it higher than the same text in English.
+  const rest = new Set();
+  words.forEach((w, i) => { if (!used.has(i)) for (const t of terms(w)) rest.add(t); });
+  unknownOf.set(out, rest);
+  return out;
+}
+const unknownOf = new Map();   // expanded text -> stems of its words the glossary left untranslated
+// Weight of an untranslated word relative to the text's mean word weight. 0.15 brings the five Serbian sample
+// profiles closest to their English versions (mean score difference over all calls, and calls at 70%+);
+// measured on 15 Nov 2026 with 0, 0.15, 0.25, 0.35 and 0.5. Applies only to text without an English copy.
+const UNKNOWN_SHARE = 0.15;
+
+const rawCallText = (c) => expandText([c.title, c.callTitle, (c.keywords || []).join(" "), c.description, c.programmeName].join(" "));
+let textOf = new WeakMap();   // call -> its (expanded) text, computed once per call object and glossary
+const callText = (c) => { let t = textOf.get(c); if (t === undefined) { t = rawCallText(c); textOf.set(c, t); } return t; };
+// The profile's free text for the thematic match. A field with an English copy (machine translation or the user's
+// edit, kept per profile version on the server and passed in as profile.textEn) is matched in English.
+let profMemo = new WeakMap();
+const profileText = (p) => {
+  let t = profMemo.get(p);
+  if (t === undefined) { t = expandText(TEXT_FIELDS.map((k) => (p.textEn && p.textEn[k]) || p[k]).filter(Boolean).join(" ")); profMemo.set(p, t); }
+  return t;
+};
 
 // Word sets of every call and document frequencies over all calls (rare words count more). Built once per data load.
 export function buildDF(calls) {
@@ -87,6 +168,13 @@ function coverage(aText, c, stats) {
     const w = idfOf(t, stats);
     total += w;
     if (callWords.has(t)) { shared += w; hits.push([t, w]); }
+  }
+  // Untranslated words of a non-English text that no call uses count as unmatched, at UNKNOWN_SHARE of the mean weight.
+  const rest = stats && unknownOf.get(aText);
+  if (rest && rest.size) {
+    let n = 0; for (const t of rest) if (!a.has(t) || !stats.df.get(t)) n++;
+    const counted = [...a].filter((t) => stats.df.get(t)).length;
+    total += UNKNOWN_SHARE * n * (counted ? total / counted : idfOf("", stats));
   }
   if (!total) return null;
   const surf = surface(aText);
@@ -203,7 +291,7 @@ function dimExperience(p, c, stats) {
   const field = c.programme === "ERASMUS" ? (p.erasmus || p.euFunding) : p.euFunding;
   if (!field && !p.previousProjects) return { s: 0.5, missing: ["euFunding", "previousProjects"] };
   let s = { both: 1, coordinator: 1, partner: 0.75, none: 0.35 }[field] ?? 0.5;
-  const ov = p.previousProjects ? coverage(p.previousProjects, c, stats) : null;
+  const ov = p.previousProjects ? coverage(expandText(p.previousProjects), c, stats) : null;
   if (ov) s = Math.min(1, s + 0.15 * textScore(ov.ratio));
   return { s, role: field || null };
 }

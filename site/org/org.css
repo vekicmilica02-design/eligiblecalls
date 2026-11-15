@@ -339,3 +339,4 @@ table.off-t th { text-align: left; font-weight: 600; color: var(--muted); width:
 .tr-f .fld { margin: 0; }
 .tr-orig summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 .tr-orig p { font-size: 13.5px; color: var(--ink-2); margin-top: 4px; white-space: pre-wrap; }
+.fine.warn { color: var(--orange); }

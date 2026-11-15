@@ -34,7 +34,7 @@ const S = {
     prov: { manual: "entered by hand", document: "from document", web: "from website" }, unverified: "auto-filled: please check", verifiedBy: "approved",
     yes: "Yes", no: "No", unknown: "Not stated",
     docsTitle: "Documents and sources", docsLede: "Upload a statute, registration certificate, annual report or project document (also scanned, in Cyrillic or Latin script), or name your website. The text is read in your browser, with OCR for scans, and sent once to the AI model; the file itself is not stored. Values found with clear evidence fill empty profile fields automatically, each marked with its source. Values that differ from the profile are shown for you to decide.",
-    upload: "Choose a document or scan", reading: "Reading the document…", sending: (i, n) => `Analysing part ${i} of ${n}…`, aiWait: (i, n, s) => `Part ${i} of ${n}: the AI service's per-minute limit is reached, trying again in ${s} s…`, scanned: "No text could be read from this file. Type the facts in the profile, or try another copy of the document.",
+    upload: "Choose a document or scan", reading: "Reading the document…", sending: (i, n) => `Analysing part ${i} of ${n}…`, jobOpen: "Review the values found", jobDocs: "Documents and sources", jobClose: "Close", jobBusy: "A document is still being read. Wait until it is finished, then upload the next one.", aiWait: (i, n, s) => `Part ${i} of ${n}: the AI service's per-minute limit is reached, trying again in ${s} s…`, scanned: "No text could be read from this file. Type the facts in the profile, or try another copy of the document.",
     tooLong: (n, max) => `The document is long: only the first ${max} parts (${n} characters) are analysed.`,
     webTitle: "Read from your website", webLede: "We read the page you name and up to two linked pages about the organisation (\"About us\", \"Mission\", \"Projects\"), on the same site, respecting robots.txt. Only facts that are quoted from those pages are proposed.", url: "Website or page address", readSite: "Read website",
     review: "Review proposed fields", reviewLede: "Each value comes with the sentence it was taken from. Values that are not clearly supported by their quote, or that the profile already has, start unticked; check them yourself. Lists are added to what the profile already has.",
@@ -213,7 +213,7 @@ const S = {
     prov: { manual: "uneto ručno", document: "iz dokumenta", web: "sa sajta" }, unverified: "automatski popunjeno: proverite", verifiedBy: "odobreno",
     yes: "Da", no: "Ne", unknown: "Nije navedeno",
     docsTitle: "Dokumenti i izvori", docsLede: "Otpremite statut, rešenje o registraciji, godišnji izveštaj ili projektni dokument (i skeniran, na ćirilici ili latinici), ili navedite svoj sajt. Tekst se čita u vašem pregledaču, sa OCR-om za skenirane dokumente, i jednom šalje AI modelu; sama datoteka se ne čuva. Vrednosti sa jasnim dokazom automatski popunjavaju prazna polja profila, svaka označena izvorom. Vrednosti koje se razlikuju od profila prikazuju se da vi odlučite.",
-    upload: "Izaberite dokument ili sken", reading: "Čitanje dokumenta…", sending: (i, n) => `Analiza dela ${i} od ${n}…`, aiWait: (i, n, s) => `Deo ${i} od ${n}: dostignuto je ograničenje AI servisa po minutu, novi pokušaj za ${s} s…`, scanned: "Iz ove datoteke nije moguće pročitati tekst. Unesite podatke u profil ili pokušajte sa drugom kopijom dokumenta.",
+    upload: "Izaberite dokument ili sken", reading: "Čitanje dokumenta…", sending: (i, n) => `Analiza dela ${i} od ${n}…`, jobOpen: "Pregledajte pronađene podatke", jobDocs: "Dokumenti i izvori", jobClose: "Zatvori", jobBusy: "Dokument se još čita. Sačekajte da se završi, pa otpremite sledeći.", aiWait: (i, n, s) => `Deo ${i} od ${n}: dostignuto je ograničenje AI servisa po minutu, novi pokušaj za ${s} s…`, scanned: "Iz ove datoteke nije moguće pročitati tekst. Unesite podatke u profil ili pokušajte sa drugom kopijom dokumenta.",
     tooLong: (n, max) => `Dokument je dugačak: analizira se samo prvih ${max} delova (${n} znakova).`,
     webTitle: "Čitanje sa vašeg sajta", webLede: "Čitamo stranicu koju navedete i najviše dve povezane stranice o organizaciji („O nama“, „Misija“, „Projekti“) na istom sajtu, uz poštovanje robots.txt. Predlažu se samo podaci citirani sa tih stranica.", url: "Adresa sajta ili stranice", readSite: "Pročitaj sajt",
     review: "Pregled predloženih polja", reviewLede: "Uz svaku vrednost stoji rečenica iz koje je preuzeta. Vrednosti koje citat ne potvrđuje jasno, ili koje profil već ima, nisu označene; proverite ih sami. Liste se dodaju na ono što profil već ima.",
@@ -911,10 +911,13 @@ afterRender.profile = (arg) => {
   bindTr();
   if (!canEdit()) return;
   const msg = document.getElementById("oiSaveMsg");
+  // The form saves against the profile it was drawn from: if the profile changed meanwhile (another member, or a
+  // document read in the background), the server answers version_conflict instead of overwriting the newer values.
+  const drawn = ST.org;
   form.addEventListener("input", (ev) => { msg.textContent = T("unsaved"); const box = ev.target.closest(".need"); if (box) box.classList.remove("need"); });
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
-    const org = ST.org, old = org.profile, meta = { ...(old._meta || {}) }, next = {};
+    const org = drawn, old = org.profile, meta = { ...(old._meta || {}) }, next = {};
     for (const f of FIELDS) {
       const v = readField(f);
       if (v !== null && v !== undefined && !(Array.isArray(v) && !v.length)) next[f.id] = v;
@@ -1056,12 +1059,82 @@ async function secDocuments() {
   let runs = [];
   try { runs = (await api("GET", `/orgs/${org.id}/extractions`)).extractions; } catch { /* shown empty */ }
   ST.runs = runs;
+  // A document read in the background for this organisation opens its values when the page is visited.
+  if (JOB.cur && JOB.cur.done && JOB.cur.orgId === org.id && !JOB.cur.seen) { ST.openRun = JOB.cur.runId; JOB.cur.seen = true; }
   const open = ST.openRun && runs.find((r) => r.id === ST.openRun);
   return `<h1>${esc(T("docsTitle"))}</h1><p class="lede">${esc(T("docsLede"))}</p>${dis ? `<p class="note">${esc(T("viewerNote"))}</p>` : ""}
     ${dis ? "" : `<div class="drop"><label class="btn" for="oiFile">${esc(T("upload"))}</label><input type="file" id="oiFile" accept="${ACCEPT}" hidden><p class="fine">${esc(T("uploadFormats"))}</p><div class="op" id="oiProg" role="status" aria-live="polite"></div><div class="op" id="oiTrMsg" role="status" aria-live="polite"></div></div>
     <form class="oi-card" id="oiWeb"><h2>${esc(T("webTitle"))}</h2><p class="fine">${esc(T("webLede"))}</p><div class="fld"><label for="oiUrl">${esc(T("url"))}</label><input type="url" id="oiUrl" placeholder="https://" value="${esc(org.profile.website || "")}"></div><div><button class="btn" type="submit">${esc(T("readSite"))}</button></div><div class="op" id="oiWebMsg" role="status"></div></form>`}
     <div id="oiReview">${open ? fillHTML(open) : ""}</div>
     <div class="oi-card"><h2>${esc(T("runs"))}</h2>${runs.length ? `<table class="oi-t"><tbody>${runs.map((r) => `<tr><td>${esc(fmtTime(r.at))}</td><td>${esc(r.sourceName)}${r.sourceUrl ? ` <a class="fine" href="${esc(r.sourceUrl)}" target="_blank" rel="noopener">↗</a>` : ""}<div class="fine">${r.result ? esc(T("runSummary", r.result.filled.length, r.result.conflicts.length)) : Object.keys(r.fields).length + " · " + esc(T("status." + r.status))}</div></td><td><button type="button" class="btn ghost" data-open="${r.id}">${esc(T("open"))}</button>${dis ? "" : ` <button type="button" class="linkbtn" data-del="${r.id}">${esc(T("del"))}</button>`}</td></tr>`).join("")}</tbody></table>` : `<p class="fine">${esc(T("none"))}</p>`}</div>`;
+}
+/* ---------- document upload that keeps running across pages ---------- */
+// One document at a time is read (OCR runs in this browser tab), analysed and applied to the organisation's profile
+// while the member moves around the site. Its progress shows in a small box on every page and on the Documents page.
+// Reloading or leaving the site stops it, so the browser asks first while it runs.
+const JOB = { cur: null };
+const docJobBusy = () => !!(JOB.cur && !JOB.cur.done && !JOB.cur.err);
+const jobGuard = (ev) => { ev.preventDefault(); ev.returnValue = ""; };
+function jobDraw() {
+  const j = JOB.cur;
+  let box = document.getElementById("ecJob");
+  if (!box) { box = document.createElement("div"); box.id = "ecJob"; box.className = "ec-job"; box.setAttribute("role", "status"); box.setAttribute("aria-live", "polite"); box.hidden = true; document.body.appendChild(box); }
+  const docs = j && location.hash === `#org/${j.orgId}/documents`;
+  const prog = document.getElementById("oiProg"), lbl = document.querySelector('label[for="oiFile"]');
+  if (lbl) lbl.classList.toggle("busy", docJobBusy());
+  if (j && prog && ST.org && ST.org.id === j.orgId) opState(prog, j.state, j.text, j.pct);
+  if (!j || docs) { box.hidden = true; return; }   // the Documents page shows the job in its own status line
+  box.hidden = false;
+  box.innerHTML = `<div class="ec-job-h"><b>${esc(j.name)}</b><span class="fine">${esc(j.orgName)}</span>${j.done || j.err ? `<button type="button" class="linkbtn ec-job-x" data-jx aria-label="${esc(T("jobClose"))}">×</button>` : ""}</div>
+    <div class="op" data-jop></div>${j.done || j.err ? `<a href="#org/${esc(j.orgId)}/documents">${esc(T(j.done ? "jobOpen" : "jobDocs"))} →</a>` : ""}`;
+  opState(box.querySelector("[data-jop]"), j.state, j.text, j.pct);
+  const x = box.querySelector("[data-jx]"); if (x) x.addEventListener("click", () => { JOB.cur = null; jobDraw(); });
+}
+window.addEventListener("hashchange", () => setTimeout(jobDraw, 0));
+async function runDocJob(f) {
+  const org = ST.org, orgId = org.id;
+  const j = JOB.cur = { orgId, orgName: (org.profile && org.profile.name) || org.name || "", name: f.name, state: "reading", text: f.name, pct: null };
+  const say = (t, st = "reading", pct = null) => { Object.assign(j, { text: t, state: st, pct }); if (JOB.cur === j) jobDraw(); };
+  window.addEventListener("beforeunload", jobGuard);
+  say(f.name, "reading");
+  try {
+    const doc = await readDocument(f, say);
+    const text = doc.text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+    if (text.replace(/\s/g, "").length < 80) { j.err = true; say(T(doc.ocrPages ? "ocrEmpty" : "scanned"), "failed"); return; }
+    const parts = splitText(text);
+    let last = null, runId = null;
+    for (let i = 0; i < parts.length; i++) {
+      say(T("sending", i + 1, parts.length), "analysing", (100 * i) / parts.length);
+      // The AI providers' per-minute limits are shared by every request: when all of them are reached
+      // (ai_busy), wait and send the same part again, at most three times.
+      for (let k = 0; ; k++) {
+        try { last = await api("POST", `/orgs/${orgId}/extract`, { sourceName: f.name, text: parts[i], part: i + 1, parts: parts.length, runId }); break; }
+        catch (e) {
+          const wait = [20, 40, 60][k];
+          if (!(e && e.status === 503 && e.message === "ai_busy") || wait === undefined) throw e;
+          for (let sec = wait; sec > 0; sec--) { say(T("aiWait", i + 1, parts.length, sec), "analysing", (100 * i) / parts.length); await sleep(1000); }
+        }
+      }
+      runId = last.id;
+    }
+    say(T("filling"), "saving");
+    await api("POST", `/orgs/${orgId}/extractions/${runId}/apply`, {});
+    j.done = true; j.runId = runId;
+    say([f.name, doc.ocrPages ? T("ocrDone", doc.ocrPages) : "", doc.lowConf ? T("ocrLow", doc.lowConf) : "", parts.covered < text.length ? T("tooLong", parts.covered, MAX_PARTS) : ""].filter(Boolean).join(" "), "completed");
+    // The organisation on screen is the one the document was for: load the filled profile. Only the Documents page
+    // is drawn again (it shows the values found); other pages keep what the member is doing.
+    if (ST.org && ST.org.id === orgId) {
+      await loadOrg(orgId, true); ST.me = undefined; await loadMe(); ST.resultsKey = null;
+      ensureEnglish(document.getElementById("oiTrMsg"));
+      if (location.hash === `#org/${orgId}/documents`) { ST.openRun = runId; EC.route(); }
+    }
+  } catch (e) {
+    j.err = true;
+    say(e.message === "type" ? T("badType") : e.message === "ocr_unavailable" ? T("ocrUnavailable") : errText(e), "failed");
+  } finally {
+    window.removeEventListener("beforeunload", jobGuard);
+    jobDraw();
+  }
 }
 afterRender.documents = () => {
   const org = ST.org;
@@ -1088,39 +1161,12 @@ afterRender.documents = () => {
   document.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => show(ST.runs.find((x) => x.id === b.dataset.open))));
   document.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => { await api("DELETE", `/orgs/${org.id}/extractions/${b.dataset.del}`).catch(() => {}); if (ST.openRun === b.dataset.del) ST.openRun = null; EC.route(); }));
   const file = document.getElementById("oiFile");
-  if (file) file.addEventListener("change", async () => {
-    const f = file.files[0]; if (!f) return;
-    const prog = document.getElementById("oiProg"), say = (t, st = "reading", pct = null) => opState(prog, st, t, pct);
-    const lbl = document.querySelector('label[for="oiFile"]'); if (lbl) lbl.classList.add("busy");
-    say(f.name, "reading");
-    try {
-      const doc = await readDocument(f, say);
-      const text = doc.text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
-      if (text.replace(/\s/g, "").length < 80) { opState(prog, "failed", T(doc.ocrPages ? "ocrEmpty" : "scanned")); return; }
-      const parts = splitText(text);
-      let last = null, runId = null;
-      for (let i = 0; i < parts.length; i++) {
-        say(T("sending", i + 1, parts.length), "analysing", (100 * i) / parts.length);
-        // The AI providers' per-minute limits are shared by every request: when all of them are reached
-        // (ai_busy), wait and send the same part again, at most three times.
-        for (let k = 0; ; k++) {
-          try { last = await api("POST", `/orgs/${org.id}/extract`, { sourceName: f.name, text: parts[i], part: i + 1, parts: parts.length, runId }); break; }
-          catch (e) {
-            const wait = [20, 40, 60][k];
-            if (!(e && e.status === 503 && e.message === "ai_busy") || wait === undefined) throw e;
-            for (let sec = wait; sec > 0; sec--) { say(T("aiWait", i + 1, parts.length, sec), "analysing", (100 * i) / parts.length); await sleep(1000); }
-          }
-        }
-        runId = last.id;
-      }
-      say(T("filling"), "saving");
-      ST.runs = [{ id: runId, kind: "document", sourceName: f.name, fields: last.fields, status: "review", at: Date.now() }, ...ST.runs.filter((x) => x.id !== runId)];
-      const run = await fill(runId);
-      opState(prog, "completed", [f.name, doc.ocrPages ? T("ocrDone", doc.ocrPages) : "", doc.lowConf ? T("ocrLow", doc.lowConf) : "", parts.covered < text.length ? T("tooLong", parts.covered, MAX_PARTS) : ""].filter(Boolean).join(" "));
-      show(run);
-    } catch (e) { opState(prog, "failed", e.message === "type" ? T("badType") : e.message === "ocr_unavailable" ? T("ocrUnavailable") : errText(e)); }
-    finally { if (lbl) lbl.classList.remove("busy"); file.value = ""; }
+  if (file) file.addEventListener("change", () => {
+    const f = file.files[0]; file.value = ""; if (!f) return;
+    if (docJobBusy()) { opState(document.getElementById("oiProg"), "failed", T("jobBusy")); return; }
+    runDocJob(f);
   });
+  jobDraw();
   const web = document.getElementById("oiWeb");
   if (web) web.addEventListener("submit", async (ev) => {
     ev.preventDefault();

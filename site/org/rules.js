@@ -128,7 +128,7 @@ const profileText = (p) => {
 export function buildDF(calls) {
   const df = new Map(), sets = new WeakMap();
   for (const c of calls) { const u = new Set(terms(callText(c))); sets.set(c, u); for (const t of u) df.set(t, (df.get(t) || 0) + 1); }
-  return { df, n: calls.length, sets, text: new WeakMap() };
+  return { df, n: calls.length, sets, text: new WeakMap(), calls };
 }
 const idfOf = (t, stats) => (stats ? Math.log(1 + stats.n / (1 + (stats.df.get(t) || 0))) : 1);
 function callSet(c, stats) {
@@ -271,6 +271,49 @@ function officialChecks(p, c, elig, frameworks, ai) {
   return out;
 }
 
+// Areas of activity as phrases in a call's own text (folded, lowercase), for a profile that has areas but no free
+// text yet. The call's sector tags come from its identifier (a whole Horizon cluster shares them), so on their own
+// they cannot tell a quantum-computing call from a film-education call for a "research, digital, culture" profile.
+const AREA_RE = {
+  culture: /\bcultur/, film: /\bfilm|\bcinema|audiovisual/, tv: /televis|\btv\b|broadcast/, media: /\bmedia\b|journalis|\bnews\b/,
+  "creative-industries": /creative (and cultural )?(industr|sector)|cultural and creative|creative economy/, architecture: /architect/,
+  design: /\bdesign(ers?)?\b(?! (of|and implement))/, digital: /\bdigital/, it: /computing|information technolog|\bict\b|software/,
+  ai: /artificial intelligence|\bai\b|machine learning/, cybersecurity: /cyber/, innovation: /innovat/, research: /\bresearch/,
+  education: /educat|\bschool|\bteach|\blearners?\b|\bskills\b|\btraining\b/, youth: /\byouth|young people/,
+  "social-inclusion": /inclusion|inclusive|disadvantaged|vulnerable/, employment: /employ|labour market|\bjobs?\b/,
+  "human-rights": /human rights|equality|discriminat/, democracy: /democra|\bcivic|citizen/, "civil-society": /civil society|\bngos?\b|non-governmental/,
+  justice: /justice|judicial/, security: /security/, defence: /defen[cs]e|military/, health: /health/,
+  environment: /environment|biodivers|pollution|ecosystem/, climate: /climate/, energy: /energy/, sustainability: /sustainab/,
+  food: /\bfood|agricultur|\bfarm/, transport: /transport|mobility/, cities: /\bcit(y|ies)\b|urban/, "regional-dev": /regional|cohesion|territorial/,
+  "intl-cooperation": /international cooperation|third countr/, entrepreneurship: /entrepreneur/, startups: /start-?ups?\b/,
+  smes: /\bsmes?\b|small and medium/,
+};
+const AREA_LABEL = { "creative-industries": "creative industries", it: "IT", ai: "AI", "social-inclusion": "social inclusion", "human-rights": "human rights",
+  "civil-society": "civil society", "regional-dev": "regional development", "intl-cooperation": "international cooperation", smes: "SMEs", tv: "television" };
+const areaHits = new WeakMap();   // call -> Set of area ids its text names
+function callAreas(c) {
+  let v = areaHits.get(c);
+  if (!v) { const t = norm(callText(c)); v = new Set(Object.keys(AREA_RE).filter((a) => AREA_RE[a].test(t))); areaHits.set(c, v); }
+  return v;
+}
+// Share of the profile's areas (weighted by how rare each is across all calls) that the call's text names.
+// 10% or less is noise; 60% means the call speaks to most of what the organisation does.
+const AREA_FLOOR = 0.1, AREA_FULL = 0.6;
+function areaMatch(areas, c, stats) {
+  const all = stats && stats.calls;
+  if (all && !stats.areaW) {
+    stats.areaW = {};
+    for (const a of Object.keys(AREA_RE)) { let df = 0; for (const x of all) if (callAreas(x).has(a)) df++; stats.areaW[a] = df ? Math.log(1 + all.length / df) : 0; }
+  }
+  const w = (a) => (stats && stats.areaW ? stats.areaW[a] || 0 : AREA_RE[a] ? 1 : 0);
+  const mine = areas.filter((a) => w(a) > 0), hit = callAreas(c);
+  const total = mine.reduce((s, a) => s + w(a), 0);
+  if (!total) return null;
+  const got = mine.filter((a) => hit.has(a));
+  const share = got.reduce((s, a) => s + w(a), 0) / total;
+  return { score: Math.max(0, Math.min(1, (share - AREA_FLOOR) / (AREA_FULL - AREA_FLOOR))), words: got.sort((a, b) => w(b) - w(a)).map((a) => AREA_LABEL[a] || a) };
+}
+
 // ---------- weighted dimensions (each 0..1, plus whether profile data was missing) ----------
 // Call sectors are derived from the call identifier (a whole Horizon cluster or mission shares them), so a shared
 // sector is weak evidence; the call's own text decides most of the thematic match.
@@ -280,11 +323,14 @@ function dimObjectives(p, c, stats) {
   const shared = cs.filter((s) => areas.includes(s));
   const sect = !areas.length ? null : !cs.length ? 0.3 : shared.length ? Math.min(1, 0.5 + 0.25 * (shared.length - 1)) : 0;
   const ptext = profileText(p);
-  const ov = ptext ? coverage(ptext, c, stats) : null; // area names are scored by the sector match, not twice
-  const text = ov ? textScore(ov.ratio) : null;
+  // Free text when the profile has it (area names are then scored by the sector match, not twice); otherwise the
+  // area names themselves, so a profile with areas only still gets a match on the call's text.
+  const ov = ptext ? coverage(ptext, c, stats) : null;
+  const am = !ptext && areas.length ? areaMatch(areas, c, stats) : null;
+  const text = ov ? textScore(ov.ratio) : am ? am.score : null;
   if (sect === null && text === null) return { s: 0.5, missing: ["activityAreas", "objectives"] };
   const s = sect === null ? text : text === null ? 0.6 * sect : 0.3 * sect + 0.7 * text;
-  return { s, sect, text, sharedSectors: shared, words: ov && text > 0 ? ov.words : [] };
+  return { s, sect, text, textFrom: ov ? "profile" : am ? "areas" : null, sharedSectors: shared, words: text > 0 ? (ov ? ov.words : am.words) : [] };
 }
 
 function dimExperience(p, c, stats) {
@@ -432,7 +478,10 @@ export function mandatorySummary(checks) {
 // so a high score never hides a failed mandatory check.
 export function assessAll(profile, calls, opts = {}) {
   const stats = opts.stats || buildDF(calls);
-  return calls.map((c) => assess(profile, c, { ...opts, stats })).sort((a, b) => (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) || (b.score - a.score));
+  // Calls that fail a mandatory condition go last; the rest are ranked by compatibility, so the matching list, the
+  // overview and the idea shortlist show the same order. Equal scores: eligible before "to verify".
+  const last = (r) => (r.status === "ineligible" ? 1 : 0);
+  return calls.map((c) => assess(profile, c, { ...opts, stats })).sort((a, b) => (last(a) - last(b)) || (b.score - a.score) || (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]));
 }
 
 // Fingerprint of the call fields the assessment reads, to know when a stored report is out of date.

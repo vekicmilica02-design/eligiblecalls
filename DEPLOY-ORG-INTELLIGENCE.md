@@ -22,6 +22,7 @@ Follow the steps in this order. Until steps 1 to 3 are done, the rest of the sit
 5. Premium access, proposal PDF, Erasmus+ evaluation and automatic profile filling: run `migrations/0004_access.sql`. It adds columns to `users` (`name`, `idea_runs`), `extractions` (`result`) and `project_ideas` (`proposal`, `evaluations`) and the tables `access_requests` and `app_settings`. The D1 console runs one statement at a time best: paste each `ALTER TABLE` line on its own, then the rest. Take a bookmark first (`/bookmark` in the console's Time Travel tab) so the database can be restored. `ALTER TABLE ... ADD COLUMN` fails if the column already exists, so run each line once.
 6. Saved reports: run `migrations/0005_reports.sql` if it has not been run.
 7. Official eligibility checks: run `migrations/0006_official_checks.sql` (bookmark first). It adds the table `official_checks`: one AI check per organisation and call against the call's official eligibility text, with the profile version it was made for. Running it twice does nothing.
+8. English copy of profile text: run `migrations/0007_profile_translations.sql` (bookmark first). It adds the table `profile_translations`: per organisation and free-text field, the English copy used for matching, the profile version it was made from, a fingerprint of the source text and whether the user edited it. Running it twice does nothing.
 
 The migration only adds tables. Running it twice does nothing.
 

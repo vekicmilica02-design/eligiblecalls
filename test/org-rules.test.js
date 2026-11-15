@@ -404,4 +404,40 @@ t("document parts: Cyrillic text is cut into parts that fit one request; English
   const huge = splitText(para.repeat(2000));
   assert.equal(huge.length, MAX_PARTS); assert.ok(huge.covered < para.length * 2000, "a very long document is cut, and says how much was sent");
 });
+
+t("profile with areas but no text: the areas are matched against each call's own text, not only its sector tags", () => {
+  const stats = buildDF(CALLS);
+  const koc = { name: "KOC", orgType: "public-authority", country: "RS", yearEstablished: 1995, activityAreas: ["culture", "education", "media", "digital", "it", "creative-industries", "research"] };
+  const all = assessAll(koc, CALLS, { now: NOW, stats }).filter((r) => r.status !== "ineligible");
+  const byTitle = (re) => all.find((r) => re.test((CALLS.find((c) => c.id === r.callId) || {}).title || ""));
+  const quantum = all.filter((r) => /quantum|qkd|trapped-ion|superconducting/i.test((CALLS.find((c) => c.id === r.callId) || {}).title || ""));
+  for (const r of all) assert.notEqual(r.dims.objectives.text, null, "every call gets a thematic match from the areas");
+  assert.equal(all[0].dims.objectives.textFrom, "areas");
+  const top = all.slice(0, 12).map((r) => r.callId);
+  for (const q of quantum) assert.ok(!top.includes(q.callId), "a quantum call is not among the 12 best for a culture, education and media centre");
+  const scores = new Set(all.slice(0, 20).map((r) => r.score));
+  assert.ok(scores.size >= 5, `the best 20 calls are not one tie: ${[...scores].join(", ")}`);
+  const creative = byTitle(/creative industries|Creative Innovation Lab|culture and creativity/i), q = quantum[0];
+  if (creative && q) assert.ok(creative.score > q.score, `culture or creative call ${creative.score} > best quantum call ${q.score}`);
+  // a profile with free text is matched on its text as before
+  const withText = assess({ ...koc, description: "Cultural centre: film screenings, media literacy and creative workshops for schools." }, CALLS[0], { now: NOW, stats });
+  assert.equal(withText.dims.objectives.textFrom, "profile");
+});
+
+t("order: ranked by compatibility; calls that fail a mandatory check last; equal scores eligible first", () => {
+  const rows = [{ status: "eligible", score: 49 }, { status: "potential", score: 55 }, { status: "ineligible", score: 90 }, { status: "potential", score: 49 }];
+  const calls = rows.map((r, i) => call({ id: "C" + i }));
+  const fake = calls.map((c, i) => ({ callId: c.id, ...rows[i] }));
+  // the comparator used by assessAll, applied to fixed results
+  const src = readFileSync(path.join(ROOT, "site/org/rules.js"), "utf8");
+  assert.match(src, /const last = \(r\) => \(r\.status === "ineligible" \? 1 : 0\);/);
+  const last = (r) => (r.status === "ineligible" ? 1 : 0), ORDER = { eligible: 0, potential: 1, insufficient: 2, ineligible: 3 };
+  const sorted = [...fake].sort((a, b) => (last(a) - last(b)) || (b.score - a.score) || (ORDER[a.status] - ORDER[b.status]));
+  assert.deepEqual(sorted.map((r) => r.callId), ["C1", "C0", "C3", "C2"]);
+  // and on real data: no call is listed after a call with a lower score, apart from the ineligible ones at the end
+  const all = assessAll(ngo, CALLS, { now: NOW, stats: buildDF(CALLS) });
+  const open = all.filter((r) => r.status !== "ineligible");
+  for (let i = 1; i < open.length; i++) assert.ok(open[i - 1].score >= open[i].score);
+  assert.ok(all.slice(open.length).every((r) => r.status === "ineligible"));
+});
 console.log(`${pass} passed`);

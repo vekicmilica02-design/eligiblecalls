@@ -259,8 +259,11 @@ def extra_eligibility(rec):
             elif c in (spec.get("partners") or []): out[c] = ("C", "Entities from Iceland, Liechtenstein and Norway usually take part as project partners, not as applicants. Check the call.")
             else: out[c] = ("N", "EEA and Norway Grants calls are for applicants in the beneficiary country that publishes them; some calls also accept partners from other countries. Check the call.")
         elif spec.get("jointCall"):
-            out[c] = (("P", "A funding organisation from this country takes part in the call (ERA-LEARN). Applicants are funded by their national funder under its own rules: check the national annex.")
-                      if c in el else ("C", "No funding organisation from this country is listed for the call on ERA-LEARN. Partners from such countries can often join with their own funding. Check the call."))
+            out[c] = (("P", "A funding organisation from this country takes part in the call. Applicants are funded by their national funder under its own rules (national annex of the call)." + qs)
+                      if c in el else
+                      ("N", "No funding organisation from this country takes part in the call, so applicants from here cannot receive funding from it. They can join a consortium only as a cooperation partner that pays its own costs." + qs)
+                      if spec.get("complete") else
+                      ("C", "No funding organisation from this country is listed for the call on ERA-LEARN. Partners from such countries can often join with their own funding. Check the call."))
         elif spec.get("erasmus"):
             if c in el: out[c] = ("Y", "EU Member State or third country associated to Erasmus+: the applicant applies to the national agency of its own country." + qs)
             elif c in (spec.get("partners") or []): out[c] = ("P", "Third country not associated to Erasmus+: can take part as a partner only (not as applicant), if it brings essential added value (Programme Guide, Part B).")

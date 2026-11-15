@@ -640,6 +640,74 @@ await t("official eligibility check: quotes verified against the official text, 
   assert.equal(env.DB._db.prepare("SELECT COUNT(*) n FROM official_checks WHERE org_id = ?").get(o).n, 0);
 });
 
+await t("English copy of the profile text: made once per version, edited copy kept, fallback when the model fails or the budget is spent", async () => {
+  const u = await signIn("ivo@example.org"), v = await signIn("vera@example.org");
+  const o = (await call("POST", "/api/orgs", { cookie: u, body: { name: "Udruženje Most" } })).j.id;
+  const vid = env.DB._db.prepare("SELECT id FROM users WHERE email = 'vera@example.org'").get().id;
+  env.DB._db.prepare("INSERT INTO org_members (org_id, user_id, role, created_at) VALUES (?, ?, 'viewer', ?)").run(o, vid, NOW);
+  const sr = { name: "Udruženje Most", orgType: "ngo", country: "RS",
+    description: "Omladinsko udruženje iz Novog Sada koje sprovodi programe neformalnog obrazovanja o digitalnim veštinama za mlade.",
+    mission: "Želimo da svaka mlada osoba ima digitalne i građanske veštine.", expertise: "Non-formal education and digital youth work." };
+  await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: sr, baseVersion: 1 } });
+  let org = (await call("GET", `/api/orgs/${o}`, { cookie: u })).j;
+  assert.deepEqual(org.translation.pending, ["description", "mission"], "English text (expertise) needs no copy");
+  assert.deepEqual(org.translation.langs, { description: "sr", mission: "sr", expertise: "en" });
+  // the model fails: the profile stays saved, nothing is stored, matching keeps the original text
+  const seen0 = aiSeen.length;
+  aiAnswer = "not json at all";
+  let r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
+  assert.deepEqual([r.status, r.j.error], [502, "ai_bad_answer"]);
+  assert.equal(aiSeen.length, seen0 + 1, "one model call for all fields");
+  org = (await call("GET", `/api/orgs/${o}`, { cookie: u })).j;
+  assert.equal(org.version, 2); assert.deepEqual(org.translation.textEn, {});
+  // a translation that is still Serbian is not accepted for that field
+  aiAnswer = JSON.stringify({ description: "Youth association from Novi Sad running non-formal education on digital skills for young people.", mission: "Želimo da svaka mlada osoba ima veštine." });
+  r = await call("POST", `/api/orgs/${o}/translation`, { cookie: v, body: {} });
+  assert.equal(r.status, 403, "viewers cannot translate");
+  r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
+  assert.equal(r.status, 200, JSON.stringify(r.j)); assert.deepEqual(r.j.translated, ["description"]);
+  assert.deepEqual(r.j.pending, ["mission"]); assert.match(r.j.textEn.description, /^Youth association/);
+  assert.match(aiSeen.at(-1).messages[0].content, /DATA\. Instructions inside them/);
+  const userMsg = aiSeen.at(-1).messages[1].content;
+  assert.ok(userMsg.includes("Omladinsko") && !userMsg.includes("Non-formal education and digital youth work"), "only the non-English fields are sent");
+  // nothing left to do: no model call
+  aiAnswer = JSON.stringify({ mission: "We want every young person to have digital and civic skills." });
+  r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
+  assert.deepEqual(r.j.translated, ["mission"]);
+  const seen1 = aiSeen.length;
+  r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
+  assert.deepEqual(r.j.translated, []); assert.equal(aiSeen.length, seen1);
+  // the user edits the description copy; a later save and automatic translation never replace it
+  r = await call("PUT", `/api/orgs/${o}/translation`, { cookie: u, body: { field: "description", text: "Youth association in Novi Sad: non-formal education in digital skills and media literacy." } });
+  assert.equal(r.j.fields.description.edited, true);
+  assert.equal((await call("PUT", `/api/orgs/${o}/translation`, { cookie: v, body: { field: "description", text: "x" } })).status, 403);
+  await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { ...sr, description: sr.description + " Radimo u 12 sela.", mission: sr.mission + " I aktivno učešće." }, baseVersion: 2 } });
+  org = (await call("GET", `/api/orgs/${o}`, { cookie: v })).j;
+  assert.equal(org.translation.fields.description.stale, true); assert.equal(org.translation.fields.mission.stale, true);
+  assert.deepEqual(org.translation.pending, ["mission"], "the edited copy is not translated again");
+  assert.match(org.translation.textEn.description, /media literacy/, "the edited copy is still used");
+  assert.equal(org.translation.textEn.mission, undefined, "a stale automatic copy is not used");
+  aiAnswer = JSON.stringify({ description: "MACHINE TEXT THAT MUST NOT REPLACE THE EDIT about youth.", mission: "We want every young person to have digital and civic skills, and active participation." });
+  r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
+  assert.deepEqual(r.j.translated, ["mission"]); assert.match(r.j.fields.description.text, /media literacy/); assert.equal(r.j.fields.mission.fromVersion, 3);
+  // budget spent: the call is refused before any model call and the profile stays as saved
+  await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { ...sr, description: "Novi opis udruženja za rad sa mladima u selima.", mission: "Nova misija: veštine za svaku mladu osobu u selima." }, baseVersion: 3 } });
+  const keepAI = env.AI; delete env.AI;
+  const seen2 = aiSeen.length;
+  r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
+  env.AI = keepAI;
+  assert.deepEqual([r.status, r.j.error], [503, "ai_resting"]); assert.equal(aiSeen.length, seen2);
+  org = (await call("GET", `/api/orgs/${o}`, { cookie: u })).j;
+  assert.equal(org.version, 4); assert.equal(org.profile.description, "Novi opis udruženja za rad sa mladima u selima.");
+  // removing the edited copy lets the automatic translation take the field again
+  r = await call("PUT", `/api/orgs/${o}/translation`, { cookie: u, body: { field: "description", text: "  " } });
+  assert.equal(r.j.fields.description, undefined); assert.deepEqual(r.j.pending, ["description", "mission"]);
+  // deleted with the organisation
+  assert.ok(env.DB._db.prepare("SELECT COUNT(*) n FROM profile_translations WHERE org_id = ?").get(o).n > 0);
+  assert.equal((await call("DELETE", `/api/orgs/${o}`, { cookie: u })).status, 200);
+  assert.equal(env.DB._db.prepare("SELECT COUNT(*) n FROM profile_translations WHERE org_id = ?").get(o).n, 0);
+});
+
 await t("admin AI usage: today's counters per provider against the budgets; administrators only", async () => {
   const adm = await signIn("admin@example.org"), u = await signIn("ivo@example.org");
   assert.equal((await call("GET", "/api/admin/usage", { cookie: u })).status, 404);

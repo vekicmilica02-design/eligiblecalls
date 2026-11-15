@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ROOT } from "./mocks.js";
-import { assess, assessAll, buildDF, band, scoreTier, DEFAULT_WEIGHTS, callFingerprint, mandatorySummary, HIGH, MEDIUM } from "../site/org/rules.js";
+import { assess, assessAll, buildDF, band, scoreTier, DEFAULT_WEIGHTS, callFingerprint, mandatorySummary, HIGH, MEDIUM, setGlossary, expandText, norm, terms } from "../site/org/rules.js";
+import { detectLang, foldText, textHash } from "../site/org/lang.js";
 import { cleanProfile, completeness, contextFrom, changedFields } from "../site/org/schema.js";
 
 const TAX = JSON.parse(readFileSync(path.join(ROOT, "site/data/taxonomy.json"), "utf8"));
@@ -256,5 +257,87 @@ t("AI check of the official text: a failed condition makes the call not eligible
   assert.equal(r.checks.find((x) => x.id === "ai.c2").source, "official-ai");
   assert.equal(assess(ngo, call(), { now: NOW, elig: elig([]), ai: { "TEST-1": [{ id: "c1", result: "invented" }] } }).checks.some((x) => x.id === "ai.c1"), false);
   assert.deepEqual([HIGH, MEDIUM], [70, 50]);
+});
+
+// ---------- profiles written in Serbian: normalisation, glossary, English copy ----------
+const GLOSSARY = JSON.parse(readFileSync(path.join(ROOT, "site/org/glossary-sr-en.json"), "utf8"));
+const CYR = { a: "а", b: "б", v: "в", g: "г", d: "д", đ: "ђ", e: "е", ž: "ж", z: "з", i: "и", j: "ј", k: "к", l: "л", m: "м", n: "н", o: "о", p: "п", r: "р", s: "с", t: "т", ć: "ћ", u: "у", f: "ф", h: "х", c: "ц", č: "ч", š: "ш" };
+const toCyr = (x) => x.replace(/dž|lj|nj/gi, (m) => ({ dž: "џ", lj: "љ", nj: "њ" })[m.toLowerCase()]).replace(/[a-zčćšžđ]/gi, (ch) => { const c = CYR[ch.toLowerCase()]; return c ? (ch === ch.toLowerCase() ? c : c.toUpperCase()) : ch; });
+const ngoSr = { ...ngo,
+  description: "Omladinska organizacija koja sprovodi programe neformalnog obrazovanja, digitalnih veština i socijalne inkluzije za mlade.",
+  objectives: "Unaprediti digitalne veštine i zapošljivost mladih sa manje mogućnosti; podržati učešće mladih.",
+  previousProjects: "Erasmus+ razmene mladih i obuke o digitalnim veštinama." };
+const ngoCyr = { ...ngoSr, description: toCyr(ngoSr.description), objectives: toCyr(ngoSr.objectives), previousProjects: toCyr(ngoSr.previousProjects).replace("Ерасмус+", "Erasmus+") };
+
+t("language detection without a model: English, Serbian Latin with and without diacritics, Serbian Cyrillic, other, too short", () => {
+  assert.equal(detectLang(ngo.description).lang, "en");
+  assert.equal(detectLang(ngoSr.description).lang, "sr");
+  assert.equal(detectLang("Organizacija koja radi sa mladima i podrzava ucesce gradjana u lokalnoj zajednici").lang, "sr", "no diacritics: function words decide");
+  assert.deepEqual(detectLang(ngoCyr.description), { lang: "sr", script: "cyrl" });
+  assert.equal(detectLang("Gemeinnütziger Verein, der Workshops für Jugendliche in Berlin organisiert").lang, "other");
+  assert.equal(detectLang("Novi Sad").lang, "unknown");
+  assert.equal(detectLang("").lang, "unknown");
+});
+
+t("normalisation: Cyrillic to Latin, diacritics folded the way the code already folds them (č ć -> c, š -> s, ž -> z, đ -> dj)", () => {
+  assert.equal(foldText("Омладинско удружење Ђурђевак, Џон, Љиљана, Њива"), "omladinsko udruzenje djurdjevak, dzon, ljiljana, njiva");
+  assert.equal(foldText("Čačak, Ćuprija, Šabac, Žabalj, Đakovica"), "cacak, cuprija, sabac, zabalj, djakovica");
+  assert.equal(norm("Међународна сарадња"), norm("Međunarodna saradnja"));
+  assert.deepEqual(terms(ngoCyr.description), terms(ngoSr.description), "both scripts give the same terms");
+  assert.equal(textHash("abc"), textHash("abc")); assert.notEqual(textHash("abc"), textHash("abd"));
+});
+
+t("glossary: Serbian terms expanded to English, multi-word terms, exclusions; English text left as it is", () => {
+  setGlossary(GLOSSARY);
+  const x = expandText("Obrazovanje mladih, civilno društvo i zaštita životne sredine u ruralnim krajevima.");
+  for (const w of ["education", "young people youth", "civil society", "environmental protection", "environment", "rural"]) assert.ok(x.includes(w), w);
+  assert.ok(expandText("Медијска писменост и дигитализација").includes("media literacy"), "Cyrillic works through normalisation");
+  assert.ok(!/ media\b/.test(expandText("Medijacija u porodičnim sporovima.").replace("Medijacija", "")), "mediation is not media");
+  assert.ok(!expandText("Mladen je osnivač udruženja.").includes("young people"), "a personal name is not 'young people'");
+  assert.equal(expandText(ngo.description), ngo.description, "English text unchanged");
+  setGlossary(null);
+  assert.equal(expandText(ngoSr.description), ngoSr.description, "no glossary: text as it is");
+});
+
+t("the same profile in English, Serbian Latin and Serbian Cyrillic lands within a few points", () => {
+  setGlossary(GLOSSARY);
+  const stats = buildDF(CALLS);
+  const en = assessAll(ngo, CALLS, { now: NOW, stats }), byId = (r) => Object.fromEntries(r.map((a) => [a.callId, a.score]));
+  const E = byId(en), top = en.slice().sort((a, b) => b.score - a.score).slice(0, 20).map((a) => a.callId);
+  // with the English copy of the free text (what a translation gives): the three agree on every call
+  const textEn = { description: ngo.description, objectives: ngo.objectives };
+  const L1 = byId(assessAll({ ...ngoSr, textEn }, CALLS, { now: NOW, stats })), C1 = byId(assessAll({ ...ngoCyr, textEn }, CALLS, { now: NOW, stats }));
+  for (const id of Object.keys(E)) { assert.ok(Math.abs(E[id] - L1[id]) <= 5, `${id}: en ${E[id]} sr ${L1[id]}`); assert.equal(L1[id], C1[id]); }
+  // without a copy (translation failed): normalisation and the glossary only; Latin and Cyrillic are identical and
+  // the best English matches stay within a few points on average
+  const L2 = byId(assessAll(ngoSr, CALLS, { now: NOW, stats })), C2 = byId(assessAll(ngoCyr, CALLS, { now: NOW, stats }));
+  for (const id of Object.keys(E)) assert.equal(L2[id], C2[id]);
+  const mean = top.reduce((a, id) => a + Math.abs(E[id] - L2[id]), 0) / top.length;
+  assert.ok(mean <= 8, "top-20 mean difference " + mean.toFixed(1));
+  // and an English profile scores exactly as without the glossary
+  setGlossary(null);
+  const E0 = byId(assessAll(ngo, CALLS, { now: NOW, stats: buildDF(CALLS) }));
+  for (const id of Object.keys(E)) assert.equal(E0[id], E[id]);
+});
+
+t("Serbian call texts (national sources): Serbian and English profiles both meet them", () => {
+  const srCall = call({ id: "RS-1", title: "Javni konkurs za podršku programima neformalnog obrazovanja mladih", keywords: [],
+    description: "Podrška projektima udruženja koji unapređuju digitalne veštine i medijsku pismenost mladih iz ruralnih sredina.", sectors: ["youth", "education"] });
+  const other = call({ id: "RS-2", title: "Konkurs za energetsku efikasnost javnih zgrada", keywords: [], description: "Sufinansiranje energetske obnove javnih zgrada u lokalnim samoupravama.", sectors: ["energy"] });
+  setGlossary(GLOSSARY);
+  const stats = buildDF([srCall, other]);
+  const objs = (p) => assess(p, srCall, { now: NOW, stats }).dims.objectives.text;
+  const enScore = objs(ngo), srScore = objs(ngoSr);
+  setGlossary(null);
+  const enNoGloss = assess(ngo, srCall, { now: NOW, stats: buildDF([srCall, other]) }).dims.objectives.text;
+  assert.ok(srScore > 0.3, "Serbian profile, Serbian call: " + srScore);
+  assert.ok(enScore > enNoGloss, `English profile, Serbian call: ${enScore} with the glossary, ${enNoGloss} without`);
+});
+
+t("an English copy is used only for the free-text fields it covers; the original stays for the rest", () => {
+  const c = call({ description: "Projects that build digital skills of young people with fewer opportunities." });
+  const sr = assess({ ...ngoSr, objectives: undefined, description: "Udruženje iz Novog Sada." }, c, { now: NOW }).score;
+  const withCopy = assess({ ...ngoSr, objectives: undefined, description: "Udruženje iz Novog Sada.", textEn: { description: "Builds digital skills of young people with fewer opportunities." } }, c, { now: NOW }).score;
+  assert.ok(withCopy > sr, `${withCopy} > ${sr}`);
 });
 console.log(`${pass} passed`);

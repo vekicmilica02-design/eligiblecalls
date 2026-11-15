@@ -1,7 +1,8 @@
 // Organization Intelligence: the organisation dashboard of Eligible Calls.
 // Uses the page's loaded data through window.EC (index.html) and the API under /api/.
 import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completeness } from "./schema.js";
-import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS, HIGH, mandatorySummary } from "./rules.js";
+import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS, HIGH, mandatorySummary, setGlossary, glossaryVersion } from "./rules.js";
+import { TEXT_FIELDS, textHash } from "./lang.js";
 import { rubricFor, erasmusAction } from "./rubric.js";
 
 const EC = window.EC;
@@ -159,7 +160,11 @@ const S = {
     pwRef: "Payment reference or note (optional)", pwPaidBtn: "I have paid", pwPaidDone: "Thank you. The administrator will check the payment and activate access.",
     pwPaid: (t) => `Payment reported ${t}. Waiting for the administrator to confirm it.`,
     pwStatus: { rejected: "Your last request was declined", revoked: "Your premium access was revoked", expired: "Your premium access has expired" },
-    working: "Working…", loadingPage: "Loading…", op: { uploading: "Uploading", reading: "Reading the document", ocr: "Recognising text (OCR)", analysing: "Analysing with AI", researching: "Reading the website", generating: "Generating with AI", drawing: "Drawing the PDF", saving: "Saving", checking: "Checking against the official text", completed: "Done", failed: "Failed" },
+    working: "Working…", loadingPage: "Loading…", op: { uploading: "Uploading", reading: "Reading the document", ocr: "Recognising text (OCR)", analysing: "Analysing with AI", researching: "Reading the website", generating: "Generating with AI", drawing: "Drawing the PDF", saving: "Saving", checking: "Checking against the official text", translating: "Translating to English", completed: "Done", failed: "Failed" },
+    trT: "English copy for matching", trLede: "Call texts are in English, so text written in another language is matched through an English copy. The copy below is a machine translation, used only for matching: your original text stays the profile record. You can correct the copy; your edits are kept and never replaced by a new automatic translation.",
+    trMachine: (m, t) => `Machine translation${m ? " (" + m + ")" : ""}, ${t}`, trEdited: (t) => `Edited by you, ${t}`, trStaleAuto: "Made from an earlier version of the text, so it is not used for matching until it is translated again.", trStaleEdited: "The original text has changed since you edited this copy. Check that it still matches.",
+    trNone: "No English copy yet: matching uses the original text.", trRun: "Translate now", trSave: "Save copy", trSaved: "Copy saved.", trCleared: "Copy removed; the next save makes a machine translation again.", trDone: (n) => `English copy made for ${n} field(s).`, trNothing: "Every field already has an English copy.", trFailed: "The English copy could not be made, so matching uses the original text:",
+    trUse: "Used for matching", trOrig: "Original text",
     adminTitle: "Administration", auTitle: "AI usage today", auRefresh: "Refresh", auProvider: "Provider and model", auUsed: "Used", auBudget: "Daily budget", auOfBudget: "Of budget", auReq: "Requests",
     auLede: (d, r, s) => `UTC day ${d}. Allowances reset at ${r} (Belgrade time). The site stops each provider at its budget and moves to the next one; the workspace may use at most ${s}% of each budget, so the public assistant keeps working.`,
     auMsgs: (v, l) => `assistant messages from ${v} visitors (limit ${l} per visitor)`, auActions: (u, l) => `workspace AI actions by ${u} users (limit ${l} per user)`, auRequests: "AI requests in total",
@@ -326,7 +331,11 @@ const S = {
     pwRef: "Poziv na broj ili napomena (nije obavezno)", pwPaidBtn: "Platio/la sam", pwPaidDone: "Hvala. Administrator će proveriti uplatu i aktivirati pristup.",
     pwPaid: (t) => `Uplata prijavljena ${t}. Čeka se potvrda administratora.`,
     pwStatus: { rejected: "Vaš poslednji zahtev je odbijen", revoked: "Vaš premium pristup je opozvan", expired: "Vaš premium pristup je istekao" },
-    working: "Radi se…", loadingPage: "Učitavanje…", op: { uploading: "Otpremanje", reading: "Čitanje dokumenta", ocr: "Prepoznavanje teksta (OCR)", analysing: "AI analiza", researching: "Čitanje sajta", generating: "AI izrada", drawing: "Izrada PDF-a", saving: "Čuvanje", checking: "Provera prema zvaničnom tekstu", completed: "Gotovo", failed: "Neuspešno" },
+    working: "Radi se…", loadingPage: "Učitavanje…", op: { uploading: "Otpremanje", reading: "Čitanje dokumenta", ocr: "Prepoznavanje teksta (OCR)", analysing: "AI analiza", researching: "Čitanje sajta", generating: "AI izrada", drawing: "Izrada PDF-a", saving: "Čuvanje", checking: "Provera prema zvaničnom tekstu", translating: "Prevođenje na engleski", completed: "Gotovo", failed: "Neuspešno" },
+    trT: "Engleska verzija za poređenje", trLede: "Tekstovi poziva su na engleskom, pa se tekst napisan na drugom jeziku poredi preko engleske verzije. Verzija ispod je mašinski prevod koji služi samo za poređenje: vaš originalni tekst ostaje zapis u profilu. Prevod možete ispraviti; vaše izmene se čuvaju i novi automatski prevod ih nikada ne zamenjuje.",
+    trMachine: (m, t) => `Mašinski prevod${m ? " (" + m + ")" : ""}, ${t}`, trEdited: (t) => `Vaša izmena, ${t}`, trStaleAuto: "Napravljen je od ranije verzije teksta, pa se ne koristi za poređenje dok se ponovo ne prevede.", trStaleEdited: "Originalni tekst se promenio otkako ste izmenili ovaj prevod. Proverite da li se i dalje slaže.",
+    trNone: "Još nema engleske verzije: za poređenje se koristi originalni tekst.", trRun: "Prevedi sada", trSave: "Sačuvaj prevod", trSaved: "Prevod je sačuvan.", trCleared: "Prevod je uklonjen; sledeće čuvanje pravi novi mašinski prevod.", trDone: (n) => `Engleska verzija napravljena za polja: ${n}.`, trNothing: "Sva polja već imaju englesku verziju.", trFailed: "Engleska verzija nije napravljena, pa se za poređenje koristi originalni tekst:",
+    trUse: "Koristi se za poređenje", trOrig: "Originalni tekst",
     adminTitle: "Administracija", auTitle: "Potrošnja AI danas", auRefresh: "Osveži", auProvider: "Dobavljač i model", auUsed: "Potrošeno", auBudget: "Dnevni budžet", auOfBudget: "Od budžeta", auReq: "Zahtevi",
     auLede: (d, r, s) => `UTC dan ${d}. Dozvoljena potrošnja se obnavlja u ${r} (po beogradskom vremenu). Sajt zaustavlja svakog dobavljača na njegovom budžetu i prelazi na sledećeg; radni prostor organizacija sme da potroši najviše ${s}% svakog budžeta, da bi javni asistent nastavio da radi.`,
     auMsgs: (v, l) => `poruka asistentu od ${v} posetilaca (ograničenje ${l} po posetiocu)`, auActions: (u, l) => `AI radnji u radnom prostoru, ${u} korisnika (ograničenje ${l} po korisniku)`, auRequests: "AI zahteva ukupno",
@@ -429,7 +438,7 @@ const codeText = (x) => { const f = CODES[L()][x.code] || CODES.en[x.code]; retu
 // What the page is doing right now, tied to the real asynchronous work: nothing is shown while idle; a busy state
 // (reading, ocr, analysing, researching, generating, drawing, saving) shows the moving mark and, where the work can
 // be counted (pages read, OCR progress, parts analysed), a progress bar; completed and failed end the animation.
-const OP_BUSY = new Set(["uploading", "reading", "ocr", "analysing", "researching", "generating", "drawing", "saving", "checking"]);
+const OP_BUSY = new Set(["uploading", "reading", "ocr", "analysing", "researching", "generating", "drawing", "saving", "checking", "translating"]);
 function opState(el, state, detail = "", pct = null) {
   if (!el) return;
   if (state === "idle") { el.className = "op"; el.removeAttribute("aria-busy"); el.innerHTML = ""; return; }
@@ -457,6 +466,11 @@ const fmtTime = (ms) => new Intl.DateTimeFormat(L() === "sr" ? "sr-Latn-RS" : "e
 
 async function loadMe(force) { if (ST.me === undefined || force) { try { ST.me = await api("GET", "/me"); } catch (e) { ST.me = { user: null, error: e.message }; } } return ST.me; }
 // Official eligibility conditions of all calls (site/org/eligibility.json, ingest/eligibility_docs.py), loaded once.
+// Serbian to English glossary for the thematic match (site/org/glossary-sr-en.json), loaded once.
+async function loadGlossary() {
+  if (ST.gloss === undefined) { try { const r = await fetch("org/glossary-sr-en.json", { cache: "no-cache" }); ST.gloss = r.ok ? await r.json() : null; } catch { ST.gloss = null; } if (ST.gloss) setGlossary(ST.gloss); }
+  return ST.gloss;
+}
 async function loadElig() {
   if (ST.elig === undefined) { try { const r = await fetch("org/eligibility.json", { cache: "no-cache" }); ST.elig = r.ok ? await r.json() : null; } catch { ST.elig = null; } }
   return ST.elig;
@@ -470,7 +484,7 @@ const aiMap = () => Object.fromEntries((ST.off || []).filter((x) => x.profileVer
 const assessOpts = () => ({ stats: ST.stats || buildDF(activeCalls()), elig: ST.elig || null, ai: aiMap() });
 async function loadOrg(id, force) {
   if (!force && ST.org && ST.org.id === id) return ST.org;
-  const [org] = await Promise.all([api("GET", "/orgs/" + id), loadElig(), loadOfficial(id)]);
+  const [org] = await Promise.all([api("GET", "/orgs/" + id), loadElig(), loadOfficial(id), loadGlossary()]);
   ST.org = org; ST.review = null;
   try { localStorage.setItem("konkursi.org", JSON.stringify(id)); } catch {}
   return ST.org;
@@ -478,13 +492,22 @@ async function loadOrg(id, force) {
 const canEdit = () => ST.org && (ST.org.role === "owner" || ST.org.role === "editor");
 
 function activeCalls() { return (EC.CALLS || []).filter((c) => EC.isOpen(c)); }
+// The profile as matching sees it: with the English copies of its free text where they exist (src/org/translate.js).
+// One object per profile version and set of copies, so the rules engine's per-profile memo works.
+function matchProfile() {
+  const o = ST.org, te = (o.translation && o.translation.textEn) || {};
+  const key = o.id + "@" + o.version + "@" + textHash(JSON.stringify(te));
+  if (ST.mpKey !== key) { ST.mp = Object.keys(te).length ? { ...o.profile, textEn: te } : o.profile; ST.mpKey = key; }
+  return ST.mp;
+}
 function results() {
   const calls = activeCalls();
-  const key = ST.org.id + "@" + ST.org.version + "@" + EC.META.generated + "@" + calls.length + "@" + (ST.elig ? ST.elig.generated : "-") + "@" + (ST.offKey || "");
+  matchProfile();
+  const key = ST.org.id + "@" + ST.org.version + "@" + EC.META.generated + "@" + calls.length + "@" + (ST.elig ? ST.elig.generated : "-") + "@" + (ST.offKey || "") + "@" + ST.mpKey + "@" + glossaryVersion();
   if (ST.resultsKey === key && ST.results) return ST.results;
   if (ST.statsGen !== EC.META.generated) { ST.stats = buildDF(calls); ST.statsGen = EC.META.generated; }
   const byId = new Map(calls.map((c) => [c.id, c]));
-  ST.results = assessAll(ST.org.profile, calls, assessOpts()).map((r) => ({ ...r, call: byId.get(r.callId) }));
+  ST.results = assessAll(matchProfile(), calls, assessOpts()).map((r) => ({ ...r, call: byId.get(r.callId) }));
   ST.resultsKey = key; ST.resultsAt = Date.now();
   return ST.results;
 }
@@ -804,7 +827,61 @@ function secProfile(arg) {
   return `<h1>${esc(T("nav.profile"))}</h1>${dis ? `<p class="note">${esc(T("viewerNote"))}</p>` : ""}
     ${arg === "missing" && miss.length && !dis ? `<p class="note warn">${esc(T("missingHere", miss.length))} <a href="#org/${org.id}/documents">${esc(T("orFromDocs"))} →</a></p>` : ""}
     <form class="form" id="oiProfile" novalidate>${Object.entries(GROUPS).map(([g, ids]) => `<fieldset><legend>${esc(T("sections." + g))}</legend>${ids.map((fid) => { const f = FIELD[fid]; return `<div class="fld${wide.has(f.kind) ? " wide" : ""}" data-f="${fid}"><${f.kind === "multi" || f.kind === "countries" ? "span class=\"lbl\"" : `label for="f_${fid}"`}>${esc(nm(f))} ${provBadge(meta[fid])}</${f.kind === "multi" || f.kind === "countries" ? "span" : "label"}>${input(f, p[fid], dis)}<span class="err" hidden></span></div>`; }).join("")}</fieldset>`).join("")}
-    ${dis ? "" : `<div class="savebar"><button class="btn" type="submit">${esc(T("save"))}</button><span id="oiSaveMsg" class="fine" role="status"></span></div>`}</form>`;
+    ${dis ? "" : `<div class="savebar"><button class="btn" type="submit">${esc(T("save"))}</button><span id="oiSaveMsg" class="fine" role="status"></span></div>`}</form>
+    ${trHTML()}`;
+}
+// English copy of the free-text fields that are not in English (src/org/translate.js): shown and editable here.
+function trHTML() {
+  const org = ST.org, tr = org.translation, p = org.profile, dis = !canEdit();
+  if (!tr) return `<section class="oi-card tr" id="oiTr" hidden></section>`;
+  const show = TEXT_FIELDS.filter((f) => p[f] && ((tr.langs || {})[f] === "sr" || (tr.langs || {})[f] === "other" || tr.fields[f]));
+  if (!show.length) return `<section class="oi-card tr" id="oiTr" hidden></section>`;
+  const rows = show.map((f) => {
+    const x = tr.fields[f], used = tr.textEn && tr.textEn[f];
+    const state = !x ? T("trNone") : x.edited ? T("trEdited", fmtTime(x.at)) : T("trMachine", x.model ? String(x.model).split("/").pop() : "", fmtTime(x.at));
+    const warn = x && x.stale ? `<p class="note warn">${esc(T(x.edited ? "trStaleEdited" : "trStaleAuto"))}</p>` : "";
+    return `<div class="tr-f" data-trf="${f}"><h3>${esc(nm(FIELD[f]))}</h3>
+      <details class="tr-orig"><summary>${esc(T("trOrig"))}</summary><p>${esc(p[f])}</p></details>
+      <p class="fine">${esc(state)}${used ? ` · <b>${esc(T("trUse"))}</b>` : ""}</p>${warn}
+      <div class="fld"><label class="sr-only" for="tr_${f}">${esc(nm(FIELD[f]))} (EN)</label><textarea id="tr_${f}" rows="4" lang="en"${dis ? " disabled" : ""}>${esc(x ? x.text : "")}</textarea></div>
+      ${dis ? "" : `<div class="oi-row"><button type="button" class="btn quiet" data-trsave="${f}">${esc(T("trSave"))}</button><span class="fine" data-trmsg role="status"></span></div>`}</div>`;
+  }).join("");
+  return `<section class="oi-card tr" id="oiTr"><h2>${esc(T("trT"))}</h2><p class="fine">${esc(T("trLede"))}</p>
+    ${!dis && tr.pending && tr.pending.length ? `<div class="oi-row"><button type="button" class="btn" id="trRun">${esc(T("trRun"))}</button></div>` : ""}<div class="op" id="oiTrMsg" role="status" aria-live="polite"></div>
+    ${rows}</section>`;
+}
+function bindTr() {
+  const box = document.getElementById("oiTr"); if (!box || box.hidden) return;
+  const org = ST.org;
+  const run = document.getElementById("trRun");
+  if (run) run.addEventListener("click", () => ensureEnglish(document.getElementById("oiTrMsg"), true));
+  box.querySelectorAll("[data-trsave]").forEach((b) => b.addEventListener("click", async () => {
+    const f = b.dataset.trsave, m = b.parentElement.querySelector("[data-trmsg]"), text = document.getElementById("tr_" + f).value;
+    b.disabled = true;
+    try {
+      ST.org.translation = await api("PUT", `/orgs/${org.id}/translation`, { field: f, text });
+      redrawTr(); const nm2 = document.querySelector(`[data-trf="${f}"] [data-trmsg]`); if (nm2) { nm2.className = "fine ok"; nm2.textContent = T(text.trim() ? "trSaved" : "trCleared"); }
+    } catch (e) { b.disabled = false; if (m) { m.className = "fine err"; m.textContent = errText(e); } }
+  }));
+}
+function redrawTr() { const box = document.getElementById("oiTr"); if (!box) return; const d = document.createElement("div"); d.innerHTML = trHTML(); box.replaceWith(d.firstElementChild); bindTr(); }
+// Makes the English copy of fields that need one: once after each save, or when the user asks. The profile is
+// already saved; a failure only means matching keeps using the original text.
+async function ensureEnglish(el, force) {
+  const org = ST.org, tr = org && org.translation;
+  if (!org || !tr || !canEdit() || (!force && !(tr.pending && tr.pending.length))) return;
+  const run = document.getElementById("trRun"); if (run) run.disabled = true;
+  opState(el, "translating");
+  try {
+    const r = await api("POST", `/orgs/${org.id}/translation`, {});
+    if (ST.org && ST.org.id === org.id) { const { translated, model, ...view } = r; ST.org.translation = view; ST.resultsKey = null; }
+    redrawTr();
+    // the copy section may have been drawn again: write to the status element on the page now
+    opState(document.getElementById("oiTrMsg") || el, "completed", r.translated.length ? T("trDone", r.translated.length) : T("trNothing"));
+  } catch (e) {
+    opState(document.getElementById("oiTrMsg") || el, "failed", T("trFailed") + " " + errText(e));
+    if (run) run.disabled = false;
+  }
 }
 afterRender.profile = (arg) => {
   const form = document.getElementById("oiProfile"); if (!form) return;
@@ -815,6 +892,7 @@ afterRender.profile = (arg) => {
     const first = miss.length && form.querySelector(`[data-f="${miss[0]}"]`);
     if (first) { first.scrollIntoView({ block: "center" }); const inp = first.querySelector("input,select,textarea"); if (inp) inp.focus({ preventScroll: true }); }
   }
+  bindTr();
   if (!canEdit()) return;
   const msg = document.getElementById("oiSaveMsg");
   form.addEventListener("input", (ev) => { msg.textContent = T("unsaved"); const box = ev.target.closest(".need"); if (box) box.classList.remove("need"); });
@@ -834,6 +912,7 @@ afterRender.profile = (arg) => {
       const r = await api("PUT", `/orgs/${org.id}/profile`, { profile: next, baseVersion: org.version });
       await loadOrg(org.id, true); ST.me = undefined; await loadMe();
       msg.textContent = T("saved", r.version);
+      redrawTr(); ensureEnglish(document.getElementById("oiTrMsg"));
     } catch (e) {
       if (e.message === "invalid" && e.data && e.data.fields) {
         for (const [k, code] of Object.entries(e.data.fields)) { const box = form.querySelector(`[data-f="${k}"] .err`); if (box) { box.hidden = false; box.textContent = code; } }
@@ -956,7 +1035,7 @@ async function secDocuments() {
   ST.runs = runs;
   const open = ST.openRun && runs.find((r) => r.id === ST.openRun);
   return `<h1>${esc(T("docsTitle"))}</h1><p class="lede">${esc(T("docsLede"))}</p>${dis ? `<p class="note">${esc(T("viewerNote"))}</p>` : ""}
-    ${dis ? "" : `<div class="drop"><label class="btn" for="oiFile">${esc(T("upload"))}</label><input type="file" id="oiFile" accept="${ACCEPT}" hidden><p class="fine">${esc(T("uploadFormats"))}</p><div class="op" id="oiProg" role="status" aria-live="polite"></div></div>
+    ${dis ? "" : `<div class="drop"><label class="btn" for="oiFile">${esc(T("upload"))}</label><input type="file" id="oiFile" accept="${ACCEPT}" hidden><p class="fine">${esc(T("uploadFormats"))}</p><div class="op" id="oiProg" role="status" aria-live="polite"></div><div class="op" id="oiTrMsg" role="status" aria-live="polite"></div></div>
     <form class="oi-card" id="oiWeb"><h2>${esc(T("webTitle"))}</h2><p class="fine">${esc(T("webLede"))}</p><div class="fld"><label for="oiUrl">${esc(T("url"))}</label><input type="url" id="oiUrl" placeholder="https://" value="${esc(org.profile.website || "")}"></div><div><button class="btn" type="submit">${esc(T("readSite"))}</button></div><div class="op" id="oiWebMsg" role="status"></div></form>`}
     <div id="oiReview">${open ? fillHTML(open) : ""}</div>
     <div class="oi-card"><h2>${esc(T("runs"))}</h2>${runs.length ? `<table class="oi-t"><tbody>${runs.map((r) => `<tr><td>${esc(fmtTime(r.at))}</td><td>${esc(r.sourceName)}${r.sourceUrl ? ` <a class="fine" href="${esc(r.sourceUrl)}" target="_blank" rel="noopener">↗</a>` : ""}<div class="fine">${r.result ? esc(T("runSummary", r.result.filled.length, r.result.conflicts.length)) : Object.keys(r.fields).length + " · " + esc(T("status." + r.status))}</div></td><td><button type="button" class="btn ghost" data-open="${r.id}">${esc(T("open"))}</button>${dis ? "" : ` <button type="button" class="linkbtn" data-del="${r.id}">${esc(T("del"))}</button>`}</td></tr>`).join("")}</tbody></table>` : `<p class="fine">${esc(T("none"))}</p>`}</div>`;
@@ -968,6 +1047,7 @@ afterRender.documents = () => {
   const fill = async (runId, extra = {}) => {
     const r = await api("POST", `/orgs/${org.id}/extractions/${runId}/apply`, extra);
     await loadOrg(org.id, true); ST.me = undefined; await loadMe();
+    ensureEnglish(document.getElementById("oiTrMsg"));
     const run = { ...(ST.runs.find((x) => x.id === runId) || {}), result: r.result, status: "applied" };
     ST.runs = ST.runs.map((x) => (x.id === runId ? run : x));
     return run;
@@ -1122,7 +1202,7 @@ const callMeta = (c) => `<div class="oi-row"><span>${esc(c.programmeName || "")}
 async function secReport(key) {
   const c = EC.BYKEY[decodeURIComponent(key)];
   if (!c) return `<p class="note err">${esc(T("errors.not_found"))}</p>`;
-  const r = assess(ST.org.profile, c, assessOpts());
+  const r = assess(matchProfile(), c, assessOpts());
   const snap = snapshot(c, r), id = ST.org.id;
   ST.lastSnap = snap;
   return `<a class="back" href="#org/${id}/matching">← ${esc(T("matchTitle"))}</a>
@@ -1569,7 +1649,7 @@ afterRender.ideas = (arg) => {
 };
 /* ---------- saved reports ---------- */
 // The live assessment of a saved report's call, if the call is still published.
-const liveOf = (key) => { const c = EC.BYKEY[key]; return c ? assess(ST.org.profile, c, assessOpts()) : null; };
+const liveOf = (key) => { const c = EC.BYKEY[key]; return c ? assess(matchProfile(), c, assessOpts()) : null; };
 function reportDoc(rep) {
   const d = rep.data, a = d.assessment, c = d.call;
   const ul = (xs) => (xs.length ? { ul: xs, margin: [0, 0, 0, 6] } : { text: T("none"), italics: true, color: "#777", margin: [0, 0, 0, 6] });

@@ -84,6 +84,15 @@ function demoAI(seen) {
       conditions.push({ condition: "Invented condition.", quote: "Applicants must have won a Nobel prize in the last five years.", appliesTo: "applicant", result: "fail", field: "orgType", reason: "Invented." });
       return sseStream([{ response: JSON.stringify({ conditions, summary: "Test summary of the official check." }) }, { response: "", usage: { prompt_tokens: 3000, completion_tokens: 500 } }]);
     }
+    if (sys.startsWith("You translate the free-text fields of one organisation profile")) {
+      // Translation: an English sentence per field (the test model does not translate; matching then uses this text).
+      const texts = JSON.parse((input.messages[1].content.match(/<texts>\n([\s\S]*?)\n<\/texts>/) || [, "{}"])[1]);
+      const en = { description: "Youth association from Novi Sad that runs non-formal education programmes on digital skills and media literacy for young people from rural areas.",
+        mission: "Every young person should have the digital and civic skills to take part in public life.", objectives: "Improve digital and media literacy of young people; train youth workers in digital youth work; build partnerships with youth organisations in the EU.",
+        expertise: "Non-formal education, digital youth work, media literacy, workshop facilitation." };
+      const out = Object.fromEntries(Object.keys(texts).map((k) => [k, en[k] || "English text written by the local test model for the field " + k + "."]));
+      return sseStream([{ response: JSON.stringify(out) }, { response: "", usage: { prompt_tokens: 800, completion_tokens: 300 } }]);
+    }
     if (sys.startsWith("You explain why a project concept")) {
       const idea = JSON.parse((input.messages[1].content.match(/<idea>\n([\s\S]*?)\n<\/idea>/) || [, "{}"])[1]);
       const o = (idea.objectives || [])[0] || "", a = (idea.activities || [])[0] || "";

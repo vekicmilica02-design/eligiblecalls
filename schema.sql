@@ -160,6 +160,21 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 CREATE INDEX IF NOT EXISTS reports_org ON reports (org_id, created_at);
 
+-- AI checks of a profile against a call's official eligibility text (migration 0006).
+CREATE TABLE IF NOT EXISTS official_checks (
+  org_id TEXT NOT NULL,
+  call_id TEXT NOT NULL,
+  profile_version INTEGER NOT NULL,         -- profile version the check was made with
+  source_url TEXT,                          -- official document or page the text comes from
+  source_title TEXT,
+  source_verified TEXT,                     -- date the text was last read from the official source
+  result TEXT NOT NULL,                     -- JSON: conditions (quote, result, field, reason), summary, language
+  model TEXT,
+  created_by TEXT,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (org_id, call_id)
+);
+
 -- Premium access: one row per request; the newest row of a user decides the user's access.
 CREATE TABLE IF NOT EXISTS access_requests (
   id TEXT PRIMARY KEY,

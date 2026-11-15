@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { handleChat, handleHealth, _resetIndex } from "../src/chat.js";
-import { deadlineMs, deadlineLabel, prepare, rank, buildMessages, cleanRequest, detectCountry, terms, brusselsNow } from "../src/core.js";
+import { deadlineMs, deadlineLabel, prepare, rank, buildMessages, cleanRequest, detectCountry, terms, brusselsNow, estTokens } from "../src/core.js";
 import { mockD1, mockAssets, mockAI, mockFetch, readSSE, ROOT } from "./mocks.js";
 
 const index = JSON.parse(readFileSync(path.join(ROOT, "site/data/index.json"), "utf8"));
@@ -163,21 +163,22 @@ await t("Groq chain: a per-day 429 marks that model spent and moves on", async (
 
 await t("Groq chain: per-minute 429s everywhere give 'rate_limited', not 'resting'", async () => {
   const e = env({ AI: undefined, GROQ_API_KEY: "test" }); const log = [];
-  const all = Object.fromEntries(["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"].map((m) => [m, [429, TPM(m)]]));
+  const all = Object.fromEntries(["openai/gpt-oss-120b", "openai/gpt-oss-20b"].map((m) => [m, [429, TPM(m)]]));
   const res = await handleChat({ request: req({ messages: [{ role: "user", content: "AI startup" }] }), env: e, now: NOW, fetchImpl: mockFetch(log, { groqByModel: all }) });
   assert.equal(res.status, 429); assert.equal((await res.json()).error, "rate_limited");
-  assert.equal(groqModelsCalled(log).length, 4);
+  assert.equal(groqModelsCalled(log).length, 2, "the chain has the two models Groq still serves on the free plan");
   assert.equal(e.DB._db.prepare("SELECT COUNT(*) n FROM usage").get().n, 0);
 });
 
 await t("Groq chain: the smallest model gets fewer calls so the request fits its per-minute limit", async () => {
-  const e = env({ AI: undefined, GROQ_API_KEY: "test" }); const log = []; const waits = [];
-  e.DB._db.prepare("INSERT INTO usage VALUES ('2026-09-30','groq:openai/gpt-oss-120b',0,190000,40),('2026-09-30','groq:openai/gpt-oss-20b',0,190000,40),('2026-09-30','groq:llama-3.3-70b-versatile',0,95000,20)").run();
+  // A chain set with GROQ_MODELS whose last model has a 6,000-token per-minute limit.
+  const e = env({ AI: undefined, GROQ_API_KEY: "test", GROQ_MODELS: "openai/gpt-oss-120b:200000:8000,openai/gpt-oss-20b:200000:8000,llama-3.1-8b-instant:500000:6000" }); const log = []; const waits = [];
+  e.DB._db.prepare("INSERT INTO usage VALUES ('2026-09-30','groq:openai/gpt-oss-120b',0,190000,40),('2026-09-30','groq:openai/gpt-oss-20b',0,190000,40)").run();
   const res = await handleChat({ request: req({ messages: [{ role: "user", content: "Research and innovation projects in digital health, AI, climate and energy" }] }), env: e, now: NOW, waitUntil: (p) => waits.push(p), fetchImpl: mockFetch(log) });
   const ev = await readSSE(res); await Promise.all(waits);
   assert.equal(ev[0].meta.model, "llama-3.1-8b-instant");
   const body = JSON.parse(log.find((x) => String(x.url).includes("groq")).init.body);
-  const tok = Math.ceil(body.messages.map((m) => m.content).join("\n").length / 3.6);
+  const tok = estTokens(body.messages.map((m) => m.content).join("\n"));
   assert.ok(tok + body.max_tokens <= 0.9 * 6000, `request ${tok} + ${body.max_tokens} tokens`);
 });
 

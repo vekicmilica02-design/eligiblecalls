@@ -49,7 +49,11 @@ function demoAI(seen) {
       const idea = (callId, i) => ({ callId, title: `Test idea ${i + 1} for ${callId}`, concept: "A concept written by the test model.", problem: "A problem.", solution: "A solution.",
         objectives: ["Train 40 youth workers by month 12", "Reach 300 young people in 6 towns"], targetGroups: ["Young people"], activities: ["Workshops", "Online course"],
         expectedResults: ["40 trained youth workers"], potentialPartners: ["A school in another country"], whyItFits: "The profile shows matching experience.",
-        fit: { alignment: 4 - i, priorities: 4, feasibility: 3, impact: 4, reasons: "Test ratings." } });
+        fit: { alignment: 4 - i, priorities: 4, feasibility: 3, impact: 4, reasons: "Test ratings.",
+          // idea 2 gets a generic explanation, which the server must drop; the others name the concept's own words
+          explanation: i === 1 ? { summary: "This is a good project that fits the call well.", strengths: ["Good fit"], weaknesses: ["Could be better"], improve: ["Improve it"] }
+            : { summary: `Training 40 youth workers through workshops matches the call's focus on youth work quality (test ${i + 1}).`, strengths: ["The objective to train 40 youth workers matches the call's capacity building priority"],
+              weaknesses: ["The online course has no measurable reach target"], improve: ["Add a partner that has run workshops for young people in rural towns"] } } });
       const ideas = ids.slice(0, 3).map(idea).concat([idea("INVENTED-CALL-ID", 3)]);
       return sseStream([{ response: JSON.stringify({ ideas }) }, { response: "", usage: { prompt_tokens: 3500, completion_tokens: 900 } }]);
     }
@@ -68,6 +72,24 @@ function demoAI(seen) {
         risks: [{ risk: "Low participation", likelihood: "medium", mitigation: "Outreach through schools" }], alignment: "Matches the call's youth priority.",
         budget: { requestedTotal: 999999999, basis: "Lump sum", categories: [{ category: "Staff", share: 3, note: "" }, { category: "Travel", share: 1, note: "" }], considerations: "Check the call's lump sums." } };
       return sseStream([{ response: JSON.stringify(p) }, { response: "", usage: { prompt_tokens: 3000, completion_tokens: 1500 } }]);
+    }
+    if (sys.startsWith("You check whether one organisation meets the mandatory eligibility conditions")) {
+      // Official check: quote the first two sentences of the official text (one passes on country, one on a consortium
+      // and claims "fail", which the server must turn into unknown) plus one invented quote the server must drop.
+      const off = (sys.match(/<official>\n([\s\S]*?)\n<\/official>/) || [, ""])[1];
+      const sents = (off.match(/[^.\n]{30,300}\./g) || []).map((x) => x.trim());
+      const conditions = [];
+      if (sents[0]) conditions.push({ condition: "Applicants must be legal entities established in an eligible country.", quote: sents[0], appliesTo: "applicant", result: "pass", field: "country", reason: "The profile gives the country." });
+      if (sents[1]) conditions.push({ condition: "The consortium must have enough partners.", quote: sents[1], appliesTo: "consortium", result: "fail", field: "country", reason: "No partners are listed." });
+      conditions.push({ condition: "Invented condition.", quote: "Applicants must have won a Nobel prize in the last five years.", appliesTo: "applicant", result: "fail", field: "orgType", reason: "Invented." });
+      return sseStream([{ response: JSON.stringify({ conditions, summary: "Test summary of the official check." }) }, { response: "", usage: { prompt_tokens: 3000, completion_tokens: 500 } }]);
+    }
+    if (sys.startsWith("You explain why a project concept")) {
+      const idea = JSON.parse((input.messages[1].content.match(/<idea>\n([\s\S]*?)\n<\/idea>/) || [, "{}"])[1]);
+      const o = (idea.objectives || [])[0] || "", a = (idea.activities || [])[0] || "";
+      const ex = { summary: `${idea.title}: the objective "${o}" and the activity "${a}" match the call text.`, strengths: [`${o} answers the call's priority on skills`],
+        weaknesses: [`${a} has no measurable target`], improve: ["Name a partner with experience in the target group"] };
+      return sseStream([{ response: JSON.stringify(ex) }, { response: "", usage: { prompt_tokens: 2000, completion_tokens: 300 } }]);
     }
     if (sys.startsWith("You are an experienced evaluator")) {
       // Scores at about 70% of each criterion's maximum; with only the funder's text, quote its first lines as criteria.

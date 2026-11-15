@@ -6,7 +6,7 @@ import { verifyFields, robotsAllows, checkPublicUrl, aboutLinks, matchKey } from
 import { parseJsonObject } from "../src/org/ai.js";
 import { contextFrom } from "../site/org/schema.js";
 import { mockD1, mockAssets, sseStream } from "./mocks.js";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { _resetIdeasIndex, verifyIdeas, conceptFit, rankScore } from "../src/org/ideas.js";
 import { rubricFor } from "../site/org/rubric.js";
 const CRIT = JSON.parse(readFileSync(new URL("../site/org/criteria.json", import.meta.url), "utf8"));
@@ -574,6 +574,56 @@ await t("idea evaluation uses the criteria of the idea's own call: Horizon annex
   assert.deepEqual([r.status, r.j.error], [409, "no_criteria"]);
   const listed = (await call("GET", `/api/orgs/${o}/ideas`, { cookie: u })).j.ideas;
   assert.equal(listed.filter((x) => Object.keys(x.evaluations).length).length, 4, "four evaluated ideas");
+});
+
+await t("official eligibility check: quotes verified against the official text, consortium never fails, stored per profile version", async () => {
+  const u = await signIn("ivo@example.org"), v = await signIn("vera@example.org");
+  const o = (await call("POST", "/api/orgs", { cookie: u, body: { name: "Official org" } })).j.id;
+  await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { name: "Official org", orgType: "ngo", country: "RS", description: "Media NGO." }, baseVersion: 1 } });
+  const vid = env.DB._db.prepare("SELECT id FROM users WHERE email = 'vera@example.org'").get().id;
+  env.DB._db.prepare("INSERT INTO org_members (org_id, user_id, role, created_at) VALUES (?, ?, 'viewer', ?)").run(o, vid, NOW);
+  const cid = "CREA-MEDIA-2027-DEVSLATE";
+  const doc = JSON.parse(readFileSync(new URL(`../site/org/elig/${cid}.json`, import.meta.url), "utf8"));
+  const sents = doc.text.match(/[^.\n]{30,300}\./g).map((x) => x.trim());
+  aiAnswer = JSON.stringify({ summary: "Checked.", conditions: [
+    { condition: "Eligible country", quote: sents[0], appliesTo: "applicant", result: "pass", field: "country", reason: "RS" },
+    { condition: "Partners", quote: sents[1], appliesTo: "consortium", result: "fail", field: "country", reason: "none listed" },
+    { condition: "Experience", quote: sents[2], appliesTo: "applicant", result: "pass", field: "previousProjects", reason: "guess" },
+    { condition: "Invented", quote: "Applicants must have won a Nobel prize in the last five years.", appliesTo: "applicant", result: "fail", field: "orgType", reason: "x" },
+  ] });
+  assert.equal((await call("POST", `/api/orgs/${o}/official-checks`, { cookie: v, body: { callId: cid } })).status, 403, "viewers cannot run it");
+  let r = await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: cid, lang: "en" } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  const ch = r.j.check;
+  assert.deepEqual(ch.conditions.map((c) => [c.result, c.appliesTo]), [["pass", "applicant"], ["unknown", "consortium"], ["unknown", "applicant"]], "invented quote dropped, consortium fail and unsupported pass become unknown");
+  assert.equal(ch.profileVersion, 2); assert.equal(ch.source.url, doc.url); assert.ok(ch.source.verified);
+  assert.match(aiSeen.at(-1).messages[0].content, /<official>[\s\S]*<\/official>/);
+  const listed = (await call("GET", `/api/orgs/${o}/official-checks`, { cookie: v })).j.checks;
+  assert.deepEqual(listed.map((x) => [x.callId, x.profileVersion]), [[cid, 2]], "viewers can read it");
+  // a call without official text cannot be checked; a call that does not exist is not found
+  const none = Object.keys(JSON.parse(readFileSync(new URL("../site/org/eligibility.json", import.meta.url), "utf8")).calls).find((k) => !existsSync(new URL(`../site/org/elig/${k.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 120)}.json`, import.meta.url)) && k.startsWith("EIT"));
+  if (none) assert.deepEqual([(r = await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: none } })).status, r.j.error], [409, "no_official_text"]);
+  assert.equal((await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: "NO-SUCH-CALL" } })).status, 404);
+  aiAnswer = JSON.stringify({ conditions: [{ condition: "x", quote: "nothing like this is in the official text", result: "pass" }] });
+  assert.equal((await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: cid } })).j.error, "ai_bad_answer");
+  // concept fit explanation: a generic answer is rejected, a specific one is stored with the idea
+  const iid = "idea-fx-" + o.slice(0, 6);
+  env.DB.prepare("INSERT INTO project_ideas (id, org_id, batch_id, call_id, rank, status, idea, match, lang, profile_version, call_title, created_by, created_at, updated_at) VALUES (?, ?, 'b', ?, 1, 'saved', ?, '{}', 'en', 2, 'Call', 'x', ?, ?)")
+    .bind(iid, o, cid, JSON.stringify({ callId: cid, title: "Documentary slate for regional broadcasters", concept: "Three documentaries co-developed with regional broadcasters.", objectives: ["Develop three documentaries", "Sign two broadcaster letters"], activities: ["Script workshops"], fit: { alignment: 4, priorities: 3, feasibility: 3, impact: 4 } }), NOW, NOW).run();
+  aiAnswer = JSON.stringify({ summary: "This is a good project that fits the call well.", strengths: ["Good fit"], weaknesses: ["Could be better"], improve: ["Improve it"] });
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/fit-explanation`, { cookie: u, body: {} })).j.error, "ai_bad_answer");
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/fit-explanation`, { cookie: v, body: {} })).status, 403);
+  aiAnswer = JSON.stringify({ summary: "Three documentaries for regional broadcasters match the slate funding.", strengths: ["Broadcaster letters show market interest"], weaknesses: ["Script workshops have no named trainer"], improve: ["Name the regional broadcasters"] });
+  r = await call("POST", `/api/orgs/${o}/ideas/${iid}/fit-explanation`, { cookie: u, body: {} });
+  assert.equal(r.status, 200, JSON.stringify(r.j)); assert.equal(r.j.explanation.at, NOW);
+  assert.match((await call("GET", `/api/orgs/${o}/ideas`, { cookie: u })).j.ideas.find((x) => x.id === iid).idea.fit.explanation.summary, /regional broadcasters/);
+  // the check can be removed, and deleting the organisation removes all of them
+  assert.equal((await call("DELETE", `/api/orgs/${o}/official-checks/${encodeURIComponent(cid)}`, { cookie: u })).status, 200);
+  assert.equal(env.DB._db.prepare("SELECT COUNT(*) n FROM official_checks WHERE org_id = ?").get(o).n, 0);
+  aiAnswer = JSON.stringify({ conditions: [{ condition: "c", quote: sents[0], appliesTo: "applicant", result: "pass", field: "country" }] });
+  await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: cid } });
+  assert.equal((await call("DELETE", `/api/orgs/${o}`, { cookie: u })).status, 200);
+  assert.equal(env.DB._db.prepare("SELECT COUNT(*) n FROM official_checks WHERE org_id = ?").get(o).n, 0);
 });
 
 await t("admin AI usage: today's counters per provider against the budgets; administrators only", async () => {

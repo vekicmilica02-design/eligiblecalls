@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ROOT } from "./mocks.js";
-import { assess, assessAll, buildDF, band, scoreTier, DEFAULT_WEIGHTS, callFingerprint } from "../site/org/rules.js";
+import { assess, assessAll, buildDF, band, scoreTier, DEFAULT_WEIGHTS, callFingerprint, mandatorySummary, HIGH, MEDIUM } from "../site/org/rules.js";
 import { cleanProfile, completeness, contextFrom, changedFields } from "../site/org/schema.js";
 
 const TAX = JSON.parse(readFileSync(path.join(ROOT, "site/data/taxonomy.json"), "utf8"));
@@ -31,7 +31,7 @@ const call = (o = {}) => ({
 t("eligible call: status eligible, score high, strengths name shared sectors and groups", () => {
   const r = assess(ngo, call(), { now: NOW });
   assert.equal(r.status, "eligible");
-  assert.ok(r.score >= 75, "score " + r.score);
+  assert.ok(r.score >= HIGH, "score " + r.score);
   assert.deepEqual(r.strengths.find((s) => s.code === "str.sectors").params.sectors, ["youth", "digital"]);
   assert.ok(r.strengths.some((s) => s.code === "str.groups"));
 });
@@ -118,8 +118,9 @@ t("score colours: red below 50, yellow 50-69, green from 70; status stays with t
   assert.equal(scoreTier(low.score), "low"); assert.equal(low.status, "eligible", "a red score is not a legal ineligibility");
 });
 
-t("bands follow the brief", () => {
-  assert.deepEqual([95, 80, 65, 45, 10].map(band), ["excellent", "strong", "moderate", "low", "verylow"]);
+t("one classification everywhere: high from 70, medium 50-69, low below 50", () => {
+  assert.deepEqual([100, 70, 69, 50, 49, 0].map(band), ["high", "high", "medium", "medium", "low", "low"]);
+  assert.deepEqual([70, 69, 50, 49].map(scoreTier), ["high", "medium", "medium", "low"]);
 });
 
 t("all live calls: bounded scores, valid statuses, assessment under 250 ms", () => {
@@ -189,7 +190,7 @@ t("one broad shared sector does not make an unrelated large research call compat
   assert.ok(r.score < 60, "score " + r.score);
   assert.equal(r.dims.capacity.size, "xlarge");
   assert.equal(r.dims.capacity.s, 0.1); // 3 employees + 25 volunteers = 5.5 staff for a EUR 24M grant
-  assert.ok(r.capApplied);
+  assert.ok(r.score < 50, "low compatibility without a thematic match: " + r.score);
 });
 
 t("silent calls do not add points: unstated target groups and partnership score below the middle", () => {
@@ -212,5 +213,48 @@ t("live data: a small youth NGO's top matches are not dominated by large researc
   const byId = new Map(CALLS.map((c) => [c.id, c]));
   const quantum = top.filter((r) => /quantum|QKD/i.test(byId.get(r.callId).title));
   assert.equal(quantum.length, 0, quantum.map((r) => byId.get(r.callId).title).join("; "));
+});
+
+// ---------- official documentation: mandatory conditions separate from the strategic score ----------
+const FW = { "HE-GA-B": { title: "General Annexes", url: "https://example.org/annexes.pdf", consortium: { quote: "At least three legal entities from three countries." } } };
+const elig = (cond, o = {}) => ({ frameworks: FW, calls: { "TEST-1": { status: "verified", title: "Call document", docUrl: "https://example.org/call.pdf", verified: "2026-11-15", published: "2026-10-01", conditions: cond, ...o } } });
+const ids = (r) => Object.fromEntries(r.checks.filter((x) => x.source === "official" || x.source === "official-ai").map((x) => [x.id, x.result]));
+
+t("official text not verified: the requirement stays to be verified, so the call is never fully eligible", () => {
+  const r = assess(ngo, call(), { now: NOW, elig: { frameworks: FW, calls: {} } });
+  assert.deepEqual(ids(r), { official: "unknown" });
+  assert.equal(r.status, "potential");
+  assert.ok(r.next.some((x) => x.code === "rec.verifyOfficial"));
+  assert.equal(assess(ngo, call(), { now: NOW, elig: { frameworks: FW, calls: { "TEST-1": { status: "robots" } } } }).checks.find((x) => x.id === "official").params.status, "robots");
+});
+
+t("official conditions: legal entity, natural persons, coordinator, consortium met or short, single applicant", () => {
+  const legal = [{ type: "legalEntity", value: true, quote: "Applicants must be legal entities." }];
+  const informal = assess({ ...ngo, orgType: "informal-group" }, call(), { now: NOW, elig: elig(legal) });
+  assert.equal(ids(informal)["off.legal"], "fail"); assert.equal(informal.status, "ineligible");
+  assert.equal(informal.checks.find((x) => x.id === "off.legal").params.quote, "Applicants must be legal entities.");
+  assert.equal(ids(assess({ ...ngo, orgType: "informal-group" }, call(), { now: NOW, elig: elig([...legal, { type: "noLegalPersonality", value: true, quote: "Exceptionally, entities without legal personality may apply." }]) }))["off.legal"], "warn");
+  assert.equal(ids(assess(ngo, call(), { now: NOW, elig: elig(legal) })).official, "pass", "an NGO meets the legal-entity condition: the text was read");
+  assert.equal(ids(assess({ ...ngo, orgType: "sme" }, call(), { now: NOW, elig: elig([{ type: "coordinatorNonProfit", value: true, quote: "The coordinator must be a non-profit organisation." }]) }))["off.coordinator"], "warn");
+  const cons = [{ type: "minApplicants", value: 3, ref: "HE-GA-B" }, { type: "minCountries", value: 3, ref: "HE-GA-B" }];
+  const met = assess(ngo, call(), { now: NOW, elig: elig(cons) });
+  assert.equal(ids(met)["off.consortium"], "pass"); assert.ok(!met.checks.some((x) => x.id === "partnership"), "the official condition replaces the derived one");
+  assert.equal(met.checks.find((x) => x.id === "off.consortium").params.url, FW["HE-GA-B"].url);
+  const short = assess({ ...ngo, partnerCountries: ["HR"] }, call(), { now: NOW, elig: elig(cons) });
+  assert.equal(ids(short)["off.consortium"], "unknown", "partners can still be found: never a failure");
+  assert.notEqual(short.status, "ineligible");
+  assert.equal(ids(assess({ ...ngo, partnerCountries: undefined, partnerships: undefined }, call(), { now: NOW, elig: elig(cons) }))["off.consortium"], "missing");
+  assert.equal(ids(assess(ngo, call(), { now: NOW, elig: elig([{ type: "minApplicants", value: 1, quote: "Single applicants only." }]) }))["off.consortium"], "pass");
+});
+
+t("AI check of the official text: a failed condition makes the call not eligible whatever the score", () => {
+  const ai = { "TEST-1": [{ id: "c1", result: "pass", condition: "Country", quote: "q" }, { id: "c2", result: "fail", condition: "Only public bodies", quote: "Only public bodies may apply.", reason: "The profile says NGO." }] };
+  const r = assess(ngo, call(), { now: NOW, elig: elig([]), ai });
+  assert.equal(r.status, "ineligible");
+  assert.ok(r.score >= HIGH, "the strategic score is still shown separately: " + r.score);
+  assert.deepEqual(mandatorySummary(r.checks), { pass: r.checks.filter((x) => x.result === "pass").length, fail: 1, verify: r.checks.filter((x) => !["pass", "fail"].includes(x.result)).length });
+  assert.equal(r.checks.find((x) => x.id === "ai.c2").source, "official-ai");
+  assert.equal(assess(ngo, call(), { now: NOW, elig: elig([]), ai: { "TEST-1": [{ id: "c1", result: "invented" }] } }).checks.some((x) => x.id === "ai.c1"), false);
+  assert.deepEqual([HIGH, MEDIUM], [70, 50]);
 });
 console.log(`${pass} passed`);

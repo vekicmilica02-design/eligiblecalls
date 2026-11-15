@@ -1,7 +1,7 @@
 // Organization Intelligence: the organisation dashboard of Eligible Calls.
 // Uses the page's loaded data through window.EC (index.html) and the API under /api/.
 import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completeness } from "./schema.js";
-import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS } from "./rules.js";
+import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS, HIGH, mandatorySummary } from "./rules.js";
 import { rubricFor, erasmusAction } from "./rubric.js";
 
 const EC = window.EC;
@@ -23,7 +23,7 @@ const S = {
     createTitle: "Create your organisation", createLede: "Start with the name. You can fill in the profile by hand, from documents, or from your website.", orgName: "Organisation name", create: "Create",
     nav: { overview: "Overview", profile: "Organisation profile", documents: "Documents and sources", matching: "Eligibility matching", ideas: "Project ideas", evaluation: "Evaluation guidelines", reports: "Saved reports", settings: "Settings" },
     soon: "next phase", newOrg: "+ New organisation", signOut: "Sign out",
-    complete: "Profile completeness", analysed: "Open calls analysed", high: "Highly compatible (75%+)", eligibleN: "Eligible on available information",
+    complete: "Profile completeness", analysed: "Open calls analysed", high: "Highly compatible (70%+)", eligibleN: "Eligible on available information",
     missingTitle: "Missing information", missingNone: "Every field that counts for matching is filled in.", strengthsTitle: "Strengths seen in the profile",
     upcoming: "Upcoming deadlines of compatible calls", none: "None yet.", lastUpdate: (d, v) => `Profile version ${v}, saved ${d}.`, recentRuns: "Recent extractions",
     fillProfile: "Fill in the profile", openMatching: "See all matches",
@@ -40,18 +40,21 @@ const S = {
     field: "Field", proposed: "Proposed value", current: "Current value", evidence: "Source quote", conf: "Confidence", found: "Quote found in source", notFound: "Quote NOT found in source", valueNotInQuote: "Quote found, but the value is not written in it", weakQuote: "Quote found, but it does not clearly state this value", adds: (v) => `Adds: ${v}`, alreadyHas: "Already in the profile", same: "Same as the profile",
     apply: "Apply selected to profile", discard: "Discard", applied: (n) => `${n} field(s) added to the profile.`, runs: "Earlier extractions", status: { review: "to review", applied: "applied", discarded: "discarded" }, del: "Delete", open: "Open",
     confL: { high: "high", medium: "medium", low: "low" }, dropped: (n) => `${n} proposed value(s) were removed because they were invalid or contained personal data.`, noQuote: (n) => `${n} value(s) without a quote from the source were left out.`,
-    matchTitle: "Eligibility matching", matchLede: (n, d) => `We checked ${n} open and upcoming calls against your organisation profile (call data of ${d}). Each call shows two results. The status says whether you meet the call's mandatory conditions, such as country, type of organisation and partners. The percentage says how well the call fits your work. Only the status decides whether you can apply; the percentage helps you choose.`,
+    matchTitle: "Eligibility matching", matchLede: (n, d) => `${n} open and upcoming calls checked against your organisation profile, with call data of ${d}.`,
+    mxStatusT: "Mandatory eligibility", mxStatus: "Can you apply? Country, type of organisation, consortium and the conditions read from each call's official documents. One unmet condition makes a call not eligible, whatever its percentage; a condition that could not be verified is shown as to verify.",
+    mxScoreT: "Strategic compatibility", mxScore: "How well the call fits your mission, experience, target groups and capacity. It helps you choose between calls you can apply to; it never overrides the status.",
+    legendL: { low: "Low", medium: "Medium", high: "High" }, filtersT: "Filter and sort", resetF: "Reset filters", compatK: "Compatibility", mreq: (p, v, f) => `${p} met · ${v} to verify · ${f} not met`,
     scoreLegend: "Fit with your work: red 0–49%, yellow 50–69%, green 70–100%.", tierL: { high: "70–100%", medium: "50–69%", low: "0–49%" },
     notice: "Both results come from rules applied to your profile and the call data. They are not a legal decision and not a chance of funding: the call's official documents always prevail.",
-    fStatus: "All statuses", fProg: "All programmes", fDl: "Any deadline", dl30: "Next 30 days", dl60: "Next 60 days", dl120: "Next 120 days", onlyHigh: "Only 75%+", sortScore: "Sort: compatibility", sortDl: "Sort: deadline",
+    fStatus: "All statuses", fProg: "All programmes", fDl: "Any deadline", dl30: "Next 30 days", dl60: "Next 60 days", dl120: "Next 120 days", onlyHigh: "Only 70%+", sortScore: "Sort: compatibility", sortDl: "Sort: deadline",
     showing: (n, m) => `${n} of ${m} calls`, more: "Show more", strengths: "Strengths", problems: "Possible problems", missing: "Missing information", next: "Next step", report: "Detailed assessment", official: "Official page",
     deadline: "Deadline", funding: "Funding", notStated: "No requirement stated", missingCall: "The profile has the information this assessment uses for this call.", perGrant: "per grant", topicBudget: "total budget of the topic", programme: "Programme", noCountry: "Add your country and organisation type to the profile: without them no call can be checked.",
     statusL: { eligible: "Eligible based on available information", potential: "Potentially eligible: verification required", ineligible: "Ineligible: mandatory requirement not met", insufficient: "Insufficient information" },
-    bandL: { excellent: "Excellent compatibility", strong: "Strong compatibility", moderate: "Moderate compatibility", low: "Low compatibility", verylow: "Very low compatibility" },
-    repA: "A. Overall assessment", repB: "B. Requirements checked", repB2: "Compatibility by dimension", repC: "C. Organisational strengths", repD: "D. Eligibility gaps", repE: "E. Missing information", repF: "F. Recommendations",
+    bandL: { high: "High compatibility", medium: "Medium compatibility", excellent: "Excellent compatibility", strong: "Strong compatibility", moderate: "Moderate compatibility", low: "Low compatibility", verylow: "Very low compatibility" },
+    repA: "A. Overall assessment", mandT: "Mandatory eligibility: can you apply?", stratT: "Strategic compatibility: how well does it fit?", stratWhat: "Weighted fit of the call with your mission and areas of activity, experience, target groups, capacity and partnerships. Country and organisation type are not part of it: they decide the status.", offT: "Official eligibility documentation", offLede: "The mandatory conditions above that are marked as an official call document come from this source. Eligible Calls reads the eligibility section of the call document (or the funder page) and keeps the quoted sentence of every condition.", offPub: "Publisher", offDoc: "Document", offPublished: "Published", offVerified: "Last verified", offNone: "No official eligibility document is read for this call.", aiT: "AI check against the official text", aiLede: "The AI lists every mandatory condition in the official text, quotes it, and checks your profile against it. Only conditions whose quote is found in the official text are kept; a result that does not rest on a filled profile field is shown as to verify. The results count in the eligibility status.", aiRun: "Check my profile against the official text", aiRerun: "Check again", aiStale: (v) => `Made with profile version ${v}; your profile has changed since. Run the check again to update the status.`, aiNoText: "There is no official text for an AI check of this call.", aiApplies: { applicant: "applicant", coordinator: "coordinator", consortium: "consortium", all: "all participants" }, aiMade: (t) => `Checked ${t}`, aiCounts: "These results count in the status above.", repB: "B. Requirements checked", repB2: "Compatibility by dimension", repC: "C. Organisational strengths", repD: "D. Eligibility gaps", repE: "E. Missing information", repF: "F. Recommendations",
     requirement: "Requirement", result: "Result", basis: "Basis", weight: "Weight", part: "Score",
     resL: { pass: "Met", fail: "Not met", warn: "Possible problem", unknown: "To verify", missing: "Profile data missing" },
-    srcL: { "programme-list": "Commission list of participating countries", call: "call text", source: "source of the call", derived: "Eligible Calls rules on the call text", "call-rule": "official text quoted", none: "source data" },
+    srcL: { official: "official call document", "official-ai": "official document, AI-checked", "programme-list": "Commission list of participating countries", call: "call text", source: "source of the call", derived: "Eligible Calls rules on the call text", "call-rule": "official text quoted", none: "source data" },
     capNote: "Score limited because the call shares little with your areas and objectives.",
     assessedAt: (d, v, g) => `Assessed ${d} on profile version ${v} and call data of ${g}. The assessment is recalculated whenever the profile or the call data change.`,
     explain: { eligible: "No mandatory requirement fails on the information available, and every checked requirement is met.", potential: "No mandatory requirement fails, but some need to be verified in the call document or need more profile data.", ineligible: "At least one mandatory requirement is not met. The compatibility score is shown for information only.", insufficient: "Country and organisation type are needed before eligibility can be checked." },
@@ -79,7 +82,7 @@ const S = {
     ideasNone: "No ideas yet.", ideasSaved: "Saved ideas", ideasSuggested: "Latest suggestions", ideasViewerNote: "You can read the ideas. Editors and owners generate, save and annotate them.",
     ideaSavedChip: "Saved", ideaSave: "Save", ideaUnsave: "Remove from saved", ideaNotes: "Notes", ideaNotesSave: "Save notes", ideaNotesSaved: "Notes saved.", ideaCompare: "Compare", ideaDelete: "Delete",
     ideaF: { concept: "Project concept", problem: "Problem addressed", solution: "Proposed solution", objectives: "Main objectives", targetGroups: "Target groups", activities: "Proposed activities", expectedResults: "Expected results and impact", potentialPartners: "Potential partners", whyItFits: "Why this project makes sense" },
-    ideaCall: "Matching funding opportunity", compatRule: "Organisation–call compatibility (rules)", conceptFitL: "Concept fit (AI estimate)", fitTitle: "AI ratings (1–5)",
+    fitExplainT: "Why this estimate", fitStrengths: "What fits", fitWeak: "What is weak or missing", fitImprove: "To raise the fit", fitExplainRun: "Explain this estimate", ideaCall: "Matching funding opportunity", compatRule: "Organisation–call compatibility (rules)", conceptFitL: "Concept fit (AI estimate)", fitTitle: "AI ratings (1–5)",
     fitL: { alignment: "Alignment with the call", priorities: "Programme priorities", feasibility: "Feasibility", impact: "Potential impact" },
     ideaStale: (v) => `Generated from profile version ${v}; the profile has changed since.`, ideaClosed: "This call is no longer open.", ideaGen: (d, sc) => `Generated ${d}; compatibility at that time ${sc}%.`,
     compareTitle: "Comparison", compareHint: "Tick Compare on two or three ideas to see them side by side.", compareMax: "You can compare up to three ideas.", savedIdeasN: "Saved project ideas",
@@ -154,7 +157,7 @@ const S = {
     pwRef: "Payment reference or note (optional)", pwPaidBtn: "I have paid", pwPaidDone: "Thank you. The administrator will check the payment and activate access.",
     pwPaid: (t) => `Payment reported ${t}. Waiting for the administrator to confirm it.`,
     pwStatus: { rejected: "Your last request was declined", revoked: "Your premium access was revoked", expired: "Your premium access has expired" },
-    working: "Working…", loadingPage: "Loading…",
+    working: "Working…", loadingPage: "Loading…", op: { uploading: "Uploading", reading: "Reading the document", ocr: "Recognising text (OCR)", analysing: "Analysing with AI", researching: "Reading the website", generating: "Generating with AI", drawing: "Drawing the PDF", saving: "Saving", checking: "Checking against the official text", completed: "Done", failed: "Failed" },
     adminTitle: "Administration", auTitle: "AI usage today", auRefresh: "Refresh", auProvider: "Provider and model", auUsed: "Used", auBudget: "Daily budget", auOfBudget: "Of budget", auReq: "Requests",
     auLede: (d, r, s) => `UTC day ${d}. Allowances reset at ${r} (Belgrade time). The site stops each provider at its budget and moves to the next one; the workspace may use at most ${s}% of each budget, so the public assistant keeps working.`,
     auMsgs: (v, l) => `assistant messages from ${v} visitors (limit ${l} per visitor)`, auActions: (u, l) => `workspace AI actions by ${u} users (limit ${l} per user)`, auRequests: "AI requests in total",
@@ -171,7 +174,7 @@ const S = {
     admFree: "Free idea generations per user", admDaysDefault: "Default days of access (empty = until revoked)",
     admPlan: "Plan", admPlanId: "Code", admPlanName: "Name", admPlanPrice: "Price (as shown)", admPricePh: "e.g. 49 EUR per year", admPlanDesc: "Description", admAddPlan: "+ Add plan",
     admPay: "Payment instructions shown after a request (bank account, reference format)",
-    errors: { no_criteria: "The award criteria of this call are not in our data, so the idea cannot be evaluated here.", too_many_reports: "This organisation has reached 200 saved reports. Delete older ones first.", too_large: "This report is too large to save.", premium_required: "This needs premium access. See Premium access on the Project ideas page.", no_open_request: "There is no open access request. Request access first.", signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
+    errors: { no_official_text: "There is no official text for an AI check of this call.", no_criteria: "The award criteria of this call are not in our data, so the idea cannot be evaluated here.", too_many_reports: "This organisation has reached 200 saved reports. Delete older ones first.", too_large: "This report is too large to save.", premium_required: "This needs premium access. See Premium access on the Project ideas page.", no_open_request: "There is no open access request. Request access first.", signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
   },
   sr: {
     title: "Analiza organizacije", lede: "Profil vaše organizacije, proveren u odnosu na sve otvorene pozive na Eligible Calls.",
@@ -185,7 +188,7 @@ const S = {
     createTitle: "Napravite organizaciju", createLede: "Počnite od naziva. Profil možete popuniti ručno, iz dokumenata ili sa veb-sajta.", orgName: "Naziv organizacije", create: "Napravi",
     nav: { overview: "Pregled", profile: "Profil organizacije", documents: "Dokumenti i izvori", matching: "Provera podobnosti", ideas: "Projektne ideje", evaluation: "Kriterijumi ocenjivanja", reports: "Sačuvani izveštaji", settings: "Podešavanja" },
     soon: "sledeća faza", newOrg: "+ Nova organizacija", signOut: "Odjava",
-    complete: "Popunjenost profila", analysed: "Analiziranih otvorenih poziva", high: "Visoka kompatibilnost (75%+)", eligibleN: "Podobni prema dostupnim podacima",
+    complete: "Popunjenost profila", analysed: "Analiziranih otvorenih poziva", high: "Visoka kompatibilnost (70%+)", eligibleN: "Podobni prema dostupnim podacima",
     missingTitle: "Podaci koji nedostaju", missingNone: "Sva polja važna za proveru su popunjena.", strengthsTitle: "Prednosti uočene u profilu",
     upcoming: "Predstojeći rokovi kompatibilnih poziva", none: "Još nema.", lastUpdate: (d, v) => `Verzija profila ${v}, sačuvana ${d}.`, recentRuns: "Poslednja izdvajanja",
     fillProfile: "Popunite profil", openMatching: "Svi rezultati",
@@ -202,18 +205,21 @@ const S = {
     field: "Polje", proposed: "Predložena vrednost", current: "Trenutna vrednost", evidence: "Citat iz izvora", conf: "Pouzdanost", found: "Citat pronađen u izvoru", notFound: "Citat NIJE pronađen u izvoru", valueNotInQuote: "Citat je pronađen, ali vrednost u njemu nije napisana", weakQuote: "Citat je pronađen, ali ne navodi jasno ovu vrednost", adds: (v) => `Dodaje: ${v}`, alreadyHas: "Već postoji u profilu", same: "Isto kao u profilu",
     apply: "Primeni označeno na profil", discard: "Odbaci", applied: (n) => `Dodato polja u profil: ${n}.`, runs: "Ranija izdvajanja", status: { review: "za pregled", applied: "primenjeno", discarded: "odbačeno" }, del: "Obriši", open: "Otvori",
     confL: { high: "visoka", medium: "srednja", low: "niska" }, dropped: (n) => `Uklonjeno predloženih vrednosti: ${n} (neispravne ili sa ličnim podacima).`, noQuote: (n) => `Izostavljeno vrednosti bez citata iz izvora: ${n}.`,
-    matchTitle: "Provera podobnosti", matchLede: (n, d) => `Proverili smo ${n} otvorenih i najavljenih poziva u odnosu na profil vaše organizacije (podaci o pozivima od ${d}). Za svaki poziv prikazana su dva rezultata. Status pokazuje da li ispunjavate obavezne uslove poziva, kao što su država, vrsta organizacije i partneri. Procenat pokazuje koliko poziv odgovara vašem radu. Samo status odlučuje da li možete da se prijavite; procenat vam pomaže da izaberete.`,
+    matchTitle: "Provera podobnosti", matchLede: (n, d) => `${n} otvorenih i najavljenih poziva provereno u odnosu na profil vaše organizacije, sa podacima o pozivima od ${d}.`,
+    mxStatusT: "Obavezna podobnost", mxStatus: "Da li možete da aplicirate? Država, vrsta organizacije, konzorcijum i uslovi pročitani iz zvaničnih dokumenata svakog poziva. Jedan neispunjen uslov čini poziv nepodobnim, bez obzira na procenat; uslov koji nije mogao da se proveri prikazan je kao za proveru.",
+    mxScoreT: "Strateška usklađenost", mxScore: "Koliko poziv odgovara vašoj misiji, iskustvu, ciljnim grupama i kapacitetu. Pomaže vam da birate među pozivima za koje možete da aplicirate; nikada ne menja status.",
+    legendL: { low: "Niska", medium: "Srednja", high: "Visoka" }, filtersT: "Filteri i redosled", resetF: "Poništi filtere", compatK: "Usklađenost", mreq: (p, v, f) => `${p} ispunjeno · ${v} za proveru · ${f} nije ispunjeno`,
     scoreLegend: "Usklađenost sa vašim radom: crvena 0–49%, žuta 50–69%, zelena 70–100%.", tierL: { high: "70–100%", medium: "50–69%", low: "0–49%" },
     notice: "Oba rezultata dobijena su primenom pravila na vaš profil i podatke o pozivu. Nisu pravna odluka niti verovatnoća finansiranja: uvek su merodavna zvanična dokumenta poziva.",
-    fStatus: "Svi statusi", fProg: "Svi programi", fDl: "Bilo koji rok", dl30: "Narednih 30 dana", dl60: "Narednih 60 dana", dl120: "Narednih 120 dana", onlyHigh: "Samo 75%+", sortScore: "Redosled: kompatibilnost", sortDl: "Redosled: rok",
+    fStatus: "Svi statusi", fProg: "Svi programi", fDl: "Bilo koji rok", dl30: "Narednih 30 dana", dl60: "Narednih 60 dana", dl120: "Narednih 120 dana", onlyHigh: "Samo 70%+", sortScore: "Redosled: kompatibilnost", sortDl: "Redosled: rok",
     showing: (n, m) => `${n} od ${m} poziva`, more: "Prikaži još", strengths: "Prednosti", problems: "Mogući problemi", missing: "Nedostajući podaci", next: "Sledeći korak", report: "Detaljna procena", official: "Zvanična stranica",
     deadline: "Rok", funding: "Iznos", notStated: "Uslov nije naveden", missingCall: "Profil sadrži podatke koje ova procena koristi za ovaj poziv.", perGrant: "po grantu", topicBudget: "ukupan budžet teme", programme: "Program", noCountry: "Dodajte državu i tip organizacije u profil: bez njih nijedan poziv ne može da se proveri.",
     statusL: { eligible: "Podobna prema dostupnim podacima", potential: "Moguće podobna: potrebna provera", ineligible: "Nije podobna: obavezan uslov nije ispunjen", insufficient: "Nedovoljno podataka" },
-    bandL: { excellent: "Odlična kompatibilnost", strong: "Velika kompatibilnost", moderate: "Umerena kompatibilnost", low: "Niska kompatibilnost", verylow: "Veoma niska kompatibilnost" },
-    repA: "A. Ukupna procena", repB: "B. Provereni uslovi", repB2: "Kompatibilnost po dimenzijama", repC: "C. Prednosti organizacije", repD: "D. Nedostaci u podobnosti", repE: "E. Podaci koji nedostaju", repF: "F. Preporuke",
+    bandL: { high: "Visoka kompatibilnost", medium: "Srednja kompatibilnost", excellent: "Odlična kompatibilnost", strong: "Velika kompatibilnost", moderate: "Umerena kompatibilnost", low: "Niska kompatibilnost", verylow: "Veoma niska kompatibilnost" },
+    repA: "A. Ukupna procena", mandT: "Obavezna podobnost: da li možete da aplicirate?", stratT: "Strateška usklađenost: koliko poziv odgovara?", stratWhat: "Ponderisana usklađenost poziva sa vašom misijom i oblastima rada, iskustvom, ciljnim grupama, kapacitetom i partnerstvima. Država i vrsta organizacije nisu deo nje: one određuju status.", offT: "Zvanična dokumentacija o podobnosti", offLede: "Obavezni uslovi iznad koji su označeni kao zvanični dokument poziva potiču iz ovog izvora. Eligible Calls čita deo o podobnosti iz dokumenta poziva (ili sa stranice finansijera) i čuva citiranu rečenicu za svaki uslov.", offPub: "Izdavač", offDoc: "Dokument", offPublished: "Objavljeno", offVerified: "Poslednja provera", offNone: "Za ovaj poziv se ne čita zvanični dokument o podobnosti.", aiT: "AI provera prema zvaničnom tekstu", aiLede: "AI navodi svaki obavezan uslov iz zvaničnog teksta, citira ga i proverava vaš profil. Zadržavaju se samo uslovi čiji je citat pronađen u zvaničnom tekstu; rezultat koji se ne oslanja na popunjeno polje profila prikazuje se kao za proveru. Rezultati se računaju u status podobnosti.", aiRun: "Proveri profil prema zvaničnom tekstu", aiRerun: "Proveri ponovo", aiStale: (v) => `Urađeno sa verzijom profila ${v}; profil se od tada promenio. Ponovite proveru da biste ažurirali status.`, aiNoText: "Za ovaj poziv nema zvaničnog teksta za AI proveru.", aiApplies: { applicant: "podnosilac", coordinator: "koordinator", consortium: "konzorcijum", all: "svi učesnici" }, aiMade: (t) => `Provereno ${t}`, aiCounts: "Ovi rezultati se računaju u status iznad.", repB: "B. Provereni uslovi", repB2: "Kompatibilnost po dimenzijama", repC: "C. Prednosti organizacije", repD: "D. Nedostaci u podobnosti", repE: "E. Podaci koji nedostaju", repF: "F. Preporuke",
     requirement: "Uslov", result: "Rezultat", basis: "Osnov", weight: "Ponder", part: "Ocena",
     resL: { pass: "Ispunjen", fail: "Nije ispunjen", warn: "Mogući problem", unknown: "Za proveru", missing: "Nedostaju podaci u profilu" },
-    srcL: { "programme-list": "lista zemalja učesnica Evropske komisije", call: "tekst poziva", source: "izvor poziva", derived: "pravila Eligible Calls nad tekstom poziva", "call-rule": "citiran zvanični tekst", none: "izvorni podaci" },
+    srcL: { official: "zvanični dokument poziva", "official-ai": "zvanični dokument, AI provera", "programme-list": "lista zemalja učesnica Evropske komisije", call: "tekst poziva", source: "izvor poziva", derived: "pravila Eligible Calls nad tekstom poziva", "call-rule": "citiran zvanični tekst", none: "izvorni podaci" },
     capNote: "Ocena je ograničena jer poziv ima malo dodirnih tačaka sa vašim oblastima i ciljevima.",
     assessedAt: (d, v, g) => `Procenjeno ${d} na verziji profila ${v} i podacima o pozivima od ${g}. Procena se ponovo računa pri svakoj izmeni profila ili podataka o pozivu.`,
     explain: { eligible: "Nijedan obavezan uslov nije prekršen prema dostupnim podacima i svi provereni uslovi su ispunjeni.", potential: "Nijedan obavezan uslov nije prekršen, ali neke treba proveriti u dokumentu poziva ili dopuniti profil.", ineligible: "Najmanje jedan obavezan uslov nije ispunjen. Ocena kompatibilnosti je samo informativna.", insufficient: "Za proveru podobnosti potrebni su država i tip organizacije." },
@@ -241,7 +247,7 @@ const S = {
     ideasNone: "Još nema ideja.", ideasSaved: "Sačuvane ideje", ideasSuggested: "Najnoviji predlozi", ideasViewerNote: "Možete da čitate ideje. Urednici i vlasnici ih prave, čuvaju i dopisuju beleške.",
     ideaSavedChip: "Sačuvano", ideaSave: "Sačuvaj", ideaUnsave: "Ukloni iz sačuvanih", ideaNotes: "Beleške", ideaNotesSave: "Sačuvaj beleške", ideaNotesSaved: "Beleške su sačuvane.", ideaCompare: "Uporedi", ideaDelete: "Obriši",
     ideaF: { concept: "Koncept projekta", problem: "Problem koji se rešava", solution: "Predloženo rešenje", objectives: "Glavni ciljevi", targetGroups: "Ciljne grupe", activities: "Predložene aktivnosti", expectedResults: "Očekivani rezultati i uticaj", potentialPartners: "Mogući partneri", whyItFits: "Zašto ovaj projekat ima smisla" },
-    ideaCall: "Odgovarajući poziv", compatRule: "Kompatibilnost organizacije i poziva (pravila)", conceptFitL: "Uklapanje koncepta (AI procena)", fitTitle: "AI ocene (1–5)",
+    fitExplainT: "Zašto ova procena", fitStrengths: "Šta se uklapa", fitWeak: "Šta je slabo ili nedostaje", fitImprove: "Kako povećati uklapanje", fitExplainRun: "Objasni ovu procenu", ideaCall: "Odgovarajući poziv", compatRule: "Kompatibilnost organizacije i poziva (pravila)", conceptFitL: "Uklapanje koncepta (AI procena)", fitTitle: "AI ocene (1–5)",
     fitL: { alignment: "Usklađenost sa pozivom", priorities: "Prioriteti programa", feasibility: "Izvodljivost", impact: "Mogući uticaj" },
     ideaStale: (v) => `Napravljeno na osnovu verzije profila ${v}; profil je od tada izmenjen.`, ideaClosed: "Ovaj poziv više nije otvoren.", ideaGen: (d, sc) => `Napravljeno ${d}; kompatibilnost tada ${sc}%.`,
     compareTitle: "Poređenje", compareHint: "Označite Uporedi na dve ili tri ideje da ih vidite jednu pored druge.", compareMax: "Možete uporediti najviše tri ideje.", savedIdeasN: "Sačuvane projektne ideje",
@@ -316,7 +322,7 @@ const S = {
     pwRef: "Poziv na broj ili napomena (nije obavezno)", pwPaidBtn: "Platio/la sam", pwPaidDone: "Hvala. Administrator će proveriti uplatu i aktivirati pristup.",
     pwPaid: (t) => `Uplata prijavljena ${t}. Čeka se potvrda administratora.`,
     pwStatus: { rejected: "Vaš poslednji zahtev je odbijen", revoked: "Vaš premium pristup je opozvan", expired: "Vaš premium pristup je istekao" },
-    working: "Radi se…", loadingPage: "Učitavanje…",
+    working: "Radi se…", loadingPage: "Učitavanje…", op: { uploading: "Otpremanje", reading: "Čitanje dokumenta", ocr: "Prepoznavanje teksta (OCR)", analysing: "AI analiza", researching: "Čitanje sajta", generating: "AI izrada", drawing: "Izrada PDF-a", saving: "Čuvanje", checking: "Provera prema zvaničnom tekstu", completed: "Gotovo", failed: "Neuspešno" },
     adminTitle: "Administracija", auTitle: "Potrošnja AI danas", auRefresh: "Osveži", auProvider: "Dobavljač i model", auUsed: "Potrošeno", auBudget: "Dnevni budžet", auOfBudget: "Od budžeta", auReq: "Zahtevi",
     auLede: (d, r, s) => `UTC dan ${d}. Dozvoljena potrošnja se obnavlja u ${r} (po beogradskom vremenu). Sajt zaustavlja svakog dobavljača na njegovom budžetu i prelazi na sledećeg; radni prostor organizacija sme da potroši najviše ${s}% svakog budžeta, da bi javni asistent nastavio da radi.`,
     auMsgs: (v, l) => `poruka asistentu od ${v} posetilaca (ograničenje ${l} po posetiocu)`, auActions: (u, l) => `AI radnji u radnom prostoru, ${u} korisnika (ograničenje ${l} po korisniku)`, auRequests: "AI zahteva ukupno",
@@ -333,7 +339,7 @@ const S = {
     admFree: "Besplatnih generisanja ideja po korisniku", admDaysDefault: "Podrazumevano dana pristupa (prazno = do opoziva)",
     admPlan: "Paket", admPlanId: "Šifra", admPlanName: "Naziv", admPlanPrice: "Cena (kako se prikazuje)", admPricePh: "npr. 49 EUR godišnje", admPlanDesc: "Opis", admAddPlan: "+ Dodaj paket",
     admPay: "Uputstvo za uplatu prikazano posle zahteva (račun, format poziva na broj)",
-    errors: { no_criteria: "Kriterijumi za dodelu ovog poziva nisu u našim podacima, pa ideja ovde ne može da se oceni.", too_many_reports: "Organizacija je dostigla 200 sačuvanih izveštaja. Prvo obrišite starije.", too_large: "Izveštaj je prevelik za čuvanje.", premium_required: "Za ovo je potreban premium pristup. Pogledajte Premium pristup na strani Projektne ideje.", no_open_request: "Nema otvorenog zahteva za pristup. Prvo zatražite pristup.", signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera protiv botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran kao međusajtni. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila pravljenje ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, tip, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
+    errors: { no_official_text: "Za ovaj poziv nema zvaničnog teksta za AI proveru.", no_criteria: "Kriterijumi za dodelu ovog poziva nisu u našim podacima, pa ideja ovde ne može da se oceni.", too_many_reports: "Organizacija je dostigla 200 sačuvanih izveštaja. Prvo obrišite starije.", too_large: "Izveštaj je prevelik za čuvanje.", premium_required: "Za ovo je potreban premium pristup. Pogledajte Premium pristup na strani Projektne ideje.", no_open_request: "Nema otvorenog zahteva za pristup. Prvo zatražite pristup.", signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera protiv botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran kao međusajtni. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila pravljenje ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, tip, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
   },
 };
 const T = (k, ...a) => { const v = k.split(".").reduce((o, x) => (o ? o[x] : undefined), S[L()]) ?? k.split(".").reduce((o, x) => (o ? o[x] : undefined), S.en); return typeof v === "function" ? v(...a) : v ?? k; };
@@ -346,6 +352,9 @@ const groupName = (id) => nm(TARGET_GROUPS.find((g) => g.id === id)) || id;
 const ccName = (cc) => nm((EC.TAX.countries || []).find((c) => c.id === cc)) || cc;
 const fieldName = (id) => nm(FIELD[id]) || id;
 const listOf = (a, f = (x) => x) => (a || []).map(f).join(", ");
+const OFFST = { robots: "the site's robots.txt does not allow automated reading", unavailable: "the document did not open", not_pdf: "the link is not a document", no_section: "no eligibility section was found", no_document: "the Portal names no call document" };
+const OFFST_SR = { robots: "robots.txt sajta ne dozvoljava automatsko čitanje", unavailable: "dokument nije mogao da se otvori", not_pdf: "veza ne vodi do dokumenta", no_section: "deo o podobnosti nije pronađen", no_document: "portal ne navodi dokument poziva" };
+const consText = (p) => L() === "sr" ? [p.minApplicants ? `najmanje ${p.minApplicants} podnosioca` : "", p.minCountries ? `iz ${p.minCountries} zemlje` : ""].filter(Boolean).join(" ") : [p.minApplicants ? `at least ${p.minApplicants} applicants` : "", p.minCountries ? `from ${p.minCountries} countries` : ""].filter(Boolean).join(" ");
 const CODES = {
   en: {
     "country.Y": (p) => `${ccName(p.cc)} is eligible.`, "country.P": (p) => `${ccName(p.cc)} is eligible with a condition. ${p.reason}`, "country.C": (p) => `Eligibility for ${ccName(p.cc)} is not in the source data. ${p.reason}`,
@@ -363,6 +372,16 @@ const CODES = {
     "rule.heis.pass": () => "Higher education institution, as the action requires.", "rule.heis.missing": () => "Organisation type is missing; this action is for higher education institutions.",
     "str.sectors": (p) => `Shared areas of activity: ${listOf(p.sectors, sectorName)}.`, "str.words": (p) => `Words shared with the call text: ${p.words.join(", ")}.`, "str.groups": (p) => `The call mentions your target groups: ${listOf(p.groups, groupName)}.`,
     "str.experience": (p) => `Experience as ${p.role === "both" ? "partner and coordinator" : p.role} in ${p.programme === "ERASMUS" ? "Erasmus+" : "EU-funded"} projects.`, "str.capacity": () => "Team size fits the size of the grant.", "str.country": (p) => `${ccName(p.cc)} is fully eligible.`,
+    "off.unverified": (p) => (p.status === "not_researched" ? "Eligible Calls does not read the official documents of this call (it is published outside the EU Funding & Tenders Portal and UKRI). The mandatory conditions are not verified: read them in the call's own documents." : `The official eligibility text could not be read (${OFFST[p.status] || p.status}). The mandatory conditions are not verified: read them in the call document.`),
+    "off.read": (p) => `The official eligibility text was read (${p.title}). None of the conditions that can be checked automatically excludes your organisation; ask the AI check below for the full list.`,
+    "off.natural.pass": () => "Natural persons are not eligible; your organisation applies as an organisation.", "off.natural.fail": () => "Natural persons are not eligible for this call.", "off.natural.missing": () => "Natural persons are not eligible; the organisation type is missing in the profile.",
+    "off.legal.fail": () => "Applicants must be legal entities; an informal group is not one.", "off.legal.exceptional": () => "Applicants must be legal entities; entities without legal personality may take part only exceptionally, if their representatives can take on legal obligations for them.",
+    "off.coordinator.forProfit": () => "The coordinator (lead applicant) must be a non-profit entity: a for-profit organisation can take part only as a co-applicant.", "off.forProfit.partner": () => "For-profit organisations may apply only in partnership with public or non-profit organisations.",
+    "off.public.pass": () => "The call is for public bodies; your organisation type is one.", "off.public.check": () => "The call is for public bodies: check whether your organisation qualifies.",
+    "off.consortium.met": (p) => `Consortium required (${consText(p)}): your profile lists partners in ${p.have} other countries.`, "off.consortium.gap": (p) => `Consortium required (${consText(p)}): you will need partners from at least ${p.need} other countries; your profile lists ${p.have}.`,
+    "off.consortium.missing": (p) => `Consortium required (${consText(p)}); the profile has no partner information.`, "off.consortium.single": () => "A single applicant may apply.",
+    "off.ai": (p) => `${p.condition}${p.reason ? ". " + p.reason : ""}`,
+    "rec.verifyOfficial": () => "Read the eligibility section of the official call document before applying: it could not be verified here.", "rec.officialWarn": () => "The official document sets a condition that may limit your role: see the quoted text.",
     "rec.notEligible": () => "A mandatory requirement is not met. Unless the call document says otherwise, focus on other calls.", "rec.complete": (p) => `Complete the profile: ${listOf(p.fields, fieldName)}.`,
     "rec.checkCountry": (p) => `Read the eligible-countries section of the call for ${ccName(p.cc)}.`, "rec.checkApplicant": () => "Confirm in the call conditions that your type of organisation can apply.",
     "rec.partners": (p) => `Find partners${p.need ? ` from at least ${p.need} other eligible countries` : ""} well before the deadline.`, "rec.rule": () => "Verify the quoted requirement in the official text.",
@@ -384,6 +403,16 @@ const CODES = {
     "rule.heis.pass": () => "Visokoškolska ustanova, kako aktivnost zahteva.", "rule.heis.missing": () => "Tip organizacije nedostaje; aktivnost je namenjena visokoškolskim ustanovama.",
     "str.sectors": (p) => `Zajedničke oblasti delovanja: ${listOf(p.sectors, sectorName)}.`, "str.words": (p) => `Reči zajedničke sa tekstom poziva: ${p.words.join(", ")}.`, "str.groups": (p) => `Poziv pominje vaše ciljne grupe: ${listOf(p.groups, groupName)}.`,
     "str.experience": (p) => `Iskustvo kao ${p.role === "both" ? "partner i koordinator" : p.role === "coordinator" ? "koordinator" : "partner"} u ${p.programme === "ERASMUS" ? "Erasmus+" : "EU"} projektima.`, "str.capacity": () => "Veličina tima odgovara veličini granta.", "str.country": (p) => `${ccName(p.cc)} je u potpunosti podobna.`,
+    "off.unverified": (p) => (p.status === "not_researched" ? "Eligible Calls ne čita zvanična dokumenta ovog poziva (objavljen je van portala EU Funding & Tenders i UKRI). Obavezni uslovi nisu provereni: pročitajte ih u dokumentima poziva." : `Zvanični tekst o podobnosti nije mogao da se pročita (${OFFST_SR[p.status] || p.status}). Obavezni uslovi nisu provereni: pročitajte ih u dokumentu poziva.`),
+    "off.read": (p) => `Zvanični tekst o podobnosti je pročitan (${p.title}). Nijedan uslov koji može automatski da se proveri ne isključuje vašu organizaciju; za ceo spisak pokrenite AI proveru ispod.`,
+    "off.natural.pass": () => "Fizička lica nisu podobna; vaša organizacija aplicira kao organizacija.", "off.natural.fail": () => "Fizička lica nisu podobna za ovaj poziv.", "off.natural.missing": () => "Fizička lica nisu podobna; u profilu nedostaje tip organizacije.",
+    "off.legal.fail": () => "Podnosioci moraju biti pravna lica; neformalna grupa to nije.", "off.legal.exceptional": () => "Podnosioci moraju biti pravna lica; subjekti bez pravnog subjektiviteta mogu da učestvuju samo izuzetno, ako njihovi predstavnici mogu da preuzmu pravne obaveze za njih.",
+    "off.coordinator.forProfit": () => "Koordinator (glavni podnosilac) mora biti neprofitna organizacija: profitna organizacija može da učestvuje samo kao partner.", "off.forProfit.partner": () => "Profitne organizacije mogu da apliciraju samo u partnerstvu sa javnim ili neprofitnim organizacijama.",
+    "off.public.pass": () => "Poziv je namenjen javnim telima; vaš tip organizacije to jeste.", "off.public.check": () => "Poziv je namenjen javnim telima: proverite da li vaša organizacija ispunjava uslov.",
+    "off.consortium.met": (p) => `Potreban konzorcijum (${consText(p)}): profil navodi partnere u ${p.have} drugih zemalja.`, "off.consortium.gap": (p) => `Potreban konzorcijum (${consText(p)}): biće vam potrebni partneri iz najmanje ${p.need} druge zemlje; profil navodi ${p.have}.`,
+    "off.consortium.missing": (p) => `Potreban konzorcijum (${consText(p)}); profil nema podatke o partnerima.`, "off.consortium.single": () => "Može da aplicira jedan podnosilac.",
+    "off.ai": (p) => `${p.condition}${p.reason ? ". " + p.reason : ""}`,
+    "rec.verifyOfficial": () => "Pre prijave pročitajte deo o podobnosti u zvaničnom dokumentu poziva: ovde nije mogao da se proveri.", "rec.officialWarn": () => "Zvanični dokument postavlja uslov koji može da ograniči vašu ulogu: pogledajte citirani tekst.",
     "rec.notEligible": () => "Obavezan uslov nije ispunjen. Osim ako dokument poziva ne kaže drugačije, usmerite se na druge pozive.", "rec.complete": (p) => `Dopunite profil: ${listOf(p.fields, fieldName)}.`,
     "rec.checkCountry": (p) => `Pročitajte deo poziva o podobnim zemljama za ${ccName(p.cc)}.`, "rec.checkApplicant": () => "Potvrdite u uslovima poziva da vaš tip organizacije može da aplicira.",
     "rec.partners": (p) => `Pronađite partnere${p.need ? ` iz najmanje ${p.need} druge podobne zemlje` : ""} na vreme pre roka.`, "rec.rule": () => "Proverite citirani uslov u zvaničnom tekstu.",
@@ -391,6 +420,20 @@ const CODES = {
   },
 };
 const codeText = (x) => { const f = CODES[L()][x.code] || CODES.en[x.code]; return f ? f(x.params || {}).trim() : x.code; };
+
+/* ---------- operation status ---------- */
+// What the page is doing right now, tied to the real asynchronous work: nothing is shown while idle; a busy state
+// (reading, ocr, analysing, researching, generating, drawing, saving) shows the moving mark and, where the work can
+// be counted (pages read, OCR progress, parts analysed), a progress bar; completed and failed end the animation.
+const OP_BUSY = new Set(["uploading", "reading", "ocr", "analysing", "researching", "generating", "drawing", "saving", "checking"]);
+function opState(el, state, detail = "", pct = null) {
+  if (!el) return;
+  if (state === "idle") { el.className = "op"; el.removeAttribute("aria-busy"); el.innerHTML = ""; return; }
+  const busy = OP_BUSY.has(state), p = pct === null || pct === undefined || isNaN(pct) ? null : Math.max(0, Math.min(100, Math.round(pct)));
+  el.className = `op op-${state}${busy ? " busy" : ""}`;
+  el.setAttribute("aria-busy", busy ? "true" : "false");
+  el.innerHTML = `<span class="op-ic" aria-hidden="true"></span><span class="op-t"><b>${esc(T("op." + state))}</b>${detail ? ` <span>${esc(detail)}</span>` : ""}</span>${p !== null ? `<span class="op-bar" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p}%"></i></span><span class="fine num">${p}%</span>` : ""}`;
+}
 
 /* ---------- API ---------- */
 async function api(method, path, body) {
@@ -409,9 +452,22 @@ const go = (h) => { if (location.hash === "#" + h) EC.route(); else location.has
 const fmtTime = (ms) => new Intl.DateTimeFormat(L() === "sr" ? "sr-Latn-RS" : "en-GB", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(ms));
 
 async function loadMe(force) { if (ST.me === undefined || force) { try { ST.me = await api("GET", "/me"); } catch (e) { ST.me = { user: null, error: e.message }; } } return ST.me; }
+// Official eligibility conditions of all calls (site/org/eligibility.json, ingest/eligibility_docs.py), loaded once.
+async function loadElig() {
+  if (ST.elig === undefined) { try { const r = await fetch("org/eligibility.json", { cache: "no-cache" }); ST.elig = r.ok ? await r.json() : null; } catch { ST.elig = null; } }
+  return ST.elig;
+}
+// AI checks of this organisation's profile against official texts; only those made with the current profile count.
+async function loadOfficial(id) {
+  try { ST.off = (await api("GET", `/orgs/${id}/official-checks`)).checks; } catch { ST.off = []; }
+  ST.offKey = ST.off.map((x) => x.callId + ":" + x.at).join("|");
+}
+const aiMap = () => Object.fromEntries((ST.off || []).filter((x) => x.profileVersion === ST.org.version).map((x) => [x.callId, x.conditions.map((c) => ({ ...c, title: x.source.title, url: x.source.url }))]));
+const assessOpts = () => ({ stats: ST.stats || buildDF(activeCalls()), elig: ST.elig || null, ai: aiMap() });
 async function loadOrg(id, force) {
   if (!force && ST.org && ST.org.id === id) return ST.org;
-  ST.org = await api("GET", "/orgs/" + id); ST.review = null;
+  const [org] = await Promise.all([api("GET", "/orgs/" + id), loadElig(), loadOfficial(id)]);
+  ST.org = org; ST.review = null;
   try { localStorage.setItem("konkursi.org", JSON.stringify(id)); } catch {}
   return ST.org;
 }
@@ -420,11 +476,11 @@ const canEdit = () => ST.org && (ST.org.role === "owner" || ST.org.role === "edi
 function activeCalls() { return (EC.CALLS || []).filter((c) => EC.isOpen(c)); }
 function results() {
   const calls = activeCalls();
-  const key = ST.org.id + "@" + ST.org.version + "@" + EC.META.generated + "@" + calls.length;
+  const key = ST.org.id + "@" + ST.org.version + "@" + EC.META.generated + "@" + calls.length + "@" + (ST.elig ? ST.elig.generated : "-") + "@" + (ST.offKey || "");
   if (ST.resultsKey === key && ST.results) return ST.results;
   if (ST.statsGen !== EC.META.generated) { ST.stats = buildDF(calls); ST.statsGen = EC.META.generated; }
   const byId = new Map(calls.map((c) => [c.id, c]));
-  ST.results = assessAll(ST.org.profile, calls, { stats: ST.stats }).map((r) => ({ ...r, call: byId.get(r.callId) }));
+  ST.results = assessAll(ST.org.profile, calls, assessOpts()).map((r) => ({ ...r, call: byId.get(r.callId) }));
   ST.resultsKey = key; ST.resultsAt = Date.now();
   return ST.results;
 }
@@ -447,7 +503,7 @@ async function render(h) {
     if (parts[1] === "admin") return await renderAdmin(parts.slice(2));
     const id = parts[1];
     let sec = parts[2] || "overview", arg = parts.slice(3).join("/");
-    shell(id, sec, `<div class="loading progress" role="status">${esc(T("loadingPage"))}</div>`);
+    shell(id, sec, `<div class="loading op busy" role="status" aria-busy="true"><span class="op-ic" aria-hidden="true"></span>${esc(T("loadingPage"))}</div>`);
     await loadOrg(id);
     const body = await ({ overview: secOverview, profile: secProfile, documents: secDocuments, matching: secMatching, match: secReport, ideas: secIdeas, evaluation: secEvaluation, reports: secReports, settings: secSettings }[sec] || secOverview)(arg);
     shell(id, sec === "match" ? "matching" : sec === "report" ? "reports" : sec, body);
@@ -483,7 +539,7 @@ const stBadge = (st) => `<span class="st st-${esc(st)}">${esc(T("admSt." + st))}
 async function renderAdmin(parts) {
   const me = ST.me;
   if (!me.user.admin) { app().innerHTML = `<div class="wrap page"><h1>${esc(T("adminTitle"))}</h1><p class="note err">${esc(T("errors.not_found"))}</p><p><a href="#org">${esc(T("nav.overview"))}</a></p></div>`; return; }
-  app().innerHTML = `<div class="wrap page adm"><div class="loading progress" role="status">${esc(T("loadingPage"))}</div></div>`;
+  app().innerHTML = `<div class="wrap page adm"><div class="loading op busy" role="status" aria-busy="true"><span class="op-ic" aria-hidden="true"></span>${esc(T("loadingPage"))}</div></div>`;
   const [d, u] = await Promise.all([api("GET", "/admin/access"), api("GET", "/admin/usage").catch(() => null)]);
   const focus = parts[0] === "r" ? parts[1] : null;
   const f = ST.admFilter || "open";
@@ -536,7 +592,7 @@ async function renderAdmin(parts) {
   bindAccount();
   const ur = document.getElementById("auRefresh"); if (ur) ur.addEventListener("click", () => renderAdmin(parts));
   document.querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", () => { ST.admFilter = b.dataset.f; renderAdmin([]); }));
-  const busy = async (el, out, fn) => { el.disabled = true; out.className = "progress"; out.textContent = T("working"); try { await fn(); ST.admNote = T("admDone"); await renderAdmin(parts); } catch (e) { out.className = "note err"; out.textContent = errText(e); el.disabled = false; } };
+  const busy = async (el, out, fn) => { el.disabled = true; opState(out, "saving"); try { await fn(); ST.admNote = T("admDone"); await renderAdmin(parts); } catch (e) { out.className = "note err"; out.textContent = errText(e); el.disabled = false; } };
   document.querySelectorAll("[data-ra]").forEach((b) => b.addEventListener("click", () => {
     const id = b.dataset.id, days = parseInt(document.getElementById("ad-" + id).value, 10);
     busy(b, document.getElementById("admMsg"), () => api("POST", `/admin/access/${id}`, { action: b.dataset.ra, note: document.getElementById("an-" + id).value, ...(days > 0 ? { days } : {}) }));
@@ -659,7 +715,6 @@ const scoreMeter = (score) => meter(score, tierCls(score));
 const scoreNum = (score) => `<b class="scn ${tierCls(score)}">${score}%</b>`;
 // Overview: the organisation's position at a glance. The statistics are shortcuts: each one opens the
 // eligibility matching list with the filter it counts, the profile's missing fields or the saved ideas.
-const HIGH = 75;   // "highly compatible"
 async function secOverview(arg) {
   const org = ST.org, p = org.profile, c = completeness(p), id = org.id;
   let savedIdeas = 0; try { savedIdeas = (await api("GET", `/orgs/${id}/ideas`)).ideas.filter((x) => x.status === "saved").length; } catch { /* shown as 0 */ }
@@ -693,12 +748,15 @@ async function secOverview(arg) {
     ${org.updatedAt ? `<p class="fine">${esc(T("lastUpdate", fmtTime(org.updatedAt), org.version))}</p>` : ""}`;
 }
 // Eligibility matching: every analysed call with its eligibility status and score. The argument sets a filter
-// (from the overview statistics): all, high (75%+), eligible.
+// (from the overview statistics): all, high (70%+), eligible.
 function secMatching(arg) {
   const F = ST.filters;
   if (arg === "all") Object.assign(F, { status: "", high: false, prog: "", dl: "", shown: 30 });
   if (arg === "high") Object.assign(F, { status: "", high: true, prog: "", dl: "", shown: 30 });
   if (arg === "eligible") Object.assign(F, { status: "eligible", high: false, prog: "", dl: "", shown: 30 });
+  // A preset from the overview is applied once: the address goes back to the plain tab, so unticking a filter
+  // re-renders without the preset being applied again.
+  if (arg) try { history.replaceState(null, "", location.pathname + location.search + `#org/${ST.org.id}/matching`); } catch { /* keeps working, the preset stays in the address */ }
   return `<section id="oiMatches" class="matches">${matchingHTML()}</section>`;
 }
 afterRender.matching = () => bindMatching();
@@ -801,7 +859,7 @@ function ocrWorker() {
 }
 async function ocr(image, label, say) {
   const w = await ocrWorker();
-  OCR_LOG = (m) => { if (m.status === "recognizing text") say(`${label} · ${Math.round(100 * (m.progress || 0))}%`); else if (/load|initiali/.test(m.status || "")) say(T("ocrLoading")); };
+  OCR_LOG = (m) => { if (m.status === "recognizing text") say(label, "ocr", 100 * (m.progress || 0)); else if (/load|initiali/.test(m.status || "")) say(T("ocrLoading"), "ocr"); };
   const r = await w.recognize(image);
   OCR_LOG = null;
   return { text: r.data.text || "", conf: r.data.confidence || 0 };
@@ -816,7 +874,7 @@ async function readDocument(file, say) {
     const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
     out.pages = pdf.numPages;
     for (let i = 1; i <= pdf.numPages && out.text.length < CHUNK * MAX_PARTS; i++) {
-      say(T("readingPage", i, pdf.numPages));
+      say(T("readingPage", i, pdf.numPages), "reading", (100 * (i - 1)) / pdf.numPages);
       const pg = await pdf.getPage(i);
       const t = (await pg.getTextContent()).items.map((x) => x.str).join(" ");
       if (t.replace(/\s/g, "").length >= 40) { out.text += t + "\n\n"; continue; }
@@ -894,8 +952,8 @@ async function secDocuments() {
   ST.runs = runs;
   const open = ST.openRun && runs.find((r) => r.id === ST.openRun);
   return `<h1>${esc(T("docsTitle"))}</h1><p class="lede">${esc(T("docsLede"))}</p>${dis ? `<p class="note">${esc(T("viewerNote"))}</p>` : ""}
-    ${dis ? "" : `<div class="drop"><label class="btn" for="oiFile">${esc(T("upload"))}</label><input type="file" id="oiFile" accept="${ACCEPT}" hidden><p class="fine">${esc(T("uploadFormats"))}</p><div class="progress" id="oiProg" role="status" aria-live="polite"></div></div>
-    <form class="oi-card" id="oiWeb"><h2>${esc(T("webTitle"))}</h2><p class="fine">${esc(T("webLede"))}</p><div class="fld"><label for="oiUrl">${esc(T("url"))}</label><input type="url" id="oiUrl" placeholder="https://" value="${esc(org.profile.website || "")}"></div><div><button class="btn" type="submit">${esc(T("readSite"))}</button></div><div class="progress" id="oiWebMsg" role="status"></div></form>`}
+    ${dis ? "" : `<div class="drop"><label class="btn" for="oiFile">${esc(T("upload"))}</label><input type="file" id="oiFile" accept="${ACCEPT}" hidden><p class="fine">${esc(T("uploadFormats"))}</p><div class="op" id="oiProg" role="status" aria-live="polite"></div></div>
+    <form class="oi-card" id="oiWeb"><h2>${esc(T("webTitle"))}</h2><p class="fine">${esc(T("webLede"))}</p><div class="fld"><label for="oiUrl">${esc(T("url"))}</label><input type="url" id="oiUrl" placeholder="https://" value="${esc(org.profile.website || "")}"></div><div><button class="btn" type="submit">${esc(T("readSite"))}</button></div><div class="op" id="oiWebMsg" role="status"></div></form>`}
     <div id="oiReview">${open ? fillHTML(open) : ""}</div>
     <div class="oi-card"><h2>${esc(T("runs"))}</h2>${runs.length ? `<table class="oi-t"><tbody>${runs.map((r) => `<tr><td>${esc(fmtTime(r.at))}</td><td>${esc(r.sourceName)}${r.sourceUrl ? ` <a class="fine" href="${esc(r.sourceUrl)}" target="_blank" rel="noopener">↗</a>` : ""}<div class="fine">${r.result ? esc(T("runSummary", r.result.filled.length, r.result.conflicts.length)) : Object.keys(r.fields).length + " · " + esc(T("status." + r.status))}</div></td><td><button type="button" class="btn ghost" data-open="${r.id}">${esc(T("open"))}</button>${dis ? "" : ` <button type="button" class="linkbtn" data-del="${r.id}">${esc(T("del"))}</button>`}</td></tr>`).join("")}</tbody></table>` : `<p class="fine">${esc(T("none"))}</p>`}</div>`;
 }
@@ -925,40 +983,40 @@ afterRender.documents = () => {
   const file = document.getElementById("oiFile");
   if (file) file.addEventListener("change", async () => {
     const f = file.files[0]; if (!f) return;
-    const prog = document.getElementById("oiProg"), say = (t) => { prog.className = "progress"; prog.textContent = t; };
+    const prog = document.getElementById("oiProg"), say = (t, st = "reading", pct = null) => opState(prog, st, t, pct);
     const lbl = document.querySelector('label[for="oiFile"]'); if (lbl) lbl.classList.add("busy");
-    say(T("reading"));
+    say(f.name, "reading");
     try {
       const doc = await readDocument(f, say);
       const text = doc.text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
-      if (text.replace(/\s/g, "").length < 80) { prog.className = "note warn"; prog.textContent = T(doc.ocrPages ? "ocrEmpty" : "scanned"); return; }
+      if (text.replace(/\s/g, "").length < 80) { opState(prog, "failed", T(doc.ocrPages ? "ocrEmpty" : "scanned")); return; }
       const parts = splitText(text);
       let last = null, runId = null;
       for (let i = 0; i < parts.length; i++) {
-        say(T("sending", i + 1, parts.length));
+        say(T("sending", i + 1, parts.length), "analysing", (100 * i) / parts.length);
         last = await api("POST", `/orgs/${org.id}/extract`, { sourceName: f.name, text: parts[i], part: i + 1, parts: parts.length, runId });
         runId = last.id;
       }
-      say(T("filling"));
+      say(T("filling"), "saving");
       ST.runs = [{ id: runId, kind: "document", sourceName: f.name, fields: last.fields, status: "review", at: Date.now() }, ...ST.runs.filter((x) => x.id !== runId)];
       const run = await fill(runId);
-      prog.className = "fine"; prog.textContent = [doc.ocrPages ? T("ocrDone", doc.ocrPages) : "", doc.lowConf ? T("ocrLow", doc.lowConf) : "", text.length > CHUNK * MAX_PARTS ? T("tooLong", CHUNK * MAX_PARTS, MAX_PARTS) : ""].filter(Boolean).join(" ");
+      opState(prog, "completed", [f.name, doc.ocrPages ? T("ocrDone", doc.ocrPages) : "", doc.lowConf ? T("ocrLow", doc.lowConf) : "", text.length > CHUNK * MAX_PARTS ? T("tooLong", CHUNK * MAX_PARTS, MAX_PARTS) : ""].filter(Boolean).join(" "));
       show(run);
-    } catch (e) { prog.className = "note err"; prog.textContent = e.message === "type" ? T("badType") : e.message === "ocr_unavailable" ? T("ocrUnavailable") : errText(e); }
+    } catch (e) { opState(prog, "failed", e.message === "type" ? T("badType") : e.message === "ocr_unavailable" ? T("ocrUnavailable") : errText(e)); }
     finally { if (lbl) lbl.classList.remove("busy"); file.value = ""; }
   });
   const web = document.getElementById("oiWeb");
   if (web) web.addEventListener("submit", async (ev) => {
     ev.preventDefault();
-    const m = document.getElementById("oiWebMsg"); m.className = "progress"; m.textContent = T("readingSite");
+    const m = document.getElementById("oiWebMsg"); opState(m, "researching", document.getElementById("oiUrl").value);
     try {
       const r = await api("POST", `/orgs/${org.id}/research`, { url: document.getElementById("oiUrl").value });
       ST.runs = [{ id: r.id, kind: "web", sourceName: new URL(r.pages[0]).hostname, sourceUrl: r.pages[0], fields: r.fields, status: "review", at: Date.now() }, ...ST.runs];
-      m.textContent = T("filling");
+      opState(m, "saving", T("filling"));
       const run = await fill(r.id);
-      m.className = "fine"; m.textContent = r.pages.join(" · ");
+      opState(m, "completed", r.pages.join(" · "));
       show(run);
-    } catch (e) { m.className = "note err"; m.textContent = errText(e); }
+    } catch (e) { opState(m, "failed", errText(e)); }
   });
 };
 
@@ -972,16 +1030,21 @@ function fundingText(c) {
   return "";
 }
 function matchCard(r) {
-  const c = r.call, id = ST.org.id, dl = EC.nextDl(c);
-  const probs = r.checks.filter((x) => x.result !== "pass").slice(0, 3);
-  return `<article class="oi-card match-card"><div class="sc">${scoreNum(r.score)}${scoreMeter(r.score)}<span class="fine">${esc(T("bandL." + r.band))}</span></div>
-    <div style="display:grid;gap:8px;min-width:0"><div class="oi-row">${statusBadge(r.status)}<span>${esc((EC.P[c.programme] || {}).short || c.programmeName || c.programme)}</span>${dl ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(dl))}</b> · <span data-dl="${esc(dl)}">${esc(EC.leftText(dl))}</span></span>` : ""}${fundingText(c) ? `<span>${esc(T("funding"))}: ${esc(fundingText(c))}</span>` : ""}</div>
-    <h3><a href="#org/${id}/match/${encodeURIComponent(c.key)}">${esc(c.title)}</a></h3>
-    <div class="cols">${r.strengths.length ? `<div><h4>${esc(T("strengths"))}</h4><ul>${r.strengths.slice(0, 2).map((s) => `<li>${esc(codeText(s))}</li>`).join("")}</ul></div>` : ""}
-      ${probs.length ? `<div><h4>${esc(T("problems"))}</h4><ul>${probs.map((x) => `<li><span class="res ${x.result}">${esc(T("resL." + x.result))}</span> ${esc(codeText(x).slice(0, 220))}</li>`).join("")}</ul></div>` : ""}
-      ${r.missing.length ? `<div><h4>${esc(T("missing"))}</h4><p class="fine">${esc(listOf(r.missing.slice(0, 5), fieldName))}</p></div>` : ""}
-      <div><h4>${esc(T("next"))}</h4><p class="fine">${esc(codeText(r.next[0]))}</p></div></div>
-    <div class="oi-row"><a class="btn quiet" href="#org/${id}/match/${encodeURIComponent(c.key)}">${esc(T("report"))}</a><a class="btn ext" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(T("official"))} <span class="arr">↗</span></a></div></div></article>`;
+  const c = r.call, id = ST.org.id, dl = EC.nextDl(c), fund = fundingText(c);
+  const probs = r.checks.filter((x) => x.result !== "pass").slice(0, 3), n = mandatorySummary(r.checks);
+  const href = `#org/${id}/match/${encodeURIComponent(c.key)}`;
+  return `<article class="oi-card match-card">
+    <div class="sc"><span class="sc-k">${esc(T("compatK"))}</span>${scoreNum(r.score)}${scoreMeter(r.score)}<span class="fine">${esc(T("bandL." + r.band))}</span></div>
+    <div class="mc-main">
+      <div class="mc-meta">${statusBadge(r.status)}<span class="mc-req">${esc(T("mreq", n.pass, n.verify, n.fail))}</span></div>
+      <h3><a href="${href}">${esc(c.title)}</a></h3>
+      <div class="mc-sub"><span>${esc((EC.P[c.programme] || {}).short || c.programmeName || c.programme)}</span>${dl ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(dl))}</b> · <span data-dl="${esc(dl)}">${esc(EC.leftText(dl))}</span></span>` : ""}${fund ? `<span>${esc(fund)}</span>` : ""}</div>
+      <div class="cols">${r.strengths.length ? `<div><h4>${esc(T("strengths"))}</h4><ul>${r.strengths.slice(0, 2).map((s) => `<li>${esc(codeText(s))}</li>`).join("")}</ul></div>` : ""}
+        ${probs.length ? `<div><h4>${esc(T("problems"))}</h4><ul>${probs.map((x) => `<li><span class="res ${x.result}">${esc(T("resL." + x.result))}</span> ${esc(codeText(x).slice(0, 220))}</li>`).join("")}</ul></div>` : ""}
+        ${r.missing.length ? `<div><h4>${esc(T("missing"))}</h4><p class="fine">${esc(listOf(r.missing.slice(0, 5), fieldName))}</p></div>` : ""}
+        <div><h4>${esc(T("next"))}</h4><p class="fine">${esc(codeText(r.next[0]))}</p></div></div>
+      <div class="oi-row"><a class="btn quiet" href="${href}">${esc(T("report"))}</a>${c.url ? `<a class="btn ext" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(T("official"))} <span class="arr">↗</span></a>` : ""}</div>
+    </div></article>`;
 }
 function filtered() {
   const F = ST.filters, now = Date.now();
@@ -993,16 +1056,23 @@ function filtered() {
 function matchingHTML() {
   const F = ST.filters, all = results(), list = filtered();
   const progs = [...new Set(all.map((r) => r.call.programme))].sort();
-  const sel = (id, opts, v, label) => `<select id="${id}" aria-label="${esc(label)}">${opts.map(([val, lb]) => `<option value="${val}"${String(v) === String(val) ? " selected" : ""}>${esc(lb)}</option>`).join("")}</select>`;
-  return `<h1>${esc(T("matchTitle"))}</h1><p class="lede">${esc(T("matchLede", all.length, EC.fmtDate(EC.META.generated)))}</p>
-    <p class="note">${esc(T("notice"))}</p>
-    <div class="tier-legend" aria-label="${esc(T("scoreLegend"))}">${["low", "medium", "high"].map((k) => `<span class="sc-chip t-${k}">${esc(T("tierL." + k))}</span>`).join("")}<span class="fine">${esc(T("scoreLegend"))}</span></div>
-    <div class="oi-filters">${sel("ofStatus", [["", T("fStatus")], ...Object.keys(STATUS_ORDER).map((s) => [s, T("statusL." + s)])], F.status, T("fStatus"))}
-      ${sel("ofProg", [["", T("fProg")], ...progs.map((p) => [p, (EC.P[p] || {}).short || p])], F.prog, T("fProg"))}
-      ${sel("ofDl", [["", T("fDl")], ["30", T("dl30")], ["60", T("dl60")], ["120", T("dl120")]], F.dl, T("fDl"))}
-      ${sel("ofSort", [["score", T("sortScore")], ["deadline", T("sortDl")]], F.sort, T("sortScore"))}
-      <label class="tog"><input type="checkbox" id="ofHigh"${F.high ? " checked" : ""}> ${esc(T("onlyHigh"))}</label></div>
-    <p class="fine">${esc(T("showing", Math.min(F.shown, list.length), list.length))}</p>
+  const sel = (id, opts, v, label) => `<div class="fld"><label for="${id}" class="sr-only">${esc(label)}</label><select id="${id}">${opts.map(([val, lb]) => `<option value="${val}"${String(v) === String(val) ? " selected" : ""}>${esc(lb)}</option>`).join("")}</select></div>`;
+  const active = F.status || F.prog || F.dl || F.high || F.sort !== "score";
+  return `<header class="m-head"><h1>${esc(T("matchTitle"))}</h1><p class="lede">${esc(T("matchLede", all.length, EC.fmtDate(EC.META.generated)))}</p></header>
+    <div class="m-explain">
+      <section class="m-ex"><h2><span class="m-ex-ic" aria-hidden="true">✓</span>${esc(T("mxStatusT"))}</h2><p>${esc(T("mxStatus"))}</p></section>
+      <section class="m-ex"><h2><span class="m-ex-ic" aria-hidden="true">%</span>${esc(T("mxScoreT"))}</h2><p>${esc(T("mxScore"))}</p>
+        <div class="tier-legend" role="list" aria-label="${esc(T("scoreLegend"))}">${["high", "medium", "low"].map((k) => `<span role="listitem" class="sc-chip t-${k}"><b>${esc(T("legendL." + k))}</b>&nbsp;${esc(T("tierL." + k))}</span>`).join("")}</div></section>
+    </div>
+    <p class="note m-note"><span aria-hidden="true">i</span><span>${esc(T("notice"))}</span></p>
+    <section class="oi-card m-tools" aria-label="${esc(T("filtersT"))}">
+      <div class="oi-filters">${sel("ofStatus", [["", T("fStatus")], ...Object.keys(STATUS_ORDER).map((s) => [s, T("statusL." + s)])], F.status, T("fStatus"))}
+        ${sel("ofProg", [["", T("fProg")], ...progs.map((p) => [p, (EC.P[p] || {}).short || p])], F.prog, T("fProg"))}
+        ${sel("ofDl", [["", T("fDl")], ["30", T("dl30")], ["60", T("dl60")], ["120", T("dl120")]], F.dl, T("fDl"))}
+        ${sel("ofSort", [["score", T("sortScore")], ["deadline", T("sortDl")]], F.sort, T("sortScore"))}
+        <label class="tog"><input type="checkbox" id="ofHigh"${F.high ? " checked" : ""}> <span>${esc(T("onlyHigh"))}</span></label></div>
+      <div class="m-count"><p class="fine" role="status">${esc(T("showing", Math.min(F.shown, list.length), list.length))}</p>${active ? `<button type="button" class="linkbtn" id="ofReset">${esc(T("resetF"))}</button>` : ""}</div>
+    </section>
     <div class="match-list">${list.slice(0, F.shown).map(matchCard).join("")}</div>
     ${list.length > F.shown ? `<div><button class="btn ghost" id="ofMore">${esc(T("more"))}</button></div>` : ""}`;
 }
@@ -1011,6 +1081,7 @@ function bindMatching() {
   const F = ST.filters, re = () => { F.shown = 30; ST.keepList = true; EC.route(); };
   const on = (id, k, f = (e) => e.value) => { const el = document.getElementById(id); if (el) el.addEventListener("change", () => { F[k] = f(el); re(); }); };
   on("ofStatus", "status"); on("ofProg", "prog"); on("ofDl", "dl"); on("ofSort", "sort"); on("ofHigh", "high", (e) => e.checked);
+  const rs = document.getElementById("ofReset"); if (rs) rs.addEventListener("click", () => { Object.assign(F, { status: "", prog: "", dl: "", high: false, sort: "score" }); re(); });
   const m = document.getElementById("ofMore"); if (m) m.addEventListener("click", () => { F.shown += 30; const y = scrollY; EC.route(); scrollTo(0, y); });
   if (ST.keepList) { ST.keepList = false; const l = document.getElementById("oiMatches"); if (l) l.scrollIntoView({ block: "start" }); }
 }
@@ -1029,10 +1100,13 @@ function snapshot(c, r) {
 // Sections A-F of an eligibility report, from live or saved assessment data.
 function reportSections(a, id) {
   const srcLabel = (s) => (s ? T("srcL." + s) : "");
-  return `<section class="oi-card"><h2>${esc(T("repA"))}</h2><div class="oi-row"><span class="score">${scoreNum(a.score)} ${esc(T("bandL." + a.band))}</span>${statusBadge(a.status)}</div>${scoreMeter(a.score)}<p class="fine">${esc(T("scoreLegend"))}</p>
-      <p>${esc(T("explain." + a.status))}</p>${a.capApplied ? `<p class="fine">${esc(T("capNote"))}</p>` : ""}<p class="note">${esc(T("notice"))}</p></section>
+  const n = mandatorySummary(a.checks);
+  return `<section class="oi-card"><h2>${esc(T("repA"))}</h2>
+      <div class="rep-dims"><div class="rep-dim"><h3>${esc(T("mandT"))}</h3><div class="oi-row">${statusBadge(a.status)}</div><p class="fine">${esc(T("mreq", n.pass, n.verify, n.fail))}</p><p>${esc(T("explain." + a.status))}</p></div>
+        <div class="rep-dim"><h3>${esc(T("stratT"))}</h3><div class="oi-row"><span class="score">${scoreNum(a.score)} ${esc(T("bandL." + a.band))}</span></div>${scoreMeter(a.score)}<p class="fine">${esc(T("stratWhat"))}</p>${a.capApplied ? `<p class="fine">${esc(T("capNote"))}</p>` : ""}</div></div>
+      <p class="note">${esc(T("notice"))}</p></section>
     <section class="oi-card"><h2>${esc(T("repB"))}</h2><div class="tw"><table class="oi-t"><thead><tr><th>${esc(T("requirement"))}</th><th>${esc(T("result"))}</th><th>${esc(T("basis"))}</th></tr></thead><tbody>
-      ${a.checks.map((x) => `<tr><td>${esc(codeText(x))}${x.params.quote ? `<p class="quote">${esc(x.params.quote)}</p>` : ""}${x.params.url ? `<a class="fine" href="${esc(x.params.url)}" target="_blank" rel="noopener">Programme Guide ↗</a>` : ""}</td><td><span class="res ${x.result}">${esc(x.code === "partnership.unspecified" ? T("notStated") : T("resL." + x.result))}</span></td><td class="fine">${esc(srcLabel(x.source))}</td></tr>`).join("")}
+      ${a.checks.map((x) => `<tr><td>${esc(codeText(x))}${x.params.quote ? `<p class="quote">${esc(x.params.quote)}</p>` : ""}${x.params.url ? `<a class="fine" href="${esc(x.params.url)}" target="_blank" rel="noopener">${esc(x.params.title || "Programme Guide")} ↗</a>` : ""}</td><td><span class="res ${x.result}">${esc(x.code === "partnership.unspecified" ? T("notStated") : T("resL." + x.result))}</span></td><td class="fine">${esc(srcLabel(x.source))}</td></tr>`).join("")}
     </tbody></table></div>
     <h3>${esc(T("repB2"))}</h3><div class="dims">${Object.keys(DEFAULT_WEIGHTS).filter((k) => a.dims[k] !== undefined).map((k) => `<div class="dim"><span>${esc(T("dims." + k))}</span><span class="fine num">${esc(T("weight"))} ${a.weights[k]}%</span>${scoreMeter(Math.round(100 * a.dims[k]))}</div>`).join("")}</div></section>
     <section class="oi-card"><h2>${esc(T("repC"))}</h2>${a.strengths.length ? `<ul>${a.strengths.map((x) => `<li>${esc(codeText(x))}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</section>
@@ -1044,7 +1118,7 @@ const callMeta = (c) => `<div class="oi-row"><span>${esc(c.programmeName || "")}
 async function secReport(key) {
   const c = EC.BYKEY[decodeURIComponent(key)];
   if (!c) return `<p class="note err">${esc(T("errors.not_found"))}</p>`;
-  const r = assess(ST.org.profile, c, { stats: ST.stats || buildDF(activeCalls()) });
+  const r = assess(ST.org.profile, c, assessOpts());
   const snap = snapshot(c, r), id = ST.org.id;
   ST.lastSnap = snap;
   return `<a class="back" href="#org/${id}/matching">← ${esc(T("matchTitle"))}</a>
@@ -1053,14 +1127,41 @@ async function secReport(key) {
       <div class="oi-row"><div class="fld grow"><label for="rsNote">${esc(T("repNote"))}</label><input type="text" id="rsNote" maxlength="1000" placeholder="${esc(T("repNotePh"))}"></div><button type="button" class="btn" id="rsSave">${esc(T("repSave"))}</button></div>
       <div role="status" id="rsMsg"></div></section>` : ""}
     ${reportSections(snap.assessment, id)}
+    ${officialHTML(c)}
     <section class="oi-card"><h2>${esc(T("repEval"))}</h2>${critHTML((await loadCriteria()).calls[c.id], c)}</section>
     <p class="fine">${esc(T("assessedAt", fmtTime(Date.now()), ST.org.version, EC.fmtDate(EC.META.generated)))}</p>`;
 }
+// Where a call's mandatory conditions come from, and the AI check of the profile against that official text.
+function officialHTML(c) {
+  const e = ST.elig && ST.elig.calls ? ST.elig.calls[c.id] : null;
+  const ok = e && e.status === "verified";
+  const row = (k, v) => (v ? `<tr><th>${esc(T(k))}</th><td>${v}</td></tr>` : "");
+  const src = ok ? `<table class="oi-t off-t"><tbody>${row("offPub", esc(e.publisher || ""))}${row("offDoc", `<a href="${esc(e.docUrl || c.url)}" target="_blank" rel="noopener">${esc(e.title || T("official"))}${e.heading ? " · " + esc(e.heading) : ""} ↗</a>`)}${row("offPublished", e.published ? esc(EC.fmtDate(e.published)) : "")}${row("offVerified", e.verified ? esc(EC.fmtDate(e.verified)) : "")}</tbody></table>`
+    : `<p class="note warn">${esc(codeText({ code: "off.unverified", params: { status: (e && e.status) || "not_researched" } }))}</p>`;
+  const chk = (ST.off || []).find((x) => x.callId === c.id);
+  const stale = chk && chk.profileVersion !== ST.org.version;
+  const res = chk ? `<ul class="off-list">${chk.conditions.map((x) => `<li><span class="res ${x.result}">${esc(T("resL." + x.result))}</span> <b>${esc(x.condition)}</b> <span class="fine">(${esc(T("aiApplies." + x.appliesTo))})</span>${x.reason ? `<div class="fine">${esc(x.reason)}</div>` : ""}<p class="quote">${esc(x.quote)}</p></li>`).join("")}</ul>
+      ${chk.summary ? `<p>${esc(chk.summary)}</p>` : ""}<p class="fine">${esc(T("aiMade", fmtTime(chk.at)))} · ${chk.source.url ? `<a href="${esc(chk.source.url)}" target="_blank" rel="noopener">${esc(chk.source.title || T("official"))} ↗</a>` : esc(chk.source.title || "")}${stale ? "" : " · " + esc(T("aiCounts"))}</p>${stale ? `<p class="note warn">${esc(T("aiStale", chk.profileVersion))}</p>` : ""}` : "";
+  const can = e && e.hasText;
+  return `<section class="oi-card off"><h2>${esc(T("offT"))}</h2><p class="fine">${esc(T("offLede"))}</p>${src}
+    <h3>${esc(T("aiT"))}</h3><p class="fine">${esc(T("aiLede"))}</p>${res}
+    ${can ? (canEdit() ? `<div class="oi-row"><button type="button" class="btn quiet" id="offRun" data-call="${esc(c.id)}">${esc(T(chk ? "aiRerun" : "aiRun"))}</button></div><div class="op" id="offMsg" role="status" aria-live="polite"></div>` : "") : `<p class="fine">${esc(T("aiNoText"))}</p>`}</section>`;
+}
 afterRender.match = () => {
+  const run = document.getElementById("offRun");
+  if (run) run.addEventListener("click", async () => {
+    const m = document.getElementById("offMsg"), id = ST.org.id;
+    run.disabled = true; opState(m, "checking", T("op.checking"));
+    try {
+      await api("POST", `/orgs/${id}/official-checks`, { callId: run.dataset.call, lang: L() });
+      await loadOfficial(id); ST.resultsKey = null;
+      EC.route();
+    } catch (e) { opState(m, "failed", errText(e)); run.disabled = false; }
+  });
   const b = document.getElementById("rsSave"); if (!b) return;
   const id = ST.org.id, m = document.getElementById("rsMsg");
   b.addEventListener("click", async () => {
-    b.disabled = true; m.className = "progress"; m.textContent = T("working");
+    b.disabled = true; opState(m, "saving");
     try {
       const r = await api("POST", `/orgs/${id}/reports`, { ...ST.lastSnap, note: document.getElementById("rsNote").value });
       m.className = "note ok"; m.innerHTML = `${esc(T("repSaved"))} <a href="#org/${id}/reports/${esc(r.report.id)}">${esc(T("repOpenSaved"))} →</a>`;
@@ -1206,6 +1307,14 @@ function evalBox(x) {
     ${canEdit() && rb ? `<div class="oi-row"><button type="button" class="btn quiet" data-act="evaluate"${premium() ? "" : " disabled"}>${esc(T(evs[rb.key] ? "evRerun" : "evRun"))}${premium() ? "" : " · " + esc(T("premiumTag"))}</button><span class="fine" role="status" data-evmsg></span></div>` : ""}
     ${sel ? evalHTML(evs[sel]) : ""}</details>`;
 }
+// Why the concept received its fit estimate: written by the AI for this concept and this call, checked to name the
+// concept's own elements (src/org/ideas.js cleanExplanation). Ideas without one can ask for it.
+function fitExplainHTML(x) {
+  const ex = x.idea.fit && x.idea.fit.explanation;
+  if (!ex) return canEdit() ? `<div class="fit-ex empty"><button type="button" class="linkbtn" data-act="explain">${esc(T("fitExplainRun"))}</button><span class="op" data-exmsg role="status"></span></div>` : "";
+  const col = (k, l) => (ex[k] && ex[k].length ? `<div><h5>${esc(T(l))}</h5><ul>${ex[k].map((y) => `<li>${esc(y)}</li>`).join("")}</ul></div>` : "");
+  return `<div class="fit-ex"><h4>${esc(T("fitExplainT"))}</h4><p>${esc(ex.summary)}</p><div class="fit-cols">${col("strengths", "fitStrengths")}${col("weaknesses", "fitWeak")}${col("improve", "fitImprove")}</div></div>`;
+}
 function ideaCard(x, res) {
   const org = ST.org, it = x.idea, live = res.find((r) => r.callId === x.callId);
   const call = live ? live.call : (EC.CALLS || []).find((c) => c.id === x.callId);
@@ -1225,6 +1334,7 @@ function ideaCard(x, res) {
       <div><span class="fine">${esc(T("compatRule"))}</span><div class="oi-row">${scoreNum(score)}${statusBadge(status)}</div>${scoreMeter(score)}</div>
       <div><span class="fine">${esc(T("conceptFitL"))}</span><div class="oi-row">${fit == null ? "<b>–</b>" : scoreNum(fit)}</div>${fit == null ? "" : scoreMeter(fit)}</div>
     </div>
+    ${fit == null ? "" : fitExplainHTML(x)}
     ${x.profileVersion !== ST.org.version ? `<p class="fine">${esc(T("ideaStale", x.profileVersion))}</p>` : ""}
     <div class="idea-tools">
       <button type="button" class="btn pdf" data-act="pdf"${premium() || x.proposal ? "" : ` aria-describedby="pw-${esc(x.id)}"`}${x.proposal || (premium() && canEdit()) ? "" : " disabled"}><span class="pdf-ic" aria-hidden="true">PDF</span> ${esc(T(x.proposal ? "pdfDownload" : "pdfCreate"))}${premium() || x.proposal ? "" : ` <span class="lock">${esc(T("premiumTag"))}</span>`}</button>
@@ -1365,16 +1475,25 @@ function bindEval(card, x) {
   const redraw = () => { const open = box.open; const nb = document.createElement("div"); nb.innerHTML = evalBox(x); const fresh = nb.firstElementChild; fresh.open = open || !!(x.evaluations || {})[ST.evalSel[id]]; box.replaceWith(fresh); bindEval(card, x); };
   if (sel) sel.addEventListener("change", () => { ST.evalSel[id] = sel.value; redraw(); });
   if (btn) btn.addEventListener("click", async () => {
-    btn.disabled = true; m.className = "progress"; m.textContent = T("evBusy");
+    btn.disabled = true; opState(m, "analysing", T("evBusy"));
     try {
       const r = await api("POST", `/orgs/${org.id}/ideas/${id}/evaluate`, { lang: L() });
       x.evaluations = { ...(x.evaluations || {}), [r.evaluation.key]: r.evaluation }; ST.evalSel[id] = r.evaluation.key; redraw();
       const nm = card.querySelector("[data-evmsg]"); if (nm) { nm.className = "fine ok"; nm.textContent = T("evDone"); }
-    } catch (e) { m.className = "fine err"; m.textContent = errText(e); btn.disabled = false; }
+    } catch (e) { opState(m, "failed", errText(e)); btn.disabled = false; }
   });
 }
 afterRender.ideas = (arg) => {
   const org = ST.org;
+  document.querySelectorAll('[data-act="explain"]').forEach((b) => b.addEventListener("click", async () => {
+    const card = b.closest("[data-idea]"), x = (ST.ideas || []).find((i) => i.id === card.dataset.idea), m = card.querySelector("[data-exmsg]");
+    b.disabled = true; opState(m, "analysing");
+    try {
+      const r = await api("POST", `/orgs/${org.id}/ideas/${x.id}/fit-explanation`, { lang: L() });
+      x.idea.fit = { ...(x.idea.fit || {}), explanation: r.explanation };
+      const box = card.querySelector(".fit-ex"), nb = document.createElement("div"); nb.innerHTML = fitExplainHTML(x); box.replaceWith(nb.firstElementChild);
+    } catch (e) { opState(m, "failed", errText(e)); b.disabled = false; }
+  }));
   document.querySelectorAll("[data-pick]").forEach((cb) => cb.addEventListener("change", () => {
     if (cb.checked && ST.ideaPick.size >= IDEA_CALLS) { cb.checked = false; return; }
     cb.checked ? ST.ideaPick.add(cb.dataset.pick) : ST.ideaPick.delete(cb.dataset.pick);
@@ -1384,18 +1503,18 @@ afterRender.ideas = (arg) => {
   if (gen) gen.addEventListener("click", async () => {
     const msg = document.getElementById("oiGenMsg");
     const cands = ideaCandidates().filter((r) => ST.ideaPick.has(r.callId)).map((r) => ({ id: r.callId, score: r.score, status: r.status, band: r.band }));
-    gen.disabled = true; msg.className = "progress"; msg.textContent = T("ideasBusy");
+    gen.disabled = true; opState(msg, "generating", T("ideasBusy"));
     try {
       const r = await api("POST", `/orgs/${org.id}/ideas`, { candidates: cands, lang: L() });
       ST.ideaNote = r.generated ? T("ideasDone", r.generated, r.dropped.length) : T("ideasZero");
       await loadMe(true);
       EC.route();
-    } catch (e) { gen.disabled = false; msg.className = "note err"; msg.textContent = errText(e); }
+    } catch (e) { gen.disabled = false; opState(msg, "failed", errText(e)); }
   });
   if (ST.ideaNote) { const m = document.getElementById("oiGenMsg"); if (m) { m.className = "note ok"; m.textContent = ST.ideaNote; } ST.ideaNote = null; }
   const pwMsg = document.getElementById("pwMsg");
   const pwDo = async (path, body) => {
-    pwMsg.className = "progress"; pwMsg.textContent = T("working");
+    opState(pwMsg, "saving");
     try { const a = await api("POST", path, body); ST.me.access = a; ST.pwNote = T(path.endsWith("payment") ? "pwPaidDone" : "pwAskDone"); EC.route(); }
     catch (e) { pwMsg.className = "note err"; pwMsg.textContent = errText(e); }
   };
@@ -1414,7 +1533,7 @@ afterRender.ideas = (arg) => {
     on("del", "click", async () => { try { await api("DELETE", `/orgs/${org.id}/ideas/${id}`); ST.compare.delete(id); EC.route(); } catch (e) { msg.textContent = errText(e); } });
     const pdfMsg = card.querySelector("[data-pdfmsg]");
     const makePdf = async (fresh, btn) => {
-      btn.disabled = true; pdfMsg.className = "progress"; pdfMsg.textContent = T(fresh || !x.proposal ? "pdfBusy" : "pdfDrawing");
+      btn.disabled = true; opState(pdfMsg, fresh || !x.proposal ? "generating" : "drawing", T(fresh || !x.proposal ? "pdfBusy" : "pdfDrawing"));
       try {
         let p;
         if (fresh || !x.proposal) { p = (await api("POST", `/orgs/${org.id}/ideas/${id}/proposal`, { lang: L() })).proposal; x.proposal = { at: p.at, model: p.model, lang: p.lang }; pdfMsg.textContent = T("pdfDrawing"); }
@@ -1438,7 +1557,7 @@ afterRender.ideas = (arg) => {
 };
 /* ---------- saved reports ---------- */
 // The live assessment of a saved report's call, if the call is still published.
-const liveOf = (key) => { const c = EC.BYKEY[key]; return c ? assess(ST.org.profile, c, { stats: ST.stats || buildDF(activeCalls()) }) : null; };
+const liveOf = (key) => { const c = EC.BYKEY[key]; return c ? assess(ST.org.profile, c, assessOpts()) : null; };
 function reportDoc(rep) {
   const d = rep.data, a = d.assessment, c = d.call;
   const ul = (xs) => (xs.length ? { ul: xs, margin: [0, 0, 0, 6] } : { text: T("none"), italics: true, color: "#777", margin: [0, 0, 0, 6] });
@@ -1502,7 +1621,7 @@ afterRender.reports = (arg) => {
   if (q) { q.addEventListener("input", filter); filter(); }
   const csv = document.getElementById("rpCsv"); if (csv) csv.addEventListener("click", () => downloadReportsCsv(ST.reportList || []));
   document.querySelectorAll("[data-rpdf]").forEach((b) => b.addEventListener("click", async () => {
-    const m = document.getElementById("rpMsg"); b.disabled = true; m.className = "progress"; m.textContent = T("pdfDrawing");
+    const m = document.getElementById("rpMsg"); b.disabled = true; opState(m, "drawing");
     try { await downloadReport((await api("GET", `/orgs/${id}/reports/${b.dataset.rpdf}`)).report); m.className = "fine ok"; m.textContent = T("pdfDone"); }
     catch (e) { m.className = "note err"; m.textContent = e && e.status ? errText(e) : T("pdfFail"); }
     b.disabled = false;
@@ -1540,10 +1659,10 @@ function bindSavedReport() {
   const id = ST.org.id, rep = ST.openReport, m = document.getElementById("rpMsg");
   const say = (cls, t) => { m.className = cls; m.textContent = t; };
   const pdf = document.getElementById("rpPdf");
-  pdf.addEventListener("click", async () => { pdf.disabled = true; say("progress", T("pdfDrawing")); try { await downloadReport(rep); say("fine ok", T("pdfDone")); } catch (e) { say("note err", T("pdfFail")); } pdf.disabled = false; });
+  pdf.addEventListener("click", async () => { pdf.disabled = true; opState(m, "drawing"); try { await downloadReport(rep); say("fine ok", T("pdfDone")); } catch (e) { say("note err", T("pdfFail")); } pdf.disabled = false; });
   const ns = document.getElementById("rpNoteSave");
   if (ns) ns.addEventListener("click", async () => {
-    ns.disabled = true; say("progress", T("working"));
+    ns.disabled = true; opState(m, "saving");
     try { const note = document.getElementById("rpNote").value; await api("PATCH", `/orgs/${id}/reports/${rep.id}`, { note }); rep.note = note; say("note ok", T("repNoteSaved")); } catch (e) { say("note err", errText(e)); }
     ns.disabled = false;
   });
@@ -1551,7 +1670,7 @@ function bindSavedReport() {
   const del = document.getElementById("rpDel");
   if (del) del.addEventListener("click", async () => {
     if (!del.dataset.armed) { del.dataset.armed = "1"; del.textContent = T("repDeleteConfirm"); del.classList.add("danger"); setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = T("repDelete"); del.classList.remove("danger"); } }, 5000); return; }
-    del.disabled = true; say("progress", T("working"));
+    del.disabled = true; opState(m, "saving");
     try { await api("DELETE", `/orgs/${id}/reports/${rep.id}`); location.hash = `#org/${id}/reports`; } catch (e) { say("note err", errText(e)); del.disabled = false; }
   });
 }

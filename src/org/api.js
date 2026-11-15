@@ -6,12 +6,13 @@ import { requestLink, verifyLink, currentUser, logout, cleanEmail, googleStart, 
 import { sendEmail, mailText } from "./email.js";
 import { cleanProfile, contextFrom, changedFields, completeness, FIELD } from "../../site/org/schema.js";
 import { extractFromText, researchUrl } from "./extract.js";
-import { generateIdeas, listIdeas, updateIdea } from "./ideas.js";
+import { generateIdeas, listIdeas, updateIdea, explainFit } from "./ideas.js";
 import { requireAccess, countIdeaRun, accessOf, isAdmin, userAccessRoute, adminRoute } from "./access.js";
 import { makeProposal, getProposal } from "./proposal.js";
 import { evaluateIdea } from "./evaluate.js";
 import { planFill } from "./autofill.js";
 import { reportsRoute } from "./reports.js";
+import { officialRoute } from "./official.js";
 
 export const ROLES = { viewer: 1, editor: 2, owner: 3 };
 
@@ -51,7 +52,7 @@ async function saveProfile(db, org, user, profile, baseVersion, note, now) {
 }
 
 async function deleteOrg(db, orgId) {
-  await db.batch(["profile_versions", "extractions", "project_ideas", "reports", "org_invites", "org_members"].map((t) => db.prepare(`DELETE FROM ${t} WHERE org_id = ?`).bind(orgId))
+  await db.batch(["profile_versions", "extractions", "project_ideas", "reports", "official_checks", "org_invites", "org_members"].map((t) => db.prepare(`DELETE FROM ${t} WHERE org_id = ?`).bind(orgId))
     .concat([db.prepare("DELETE FROM organizations WHERE id = ?").bind(orgId)]));
 }
 
@@ -283,6 +284,10 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
           return await makeProposal({ env, db, org: m, user, profile: cur.profile, ideaId: parts[3], body, now, fetchImpl, waitUntil, url: request.url });
         }
       }
+      if (parts[3] && parts[4] === "fit-explanation" && M === "POST") {
+        const cur = await currentProfile(db, m);
+        return await explainFit({ env, db, org: m, user, profile: cur.profile, ideaId: parts[3], body, now, fetchImpl, waitUntil, url: request.url });
+      }
       if (parts[3] && parts[4] === "evaluate" && M === "POST") {
         await requireAccess(db, user, "evaluation", now);
         const cur = await currentProfile(db, m);
@@ -294,6 +299,13 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
         return json({ ok: true });
       }
       throw new HttpError(405, "method");
+    }
+
+    // ----- AI check of the profile against a call's official eligibility text -----
+    if (sub === "official-checks") {
+      const m = await requireRole(db, orgId, user, "viewer");
+      const cur = await currentProfile(db, m);
+      return await officialRoute({ env, db, user, M, parts, body, now, org: orgId, requireRole, profile: cur.profile, version: cur.version, fetchImpl, waitUntil, url: request.url });
     }
 
     // ----- saved reports -----

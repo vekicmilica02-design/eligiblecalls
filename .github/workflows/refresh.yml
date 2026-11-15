@@ -53,6 +53,10 @@ jobs:
           python ingest/award_criteria.py
         continue-on-error: true   # a failure keeps the previous criteria file; the call data still publishes
 
+      - name: Read the official eligibility conditions (call document "Eligibility" section, Horizon Europe General Annex B, UKRI "Who can apply")
+        run: python ingest/eligibility_docs.py
+        continue-on-error: true   # a failure keeps the previous eligibility file; the call data still publishes
+
       - name: Commit if anything changed
         run: |
           git config user.name "eligiblecalls-bot"

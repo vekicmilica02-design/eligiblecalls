@@ -219,3 +219,18 @@ table.adm-t tr.hl td { background: var(--green-soft); }
 .idea-tools .btn, .ev-box .btn, .paywall .btn { white-space: normal; text-align: left; }
 .ev-box select { max-width: 100%; min-width: 0; }
 .idea, .idea-tools, .ev-box { min-width: 0; }
+
+/* Saved reports. */
+.fld.grow { flex: 1 1 260px; min-width: 0; }
+.rep-tools { align-items: flex-end; margin-bottom: 10px; }
+table.rep-t { min-width: 640px; }
+table.rep-t td { vertical-align: top; }
+.rep-note { font-style: italic; }
+.delta { font-size: 12px; font-weight: 700; }
+.delta.up { color: var(--sc-high); }
+.delta.down { color: var(--sc-low); }
+.rep-cmp { align-items: center; gap: 18px; font-size: 15px; }
+.rep-head { display: grid; gap: 10px; }
+.rep-save .oi-row, .rep-head .oi-row { align-items: flex-end; }
+.btn.danger { background: var(--sc-low-soft); color: var(--sc-low); border-color: var(--sc-low-fill); }
+table.upc td.num { white-space: nowrap; }

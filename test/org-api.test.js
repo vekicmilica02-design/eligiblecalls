@@ -201,6 +201,47 @@ await t("automatic fill: reliable values fill empty fields with their source; di
   void vw;
 });
 
+await t("saved reports: editors save a snapshot with the profile version; viewers read; note, delete, validation", async () => {
+  const snap = {
+    call: { key: "erasmus-ka220-2027", id: "ERASMUS-KA220", title: "Cooperation partnerships", programme: "erasmus", programmeName: "Erasmus+", url: "https://example.org/call", deadline: "2027-03-05", funding: "up to 400 000 EUR" },
+    assessment: { score: 72, band: "good", status: "potential", capApplied: false,
+      checks: [{ code: "country.eligible", params: { country: "RS", quote: "Organisations from Serbia may apply." }, result: "pass", source: "call" }, { code: "orgType.eligible", params: {}, result: "weird", source: "call" }],
+      strengths: [{ code: "sector.match", params: { n: 2 } }], gaps: [{ code: "partners.missing", params: {}, result: "warn" }], next: [{ code: "next.partners", params: {} }],
+      missing: ["employees", "budget"], dims: { objectives: 0.8, targetGroups: 1.4 }, weights: { objectives: 30, targetGroups: 20 } },
+    dataGenerated: "2026-11-15T08:22:00Z",
+  };
+  assert.equal((await call("POST", `/api/orgs/${org}/reports`, { cookie: undefined, body: snap })).status, 401);
+  assert.equal((await call("POST", `/api/orgs/${org}/reports`, { cookie: alice, body: { ...snap, assessment: { ...snap.assessment, status: "great" } } })).status, 400);
+  const ver = (await call("GET", `/api/orgs/${org}`, { cookie: alice })).j.version;
+  let r = await call("POST", `/api/orgs/${org}/reports`, { cookie: alice, body: { ...snap, note: "  board meeting  " } });
+  assert.equal(r.status, 201, JSON.stringify(r.j));
+  const rep = r.j.report;
+  assert.deepEqual([rep.callKey, rep.score, rep.status, rep.profileVersion, rep.note, rep.createdBy], ["erasmus-ka220-2027", 72, "potential", ver, "board meeting", "alice@example.org"]);
+  assert.equal(rep.data.assessment.checks[1].result, "unknown", "unknown result codes are normalised");
+  assert.equal(rep.data.assessment.dims.targetGroups, 1, "dimension shares are kept within 0..1");
+  assert.equal(rep.data.call.funding, "up to 400 000 EUR");
+  // a viewer reads but cannot save, change or delete
+  const vw = await signIn("viewer-fill@example.org");
+  const list = (await call("GET", `/api/orgs/${org}/reports`, { cookie: vw })).j.reports;
+  assert.equal(list.length, 1); assert.equal(list[0].data, undefined, "the list carries no snapshot data");
+  assert.equal((await call("GET", `/api/orgs/${org}/reports/${rep.id}`, { cookie: vw })).j.report.data.assessment.score, 72);
+  assert.equal((await call("POST", `/api/orgs/${org}/reports`, { cookie: vw, body: snap })).status, 403);
+  assert.equal((await call("PATCH", `/api/orgs/${org}/reports/${rep.id}`, { cookie: vw, body: { note: "x" } })).status, 403);
+  assert.equal((await call("DELETE", `/api/orgs/${org}/reports/${rep.id}`, { cookie: vw })).status, 403);
+  // other organisations' members see nothing
+  const out = await signIn("outsider@example.org");
+  assert.equal((await call("GET", `/api/orgs/${org}/reports/${rep.id}`, { cookie: out })).status, 404);
+  // note and delete
+  assert.equal((await call("PATCH", `/api/orgs/${org}/reports/${rep.id}`, { cookie: alice, body: { note: "apply in March" } })).status, 200);
+  assert.equal((await call("GET", `/api/orgs/${org}/reports/${rep.id}`, { cookie: alice })).j.report.note, "apply in March");
+  assert.equal((await call("PATCH", `/api/orgs/${org}/reports/nope`, { cookie: alice, body: { note: "x" } })).status, 404);
+  const big = { ...snap, assessment: { ...snap.assessment, checks: Array.from({ length: 80 }, () => ({ code: "x", params: { quote: "q".repeat(1500) }, result: "pass" })) } };
+  assert.equal((await call("POST", `/api/orgs/${org}/reports`, { cookie: alice, body: big })).status, 413);
+  r = await call("POST", `/api/orgs/${org}/reports`, { cookie: alice, body: snap });
+  assert.equal((await call("DELETE", `/api/orgs/${org}/reports/${r.j.report.id}`, { cookie: alice })).status, 200);
+  assert.equal((await call("GET", `/api/orgs/${org}/reports`, { cookie: alice })).j.reports.length, 1);
+});
+
 await t("extraction limits: chunk size, per-user daily AI actions", async () => {
   assert.equal((await call("POST", `/api/orgs/${org}/extract`, { cookie: alice, body: { text: "a ".repeat(8000) } })).j.error, "chunk_too_large");
   env.ORG_AI_PER_USER = "1";

@@ -94,7 +94,7 @@ header.site { background: var(--surface); border-bottom: 1px solid var(--line); 
 header.site .wrap { display: flex; align-items: center; gap: 28px; min-height: 64px; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); margin-right: auto; }
 .brand-name { font-weight: 700; font-size: 24px; letter-spacing: -0.035em; font-variation-settings: "opsz" 48; }
-.brand-mark { width: 34px; height: 34px; color: var(--brand); flex: none; }
+.brand-mark { width: 34px; height: 34px; color: var(--accent-text); flex: none; }  /* same purple as the accent text of the headline */
 .brand-mark svg { width: 100%; height: 100%; display: block; fill: currentColor; }
 .brand-sub { font-size: 13px; color: var(--muted); padding-left: 10px; border-left: 1px solid var(--line); }
 nav.main { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -465,8 +465,13 @@ body.chat-open .chat-fab { display: none; }
 .msg h4 { font-size: 14.5px; margin: 14px 0 6px; } .msg h4:first-child { margin-top: 0; }
 .msg ul, .msg ol { margin: 0 0 8px; padding-left: 20px; } .msg li { margin-bottom: 4px; }
 .msg a.cid { font-family: var(--f-mono); font-size: 12.5px; }
-.thinking { color: var(--muted); font-style: italic; }
-@media (prefers-reduced-motion: no-preference) { .thinking { animation: pulse 1.6s ease-in-out infinite; } @keyframes pulse { 50% { opacity: .45; } } }
+.cards-more { display: flex; justify-content: center; padding: 18px 0 8px; }
+.thinking { color: var(--muted); display: flex; align-items: center; gap: 10px; }
+/* Loading animation ("loading" by 曹家辉 on LottieFiles, Lottie Simple License; player lottie-web, MIT; both in vendor/).
+   Drawn in the accent purple; the text sits to its right. */
+.ec-loader { display: inline-block; flex: none; width: 60px; height: 21px; color: var(--accent-text); }
+.ec-loader svg { display: block; width: 100% !important; height: 100% !important; }
+.ec-loader svg path { fill: currentColor !important; }
 .chat-foot { border-top: 1px solid var(--line); padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; background: var(--surface); }
 .chat-doc { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 6px 10px; color: var(--ink-2); }
 .chat-compose { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: end; }
@@ -617,7 +622,7 @@ const I18N = {
     closingSoon: "Closing in the next 14 days", seeAll: "All deadlines",
     filters: "Filters", clearAll: "Clear all", showResults: "Show results",
     fStatus: "Status", stOpenNow: "Open now", stSoon: "Opening soon", opensOn: (d) => `Opens ${d}`, resultsAll: "Open and upcoming calls", fCountry: "Your country", fApplicant: "Applicant type", fSector: "Sector", fProgramme: "Programme", fFunding: "Funding per project", budgetMin: "Minimum (€)", budgetMax: "Maximum (€)", budgetIn: (n) => `${n} calls in this range.`, budgetHidden: (n) => `${n} without an amount per project are hidden.`, budgetShown: (n) => `${n} without an amount per project are shown.`, budgetHow: "How amounts are read", budgetRule: "A call is shown when its amount per project overlaps your range. Where a call gives only a total budget, the amount per project is not known.", budgetUnknown: "Also show calls that state no amount per project", budgetFx: (cur, d, r) => `${cur} amounts are shown in euros at the European Central Bank reference rate of ${d} (1 € = ${r} ${cur}).`, budgetNoFx: (cur) => `No exchange rate for ${cur} is available, so those calls count as having no amount in euros.`, budgetCap: "Calls that state only a total budget are hidden when the total is below your minimum.", approx: "≈", fDeadline: "Deadline", fType: "Type of call", fPartner: "Partnership",
-    showMore: "Show all", showLess: "Show fewer",
+    showMore: "Show all", showLess: "Show fewer", moreCalls: (n) => `Show more calls (${n} more)`,
     elY: "Eligible", elP: "Eligible with a condition", elN: "Not eligible", elC: "Not available from the source",
     elShortY: "Eligible", elShortP: "Condition", elShortN: "Not eligible", elShortC: "Not in source",
     pickCountry: "Choose your country to see if you can apply.",
@@ -685,7 +690,7 @@ const I18N = {
     closingSoon: "Ističu u narednih 14 dana", seeAll: "Svi rokovi",
     filters: "Filteri", clearAll: "Obriši sve", showResults: "Prikaži rezultate",
     fStatus: "Status", stOpenNow: "Otvoren", stSoon: "Uskoro se otvara", opensOn: (d) => `Otvara se ${d}`, resultsAll: "Otvoreni i najavljeni pozivi", fCountry: "Vaša zemlja", fApplicant: "Tip podnosioca", fSector: "Oblast", fProgramme: "Program", fFunding: "Iznos po projektu", budgetMin: "Najmanje (€)", budgetMax: "Najviše (€)", budgetIn: (n) => `Poziva u ovom rasponu: ${n}.`, budgetHidden: (n) => `Skriveno bez iznosa po projektu: ${n}.`, budgetShown: (n) => `Prikazano bez iznosa po projektu: ${n}.`, budgetHow: "Kako se čitaju iznosi", budgetRule: "Poziv se prikazuje kada se njegov iznos po projektu preklapa sa vašim rasponom. Kada poziv navodi samo ukupan budžet, iznos po projektu nije poznat.", budgetUnknown: "Prikaži i pozive koji ne navode iznos po projektu", budgetFx: (cur, d, r) => `Iznosi u valuti ${cur} prikazani su u evrima po referentnom kursu Evropske centralne banke od ${d} (1 € = ${r} ${cur}).`, budgetNoFx: (cur) => `Kurs za ${cur} nije dostupan, pa se ti pozivi računaju kao pozivi bez iznosa u evrima.`, budgetCap: "Pozivi koji navode samo ukupan budžet skrivaju se kada je taj budžet manji od vašeg minimuma.", approx: "≈", fDeadline: "Rok", fType: "Vrsta poziva", fPartner: "Partnerstvo",
-    showMore: "Prikaži sve", showLess: "Prikaži manje",
+    showMore: "Prikaži sve", showLess: "Prikaži manje", moreCalls: (n) => `Prikaži još poziva (još ${n})`,
     elY: "Ispunjava uslove", elP: "Ispunjava uz uslov", elN: "Ne ispunjava uslove", elC: "Nije dostupno u izvoru",
     elShortY: "Da", elShortP: "Uz uslov", elShortN: "Ne", elShortC: "Nema podatka",
     pickCountry: "Izaberite zemlju da vidite da li možete da konkurišete.",
@@ -918,10 +923,34 @@ function sortList(list) {
   return list.sort((a, b) => ELRANK[elig(a, F.country).s] - ELRANK[elig(b, F.country).s] || by(a, b));
 }
 /* Cards with a small heading where the eligibility group changes (only when a country is chosen). */
-function cardsGrouped(list) {
-  if (!F.country) return list.map(card).join("");
-  let prev = null;
-  return list.map((c) => { const s = elig(c, F.country).s; const head = s !== prev ? `<div class="group-head ${ELCLS[s]}"><span class="dot" aria-hidden="true"></span>${esc(t("el" + s))} <span class="mono">${list.filter((x) => elig(x, F.country).s === s).length}</span></div>` : ""; prev = s; return head + card(c); }).join("");
+// Cards from..to of a list, with a heading wherever the eligibility group changes (when a country is chosen).
+function cardsGrouped(list, from = 0, to = list.length) {
+  const part = list.slice(from, to);
+  if (!F.country) return part.map(card).join("");
+  let prev = from > 0 ? elig(list[from - 1], F.country).s : null;
+  return part.map((c) => { const s = elig(c, F.country).s; const head = s !== prev ? `<div class="group-head ${ELCLS[s]}"><span class="dot" aria-hidden="true"></span>${esc(t("el" + s))} <span class="mono">${list.filter((x) => elig(x, F.country).s === s).length}</span></div>` : ""; prev = s; return head + card(c); }).join("");
+}
+/* Long lists are drawn PAGE cards at a time. Drawing all 571 cards took about a second after every filter click or
+   keystroke, long enough for a second click to land and undo the first. The next cards are added when the end of the
+   list comes near the screen, or with the button. */
+const PAGE = 40;
+function moreCards(box, list, n, onGrow) {
+  if (!box || n >= list.length) return;
+  const wrap = document.createElement("div"); wrap.className = "cards-more";
+  const b = document.createElement("button"); b.type = "button"; b.className = "btn quiet";
+  const label = () => { b.textContent = t("moreCalls", list.length - n); };
+  label(); wrap.appendChild(b); box.after(wrap);
+  let io = null;
+  const grow = () => {
+    if (!box.isConnected) { if (io) io.disconnect(); return; }
+    const m = Math.min(list.length, n + PAGE);
+    const tpl = document.createElement("template"); tpl.innerHTML = cardsGrouped(list, n, m);
+    bindSaves(tpl.content); box.appendChild(tpl.content); n = m; if (onGrow) onGrow(n);
+    if (n >= list.length) { if (io) io.disconnect(); wrap.remove(); return; }
+    label(); if (io) { io.unobserve(wrap); io.observe(wrap); }
+  };
+  b.addEventListener("click", grow);
+  if ("IntersectionObserver" in window) { io = new IntersectionObserver((es) => { if (es[0].isIntersecting) grow(); }, { rootMargin: "900px 0px" }); io.observe(wrap); }
 }
 function facetCount(facet, id) { const f = Object.assign({}, F, { [facet]: [id] }); return CALLS.filter((c) => match(c, f)).length; }
 
@@ -984,6 +1013,39 @@ function card(c) {
     </div>
   </article>`;
 }
+
+/* ---------- loading animation: every element with class "ec-loader" plays it. The player and the animation are
+   loaded on first use; an animation started later joins the same beat, so a redrawn status line does not jump. ---------- */
+const Loader = (() => {
+  const PERIOD = 1200, FRAMES = 30;   // 30 frames at 25 fps
+  const live = new Map(); let lib = null, data = null, wait = null;
+  function load() {
+    if (!wait) wait = Promise.all([
+      new Promise((ok, no) => { if (window.lottie) return ok(window.lottie); const sc = document.createElement("script"); sc.src = "vendor/lottie_light.min.js"; sc.onload = () => ok(window.lottie); sc.onerror = no; document.head.appendChild(sc); }),
+      fetch("vendor/loader.json").then((r) => { if (!r.ok) throw new Error("loader"); return r.text(); }),
+    ]).then(([l, d]) => { lib = l; data = d; }).catch(() => { wait = null; });
+    return wait;
+  }
+  function mount(el) {
+    if (live.has(el)) return;
+    live.set(el, null);
+    load().then(() => {
+      if (!lib || !el.isConnected || live.get(el)) return;
+      const a = lib.loadAnimation({ container: el, renderer: "svg", loop: true, autoplay: false, animationData: JSON.parse(data), rendererSettings: { preserveAspectRatio: "xMidYMid meet" } });
+      live.set(el, a);
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) a.goToAndStop(12, true);
+      else a.goToAndPlay(((performance.now() % PERIOD) / PERIOD) * FRAMES, true);
+    });
+  }
+  function sweep() { for (const [el, a] of live) if (!el.isConnected) { if (a) a.destroy(); live.delete(el); } }
+  function scan(n) { if (n.nodeType !== 1) return; if (n.classList.contains("ec-loader")) mount(n); else if (n.firstElementChild) n.querySelectorAll(".ec-loader").forEach(mount); }
+  new MutationObserver((ms) => {
+    let gone = false;
+    for (const m of ms) { if (m.target.closest && m.target.closest(".ec-loader")) continue; m.addedNodes.forEach(scan); if (m.removedNodes.length) gone = true; }
+    if (gone && live.size) sweep();
+  }).observe(document.documentElement, { childList: true, subtree: true });
+  return { scan: () => scan(document.body) };
+})();
 
 /* ---------- hero: field of dotted wave lines (canvas). Slow, pauses when hidden, still under reduced motion ---------- */
 const Wave = (() => {
@@ -1062,8 +1124,9 @@ function renderHome() {
     <div class="soon-list">${soon.map((c) => { const n = nextDl(c); return `<a class="soon-item" href="#c-${c.key}"><div class="dateblock"><div class="d">${dlDay(n)}</div><div class="m">${esc(fmtDate(n, { month: "short", day: undefined, year: undefined }))}</div></div><div style="min-width:0"><div class="t">${esc(c.title)}</div><div class="p">${esc(progShort(c))} · ${leftSpan(n, "")}${F.country ? " · " + esc(nm(IDX.countries[F.country])) + ": " + esc(t("elShort" + elig(c, F.country).s)) : ""}</div></div></a>`; }).join("")}</div></section>` : ""}
   <div class="wrap results-wrap" id="results"><aside class="filters" id="filters" aria-label="${esc(t("filters"))}"></aside><div id="resultsCol" style="min-width:0"></div></div>`;
   const apply = () => refresh();
-  document.getElementById("builder").addEventListener("submit", (e) => { e.preventDefault(); F.q = document.getElementById("q").value.trim(); apply(); document.getElementById("results").scrollIntoView(); });
-  document.getElementById("q").addEventListener("input", (e) => { F.q = e.target.value.trim(); apply(); });
+  document.getElementById("builder").addEventListener("submit", (e) => { e.preventDefault(); clearTimeout(qTimer); F.q = document.getElementById("q").value.trim(); apply(); document.getElementById("results").scrollIntoView(); });
+  let qTimer = 0;
+  document.getElementById("q").addEventListener("input", (e) => { clearTimeout(qTimer); const v = e.target.value.trim(); qTimer = setTimeout(() => { F.q = v; apply(); }, 220); });
   document.getElementById("bCountry").addEventListener("change", (e) => { F.country = e.target.value; store.set("country", F.country); renderHome(); });
   document.getElementById("bApp").addEventListener("change", (e) => { const g = IDX.applicantGroups[e.target.value]; F.applicants = g ? g.applicants.slice() : []; apply(); });
   document.getElementById("bSector").addEventListener("change", (e) => { const g = IDX.sectorGroups[e.target.value]; F.sectors = g ? g.sectors.slice() : []; apply(); });
@@ -1154,9 +1217,11 @@ function renderFilters() {
 function refresh() { const f = document.getElementById("filters"); const sc = f ? f.scrollTop : 0; renderFilters(); if (f) document.getElementById("filters").scrollTop = sc; renderResults(); syncBuilder(); }
 function activeCount() { return FACETS.reduce((n, k) => n + F[k].length, 0) + (F.q ? 1 : 0) + (F.budget ? 1 : 0); }
 function labelFor(k, id) { if (k === "status") return t(id === "open" ? "stOpenNow" : "stSoon"); const m = { sectors: IDX.sectors, applicants: IDX.applicants, funding: IDX.fundingBands, deadline: IDX.deadlineBuckets, types: IDX.types, partnership: IDX.partnership }; return k === "programmes" ? (P[id] ? P[id].short : id) : nm(m[k][id]); }
+let resN = PAGE, resSig = "";
 function renderResults() {
   const col = document.getElementById("resultsCol"); if (!col) return;
   const list = sortList(CALLS.filter((c) => match(c, F)));
+  const sig = JSON.stringify(F) + lang; if (sig !== resSig) { resSig = sig; resN = PAGE; }
   const grp = { sectors: groupMatch(TAX.sectorGroups, "sectors", F.sectors), applicants: groupMatch(TAX.applicantGroups, "applicants", F.applicants) };
   const chips = FACETS.flatMap((k) => grp[k] ? [`<button type="button" class="af" data-rm="${k}:*">${esc(nm((k === "sectors" ? IDX.sectorGroups : IDX.applicantGroups)[grp[k]]))}</button>`] : F[k].map((id) => `<button type="button" class="af" data-rm="${k}:${id}">${esc(labelFor(k, id))}</button>`));
   if (F.q) chips.unshift(`<button type="button" class="af" data-rm="q:">“${esc(F.q)}”</button>`);
@@ -1168,13 +1233,14 @@ function renderResults() {
       <label class="vh" for="sort">${esc(t("sortLabel"))}</label><select id="sort"><option value="deadline">${esc(t("sortDeadline"))}</option><option value="funding">${esc(t("sortFunding"))}</option></select></div></div>
     ${eTabs ? `<div class="elig-tabs" role="group" aria-label="Eligibility">${eTabs}</div>` : ""}
     ${chips.length ? `<div class="active-filters">${chips.join("")}</div>` : ""}
-    <div class="cards">${list.length ? cardsGrouped(list) : `<div class="empty"><h3>${esc(t("noResults"))}</h3><p>${esc(t("noResultsHint"))}</p></div>`}</div>`;
+    <div class="cards">${list.length ? cardsGrouped(list, 0, resN) : `<div class="empty"><h3>${esc(t("noResults"))}</h3><p>${esc(t("noResultsHint"))}</p></div>`}</div>`;
   col.querySelector("#sort").value = F.sort;
   col.querySelector("#sort").addEventListener("change", (e) => { F.sort = e.target.value; renderResults(); });
   col.querySelectorAll("[data-el]").forEach((b) => b.addEventListener("click", () => { const s = b.dataset.el; const i = F.elig.indexOf(s); if (i >= 0) { if (F.elig.length > 1) F.elig.splice(i, 1); } else F.elig.push(s); refresh(); }));
   col.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => { const [k, id] = b.dataset.rm.split(":"); if (k === "q") { F.q = ""; const q = document.getElementById("q"); if (q) q.value = ""; } else if (k === "budget") F.budget = null; else F[k] = id === "*" ? [] : F[k].filter((x) => x !== id); refresh(); }));
   col.querySelector("#openFilters").addEventListener("click", () => document.getElementById("filters").classList.add("open"));
   bindSaves(col);
+  moreCards(col.querySelector(".cards"), list, Math.min(resN, list.length), (n) => { resN = n; });
 }
 function renderBrowse() {
   const el = document.getElementById("browse"); const open = CALLS.filter(isOpen);
@@ -1276,11 +1342,12 @@ function renderProgramme(id) {
     <div class="prog-grid"><div style="min-width:0">
       <section><h2>${esc(t("participation"))}</h2>${p.countries ? countryGroupsHTML((cc) => ({ s: p.countries[cc][0], note: p.countries[cc][1] })) : `<p>${esc(p.note)}</p>`}
         ${p.note && p.countries ? `<p class="fine">${esc(p.note)}</p>` : ""}</section>
-      <section><h2>${esc(t("openCalls"))} (${calls.length})</h2><div class="cards">${cardsGrouped(calls) || "–"}</div></section>
+      <section><h2>${esc(t("openCalls"))} (${calls.length})</h2><div class="cards" id="progCards">${cardsGrouped(calls, 0, PAGE) || "–"}</div></section>
     </div>
     <div class="side">${p.list ? `<div class="panel"><h2>${esc(t("colList"))}</h2><p class="fine">${esc(p.list.version)} · checked ${esc(fmtDate(p.list.checked))}</p><a class="btn" href="${esc(p.list.url)}" target="_blank" rel="noopener">PDF ↗</a></div>` : ""}</div>
     </div></div>`;
   bindSaves(app);
+  moreCards(document.getElementById("progCards"), calls, Math.min(PAGE, calls.length));
 }
 
 /* ---------- deadlines / saved / about ---------- */
@@ -1646,8 +1713,8 @@ async function sendChat() {
   e.box.value = ""; autosize(); e.note.textContent = ""; e.note.classList.remove("info");
   CHAT.turns.push({ role: "user", content: userText });
   while (CHAT.turns.length > 10) CHAT.turns.splice(0, 2);
-  const bubble = addMsg("assistant", `<p class="thinking">${esc(ct("thinking"))}</p>`);
-  const status = (s) => { if (bubble.querySelector(".thinking")) bubble.querySelector(".thinking").textContent = s; };
+  const bubble = addMsg("assistant", `<p class="thinking" role="status"><span class="ec-loader" aria-hidden="true"></span><span class="tt">${esc(ct("thinking"))}</span></p>`);
+  const status = (s) => { const el = bubble.querySelector(".thinking .tt"); if (el) el.textContent = s; };
   CHAT.ctl = new AbortController(); setBusy(true);
   try {
     const res = CHAT.mode === "api" ? await sendApi(bubble) : await sendSample(bubble, status);

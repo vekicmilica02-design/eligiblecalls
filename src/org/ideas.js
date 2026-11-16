@@ -11,13 +11,15 @@ import { prepare, nextDeadline, eligibilityFor, srRule } from "../core.js";
 import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json, randomId, utcDay } from "./http.js";
 import { FIELD } from "../../site/org/schema.js";
+import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
+import { loadCriteria, loadGuide } from "./evaluate.js";
 
 export const MAX_CANDIDATES = 6;   // calls sent to the model in one request (fits the smallest provider window)
 export const MAX_IDEAS = 8;
 const MAX_PER_CALL = 1;
 // One model request per selected call: a single request for several calls let the model write ideas for only one of
 // them, and long answers did not fit the providers' output limits. Two requests run at a time.
-const IDEA_MAX_OUT = 2000, IDEA_PARALLEL = 2;
+const IDEA_MAX_OUT = 2200, IDEA_PARALLEL = 2;
 
 let INDEX = null;
 export async function loadIndex(env, url) {
@@ -67,6 +69,39 @@ export function callBlock(index, c, country, now, cand) {
     `Call text (excerpt): ${clip(c.x, 1100)}`].join("\n");
 }
 
+// The award criteria the idea will later be evaluated against (the same rubric as src/org/evaluate.js), in short form.
+// Without them the model wrote to the call text only, and concepts regularly failed the implementation criterion.
+const shorten = (s, n) => { s = String(s ?? "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+export function criteriaBlock(rubric) {
+  if (!rubric) return "";
+  if (!rubric.criteria) return ["AWARD CRITERIA (" + rubric.sourceTitle + ", described in prose, no point scale)", shorten(rubric.sourceText, 1500)].join("\n");
+  const pts = (n) => String(n).replace(/\.0$/, "");
+  const lines = [`AWARD CRITERIA (${rubric.sourceTitle})`];
+  for (const c of rubric.criteria) {
+    lines.push(`- ${c.name}: 0 to ${pts(c.max)}${c.min !== null && c.min !== undefined ? `, at least ${pts(c.min)} needed` : ""}`);
+    for (const a of (c.aspects || []).slice(0, 6)) lines.push("    · " + shorten(a, 170));
+  }
+  if (rubric.total && rubric.total.threshold !== null && rubric.total.threshold !== undefined) lines.push(`Overall threshold: ${pts(rubric.total.threshold)} of ${pts(rubric.total.max)}.`);
+  return lines.join("\n").slice(0, 2600);
+}
+
+// The last evaluation of an earlier idea for the same call, when it was below a threshold: what the evaluator found
+// weak, so the next concept fixes it instead of repeating it.
+export function previousBlock(idea, ev) {
+  if (!ev || ev.passed !== false) return "";
+  const pts = (n) => String(n).replace(/\.0$/, "");
+  const lines = [`PREVIOUS EVALUATION (an earlier concept for this call scored ${pts(ev.total)} of ${pts(ev.max)}${ev.threshold !== null && ev.threshold !== undefined ? `, threshold ${pts(ev.threshold)}` : ""}: below the threshold)`,
+    `Earlier concept: ${shorten(idea && idea.title, 160)}. ${shorten(idea && idea.concept, 300)}`];
+  for (const c of ev.criteria || []) {
+    const weak = c.pass === false || (c.max && c.score / c.max < 0.6);
+    if (!weak) continue;
+    lines.push(`- ${c.name}: ${pts(c.score)} of ${pts(c.max)}${c.min !== null && c.min !== undefined ? ` (needed ${pts(c.min)})` : ""}`);
+    for (const w of [...(c.weaknesses || []).slice(0, 3), ...(c.missing || []).slice(0, 3)]) lines.push("    · " + shorten(w, 200));
+  }
+  for (const a of (ev.priorityActions || []).slice(0, 4)) lines.push("  To do: " + shorten(a, 200));
+  return lines.join("\n").slice(0, 2200);
+}
+
 export function ideaMessages({ profile, blocks, lang, ids }) {
   const language = lang === "sr" ? "Serbian (Latin script)" : "English";
   const system = [
@@ -80,6 +115,8 @@ export function ideaMessages({ profile, blocks, lang, ids }) {
     "5. objectives: 3 to 5 measurable objectives (a number, a share or a deadline in each). expectedResults: measurable outputs and outcomes.",
     "6. fit: rate from 1 (weak) to 5 (strong) alignment (with the call's stated objectives), priorities (with the programme's priorities as stated in the call text), feasibility (for this organisation's capacity) and impact; give one sentence of reasons.",
     "   fit.explanation explains these ratings for THIS concept and THIS call: summary (2 to 3 sentences), strengths (which objectives or activities of the concept match which priorities of the call, named), weaknesses (what is missing or weak, e.g. partnership structure, measurable impact, budget realism), improve (concrete changes that would raise the fit). Name the concept's own elements and the call's own priorities; never write sentences that would fit any project.",
+    "6b. Where the call lists AWARD CRITERIA, the concept will be scored against them. Write it so each criterion is answered by something concrete in the concept: for a criterion on implementation, resources or the consortium, put a short work plan in activities (phases with months), name the partner types and countries the concept needs in potentialPartners with their role, and name the main risk in solution. Rate fit against these criteria, honestly.",
+    "6c. Where a PREVIOUS EVALUATION is given, an earlier concept for this call was scored below the threshold. Propose a different concept that fixes the weaknesses and missing elements it names; do not reuse its title or its main activity.",
     `7. Write all text in ${language}. Keep each text field under 400 characters and each list item under 160 characters.`,
     ...srRule(lang),
     '8. Answer with one JSON object and nothing else: {"ideas": [{"callId": "...", "title": "...", "concept": "...", "problem": "...", "solution": "...", "objectives": ["..."], "targetGroups": ["..."], "activities": ["..."], "expectedResults": ["..."], "potentialPartners": ["..."], "whyItFits": "...", "fit": {"alignment": 1-5, "priorities": 1-5, "feasibility": 1-5, "impact": 1-5, "reasons": "...", "explanation": {"summary": "...", "strengths": ["..."], "weaknesses": ["..."], "improve": ["..."]}}}]}',
@@ -212,12 +249,33 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
 
   const ids = valid.map((v) => v.c.id);
   const pb = profileBlock(profile);
+  // Award criteria of each call, and the last below-threshold evaluation of an earlier idea for it.
+  const rubrics = new Map(), previous = new Map();
+  try {
+    const [crit, guide] = await Promise.all([loadCriteria(env, url), ids.some((x) => erasmusAction(x)) ? loadGuide(env, url) : null]);
+    for (const v of valid) { const rb = rubricFor({ id: v.c.id, programme: v.c.p }, crit, guide); if (rb) rubrics.set(v.c.id, rb); }
+  } catch { /* criteria data unavailable: ideas are still generated from the call text */ }
+  const marks = ids.map(() => "?").join(", ");
+  const past = (await db.prepare(`SELECT call_id, idea, evaluations FROM project_ideas WHERE org_id = ? AND call_id IN (${marks}) AND evaluations IS NOT NULL ORDER BY updated_at DESC`).bind(org.id, ...ids).all()).results || [];
+  const seenCall = new Set();
+  for (const p of past) {
+    if (seenCall.has(p.call_id)) continue;
+    let evs = {}, idea = null; try { evs = JSON.parse(p.evaluations || "{}"); idea = JSON.parse(p.idea); } catch { continue; }
+    const rb = rubrics.get(p.call_id);
+    const all = Object.values(evs);
+    if (!all.length) continue;
+    seenCall.add(p.call_id); // only the most recently evaluated idea of a call counts
+    const ev = (rb && evs[rb.key]) || all.reduce((a, b) => ((b.at || 0) > (a.at || 0) ? b : a));
+    const block = previousBlock(idea, ev);
+    if (block) previous.set(p.call_id, block);
+  }
   const ideas = [], dropped = [], models = [];
   let used = false, firstErr = null;
   const runOne = async (v) => {
     const id = v.c.id;
     try {
-      const messages = ideaMessages({ profile: pb, blocks: [callBlock(index, v.c, profile.country, now, v.cand)], lang, ids: [id] });
+      const extra = [criteriaBlock(rubrics.get(id)), previous.get(id) || ""].filter(Boolean);
+      const messages = ideaMessages({ profile: pb, blocks: [[callBlock(index, v.c, profile.country, now, v.cand), ...extra].join("\n\n")], lang, ids: [id] });
       const r = await complete({ env, userId: user.id, messages, agent: "ideas", maxOut: IDEA_MAX_OUT, now, fetchImpl, waitUntil });
       if (!used) { used = true; await markUsed(); }
       if (r.model && !models.includes(r.model)) models.push(r.model);

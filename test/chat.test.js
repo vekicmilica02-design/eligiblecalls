@@ -200,6 +200,11 @@ await t("per-visitor daily limit", async () => {
   const other = await handleChat({ request: req({ messages: [{ role: "user", content: "film" }] }, { "cf-connecting-ip": "198.51.100.1" }), env: e, now: NOW, fetchImpl: mockFetch() });
   assert.equal(other.status, 200);
   assert.equal(e.DB._db.prepare("SELECT count(*) n FROM visitor_usage WHERE vhash LIKE '%203.0.113%'").get().n, 0);
+  // no provider could answer: the message is not counted against the visitor
+  const e2 = env({ DAILY_VISITOR_LIMIT: "2", GROQ_API_KEY: "test" }); delete e2.AI;
+  const ip = { "cf-connecting-ip": "192.0.2.7" };
+  for (let i = 0; i < 3; i++) assert.equal((await handleChat({ request: req({ messages: [{ role: "user", content: "film" }] }, ip), env: e2, now: NOW, fetchImpl: mockFetch([], { groqStatus: 500 }) })).status, 503);
+  assert.equal((await handleChat({ request: req({ messages: [{ role: "user", content: "film" }] }, ip), env: e2, now: NOW, fetchImpl: mockFetch() })).status, 200, "failed attempts did not use the visitor's messages");
 });
 
 await t("Turnstile is enforced when a secret is set", async () => {

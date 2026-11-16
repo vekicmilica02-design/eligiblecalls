@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { handleApi } from "../src/org/api.js";
 import { _resetTaxonomy } from "../src/org/http.js";
-import { verifyFields, robotsAllows, checkPublicUrl, aboutLinks, matchKey } from "../src/org/extract.js";
+import { verifyFields, robotsAllows, checkPublicUrl, aboutLinks, matchKey, htmlToText } from "../src/org/extract.js";
 import { parseJsonObject, complete } from "../src/org/ai.js";
 import { GROQ_FREE } from "../src/providers.js";
 import { contextFrom } from "../site/org/schema.js";
@@ -210,7 +210,7 @@ await t("saved reports: editors save a snapshot with the profile version; viewer
     call: { key: "erasmus-ka220-2027", id: "ERASMUS-KA220", title: "Cooperation partnerships", programme: "erasmus", programmeName: "Erasmus+", url: "https://example.org/call", deadline: "2027-03-05", funding: "up to 400 000 EUR" },
     assessment: { score: 72, band: "good", status: "potential", capApplied: false,
       checks: [{ code: "country.eligible", params: { country: "RS", quote: "Organisations from Serbia may apply." }, result: "pass", source: "call" }, { code: "orgType.eligible", params: {}, result: "weird", source: "call" }],
-      strengths: [{ code: "sector.match", params: { n: 2 } }], gaps: [{ code: "partners.missing", params: {}, result: "warn" }], next: [{ code: "next.partners", params: {} }],
+      strengths: [{ code: "sector.match", params: { n: 2, url: "javascript:alert(1)" } }, { code: "guide", params: { url: "https://erasmus-plus.ec.europa.eu/guide" } }], gaps: [{ code: "partners.missing", params: {}, result: "warn" }], next: [{ code: "next.partners", params: {} }],
       missing: ["employees", "budget"], dims: { objectives: 0.8, targetGroups: 1.4 }, weights: { objectives: 30, targetGroups: 20 } },
     dataGenerated: "2026-11-15T08:22:00Z",
   };
@@ -224,6 +224,7 @@ await t("saved reports: editors save a snapshot with the profile version; viewer
   assert.equal(rep.data.assessment.checks[1].result, "unknown", "unknown result codes are normalised");
   assert.equal(rep.data.assessment.dims.targetGroups, 1, "dimension shares are kept within 0..1");
   assert.equal(rep.data.call.funding, "up to 400 000 EUR");
+  assert.deepEqual(rep.data.assessment.strengths.map((x) => x.params.url), [undefined, "https://erasmus-plus.ec.europa.eu/guide"], "only https links are kept");
   // a viewer reads but cannot save, change or delete
   const vw = await signIn("viewer-fill@example.org");
   const list = (await call("GET", `/api/orgs/${org}/reports`, { cookie: vw })).j.reports;
@@ -271,6 +272,7 @@ await t("web research: only public URLs, robots.txt respected, about pages follo
   assert.equal((await call("POST", `/api/orgs/${org}/research`, { cookie: alice, body: { url: "https://mladi.example.rs/private/page" } })).j.error, "robots_disallow");
   assert.equal(robotsAllows("User-agent: *\nDisallow: /\nUser-agent: EligibleCallsBot\nAllow: /\n", "/x"), true);
   assert.equal(robotsAllows("User-agent: *\nDisallow: /\n", "/x"), false);
+  assert.equal(htmlToText("<p>Na&scaron;a misija: &#x10D;ist vazduh &amp; &#269;ista voda &#128512; &amp;scaron; &bogus;</p>"), "Naša misija: čist vazduh & čista voda 😀 &scaron; &bogus;");
   assert.deepEqual(aboutLinks('<a href="https://other.example/about">About</a><a href="/team">Team</a>', new URL("https://a.example/")), ["https://a.example/team"]);
 });
 
@@ -859,6 +861,19 @@ await t("AI chain for organisation work: no retired Groq models; a per-minute li
     assert.equal(await run({ "openai/gpt-oss-120b": [429, tpm("openai/gpt-oss-120b")], "openai/gpt-oss-20b": [404, "The model does not exist"] }), "ai_busy");
     assert.equal(await run({ "openai/gpt-oss-120b": [500, "x"], "openai/gpt-oss-20b": [404, "x"] }), "ai_unavailable");
     assert.equal(await run({}), "ok");
+    // an empty answer is a failure of that provider: the next one is asked
+    let env2 = { DB: mockD1(), GROQ_API_KEY: "test" }, seen = [];
+    const r2 = await complete({ env: env2, userId: "u1", messages: [{ role: "user", content: "x" }], maxOut: 300, now: Date.parse("2026-11-15T12:00:00Z"), fetchImpl: mockFetch(seen, { groqByModel: { "openai/gpt-oss-120b": "empty" } }) });
+    assert.equal(r2.model, "openai/gpt-oss-20b"); assert.equal(r2.text, "From Groq.");
+    assert.equal(env2.DB._db.prepare("SELECT count FROM ai_usage WHERE user_id = 'u1'").get().count, 1, "one action for one answer");
+    // nothing answered: the reserved action is given back
+    env2 = { DB: mockD1(), GROQ_API_KEY: "test" };
+    await complete({ env: env2, userId: "u1", messages: [{ role: "user", content: "x" }], maxOut: 300, now: Date.parse("2026-11-15T12:00:00Z"), fetchImpl: mockFetch([], { groqByModel: { "openai/gpt-oss-120b": [500, "x"], "openai/gpt-oss-20b": "empty" } }) }).catch(() => {});
+    assert.equal(env2.DB._db.prepare("SELECT count FROM ai_usage WHERE user_id = 'u1'").get().count, 0, "no action used when nothing answered");
+    // two requests at once cannot both pass the last allowed action
+    env2 = { DB: mockD1(), GROQ_API_KEY: "test", ORG_AI_PER_USER: "1" };
+    const both = await Promise.allSettled([1, 2].map(() => complete({ env: env2, userId: "u1", messages: [{ role: "user", content: "x" }], maxOut: 300, now: Date.parse("2026-11-15T12:00:00Z"), fetchImpl: mockFetch() })));
+    assert.equal(both.filter((x) => x.status === "fulfilled").length, 1, "only one of two parallel requests gets the last action");
   } finally { console.warn = warn; }
 });
 

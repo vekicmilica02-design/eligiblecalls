@@ -589,6 +589,15 @@ await t("idea evaluation uses the criteria of the idea's own call: Horizon annex
   assert.deepEqual([r.status, r.j.error], [409, "no_criteria"]);
   const listed = (await call("GET", `/api/orgs/${o}/ideas`, { cookie: u })).j.ideas;
   assert.equal(listed.filter((x) => Object.keys(x.evaluations).length).length, 4, "four evaluated ideas");
+  // unchanged inputs: the stored evaluation is returned without a model request; "force" asks the model again
+  const heIdea = listed.find((x) => x.evaluations["HE-RIA_IA"]);
+  const before = aiSeen.length, stored = heIdea.evaluations["HE-RIA_IA"];
+  aiAnswer = JSON.stringify({ criteria: [{ id: "c1", score: 1 }, { id: "c2", score: 1 }, { id: "c3", score: 1 }], summary: "different" });
+  r = await call("POST", `/api/orgs/${o}/ideas/${heIdea.id}/evaluate`, { cookie: u, body: { lang: "en" } });
+  assert.equal(r.status, 200); assert.equal(r.j.cached, true); assert.equal(aiSeen.length, before, "no model request");
+  assert.equal(r.j.evaluation.total, stored.total, "same stored result");
+  r = await call("POST", `/api/orgs/${o}/ideas/${heIdea.id}/evaluate`, { cookie: u, body: { lang: "en", force: true } });
+  assert.equal(aiSeen.length, before + 1, "force asks the model again"); assert.equal(r.j.evaluation.total, 3);
 });
 
 await t("official eligibility check: quotes verified against the official text, consortium never fails, stored per profile version", async () => {
@@ -620,7 +629,13 @@ await t("official eligibility check: quotes verified against the official text, 
   if (none) assert.deepEqual([(r = await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: none } })).status, r.j.error], [409, "no_official_text"]);
   assert.equal((await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: "NO-SUCH-CALL" } })).status, 404);
   aiAnswer = JSON.stringify({ conditions: [{ condition: "x", quote: "nothing like this is in the official text", result: "pass" }] });
-  assert.equal((await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: cid } })).j.error, "ai_bad_answer");
+  // the same profile version, official text and language: the stored check is returned and no model request is made
+  const seen = aiSeen.length;
+  r = await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: cid, lang: "en" } });
+  assert.equal(r.status, 200); assert.equal(r.j.cached, true, "stored check returned"); assert.equal(aiSeen.length, seen, "no model request");
+  assert.equal((await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: cid, lang: "sr" } })).j.cached, undefined, "another language is a new check");
+  aiAnswer = JSON.stringify({ conditions: [{ condition: "x", quote: "nothing like this is in the official text", result: "pass" }] });
+  assert.equal((await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: cid, force: true } })).j.error, "ai_bad_answer");
   // concept fit explanation: a generic answer is rejected, a specific one is stored with the idea
   const iid = "idea-fx-" + o.slice(0, 6);
   env.DB.prepare("INSERT INTO project_ideas (id, org_id, batch_id, call_id, rank, status, idea, match, lang, profile_version, call_title, created_by, created_at, updated_at) VALUES (?, ?, 'b', ?, 1, 'saved', ?, '{}', 'en', 2, 'Call', 'x', ?, ?)")
@@ -719,6 +734,9 @@ await t("admin AI usage: today's counters per provider against the budgets; admi
   assert.equal(d.days.length, 7); assert.equal(d.days[0].day, new Date(NOW).toISOString().slice(0, 10));
   assert.ok(d.workspace.users.some((x) => x.email === "ivo@example.org" && x.count >= 5)); assert.equal(d.perUserLimit, 20);
   assert.equal(typeof d.assistant.messages, "number");
+  const ag = Object.fromEntries(d.agents.map((a) => [a.key, a]));
+  assert.ok(ag.evaluate && ag.evaluate.requests >= 5, "use is counted per function"); assert.ok(ag.official && ag.official.requests >= 1);
+  assert.equal(d.days[0].requests, d.providers.reduce((x, p) => x + p.requests, 0), "function rows are not counted twice in the daily total");
   delete env.LOGIN_LINKS_PER_IP;
 });
 

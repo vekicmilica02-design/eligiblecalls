@@ -44,7 +44,7 @@ def form(query, sort=True):
     return parts
 
 
-def post(url, params, files, tries=4):
+def post(url, params, files, tries=5):
     for i in range(tries):
         try:
             r = S.post(url, params=params, files=files, timeout=60)
@@ -53,7 +53,7 @@ def post(url, params, files, tries=4):
             print(f"  HTTP {r.status_code} from {url}", file=sys.stderr)
         except requests.RequestException as e:
             print(f"  {e}", file=sys.stderr)
-        time.sleep(3 * (i + 1))
+        time.sleep(min(60, 5 * 2 ** i))   # 5, 10, 20, 40 s: a short Portal outage is waited out
     raise SystemExit(f"Giving up on {url}")
 
 
@@ -211,9 +211,21 @@ def main():
         return "Forthcoming" in (a.get("actionStatus") or []) and float(a.get("plannedOpeningMs") or 0) <= now.timestamp() * 1000  # stored as a string of milliseconds
     todo = [x for x in recs if stale(x)]
     print(f"grant topics: {len(recs)}, details to (re)fetch: {len(todo)}")
+    unreachable = 0
     with ThreadPoolExecutor(max_workers=6) as ex:
         for x, audit in zip(todo, ex.map(lambda x: topic_details(x["id"]), todo)):
+            if audit.get("error") == "unreachable":
+                # A network failure says nothing about the call. It used to be stored like a missing page, so the call
+                # stayed off the site until its checksum changed, and a Portal outage could empty the list (and fail the
+                # run on the 20-topic check). Keep the earlier details if there are any; the checksum stays unmatched so
+                # the next run asks again.
+                unreachable += 1
+                if x["id"] not in state["topics"]:
+                    state["topics"][x["id"]] = {"checksum": None, "audit": audit, "fetched": now.isoformat()}
+                continue
             state["topics"][x["id"]] = {"checksum": x["checksum"], "audit": audit, "fetched": now.isoformat()}
+    if unreachable:
+        print(f"  {unreachable} topic page(s) unreachable: kept as before, asked again next run", file=sys.stderr)
 
     kept, past, broken, soon = [], 0, 0, 0
     for x in recs:

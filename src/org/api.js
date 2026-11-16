@@ -6,7 +6,7 @@ import { requestLink, verifyLink, currentUser, logout, cleanEmail, googleStart, 
 import { sendEmail, mailText } from "./email.js";
 import { cleanProfile, contextFrom, changedFields, completeness, FIELD } from "../../site/org/schema.js";
 import { extractFromText, researchUrl } from "./extract.js";
-import { generateIdeas, listIdeas, updateIdea, explainFit } from "./ideas.js";
+import { generateIdeas, listIdeas, updateIdea, explainFit, improveIdea, translateIdea } from "./ideas.js";
 import { requireAccess, countIdeaRun, accessOf, isAdmin, userAccessRoute, adminRoute } from "./access.js";
 import { makeProposal, getProposal } from "./proposal.js";
 import { evaluateIdea } from "./evaluate.js";
@@ -270,6 +270,11 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
     if (sub === "ideas") {
       if (M === "GET" && !parts[3]) { await requireRole(db, orgId, user, "viewer"); return json({ ideas: await listIdeas(db, orgId) }); }
       if (M === "GET" && parts[4] === "proposal") { await requireRole(db, orgId, user, "viewer"); return await getProposal(db, orgId, parts[3]); }
+      // The idea and its evaluations in the reader's language (a stored copy; any member may ask for it).
+      if (M === "POST" && parts[3] && parts[4] === "translate") {
+        const mv = await requireRole(db, orgId, user, "viewer");
+        return await translateIdea({ env, db, org: mv, user, ideaId: parts[3], body, now, fetchImpl, waitUntil });
+      }
       const m = await requireRole(db, orgId, user, "editor");
       if (M === "POST" && !parts[3]) {
         const acc = await requireAccess(db, user, "ideas", now);   // free generations, then premium only
@@ -303,6 +308,12 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
       if (parts[3] && parts[4] === "fit-explanation" && M === "POST") {
         const cur = await currentProfile(db, m);
         return await explainFit({ env, db, org: m, user, profile: cur.profile, ideaId: parts[3], body, now, fetchImpl, waitUntil, url: request.url });
+      }
+      // Revise an idea evaluated below the threshold, using that evaluation (premium, like the evaluation itself).
+      if (parts[3] && parts[4] === "improve" && M === "POST") {
+        await requireAccess(db, user, "evaluation", now);
+        const cur = await currentProfile(db, m);
+        return await improveIdea({ env, db, org: m, user, profile: cur.profile, version: cur.version, ideaId: parts[3], body, now, fetchImpl, waitUntil, url: request.url });
       }
       if (parts[3] && parts[4] === "evaluate" && M === "POST") {
         await requireAccess(db, user, "evaluation", now);

@@ -7,7 +7,7 @@
 import { nextDeadline, srRule } from "../core.js";
 import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json } from "./http.js";
-import { loadIndex, callBlock, profileBlock } from "./ideas.js";
+import { loadIndex, callBlock, profileBlock, ideaForModel } from "./ideas.js";
 
 const clip = (s, n) => { s = String(s ?? "").replace(/[ \t]+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
 const list = (v, n, len) => (Array.isArray(v) ? v : typeof v === "string" && v ? [v] : []).map((x) => clip(x, len)).filter(Boolean).slice(0, n);
@@ -82,7 +82,7 @@ export async function makeProposal({ env, db, org, user, profile, ideaId, body, 
   const match = row.match ? JSON.parse(row.match) : { score: 0, status: "potential" };
   const callText = c ? callBlock(index, c, profile.country, now, match).replace(/Call text \(excerpt\): .*/s, "Call text (excerpt): " + clip(c.x, 2400)) : `### ${row.call_id}\nTitle: ${row.call_title}\n(The call is no longer in the published data.)`;
   const maxPerProject = c && c.f ? c.f : null;
-  const messages = proposalMessages({ idea: JSON.parse(row.idea), call: callText, profile: profileBlock(profile), lang, maxPerProject, currency: c && c.cur });
+  const messages = proposalMessages({ idea: ideaForModel(JSON.parse(row.idea)), call: callText, profile: profileBlock(profile), lang, maxPerProject, currency: c && c.cur });
   const r = await complete({ env, userId: user.id, messages, agent: "proposal", maxOut: 4500, now, fetchImpl, waitUntil });
   const p = cleanProposal(parseJsonObject(r.text), { maxPerProject });
   if (!p || p.incomplete) throw new HttpError(502, "ai_bad_answer", p ? { incomplete: p.incomplete } : {});

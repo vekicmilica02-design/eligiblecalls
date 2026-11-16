@@ -612,6 +612,35 @@ await t("idea evaluation uses the criteria of the idea's own call: Horizon annex
     const prompt = aiSeen.at(-1).messages.map((m) => m.content).join("\n");
     assert.match(prompt, /AWARD CRITERIA[\s\S]*Quality and efficiency of the implementation: 0 to 5, at least 3 needed/);
     assert.match(prompt, /PREVIOUS EVALUATION[\s\S]*below the threshold[\s\S]*No work plan or partner roles/);
+    assert.match(prompt, /workPlan[\s\S]*impactPathway[\s\S]*dissemination/, "the idea answers the criteria with proposal elements");
+    // revision: an idea evaluated below the threshold is rewritten with that evaluation; its old evaluation goes
+    const gen = r.j.ideas.find((x) => x.callId === he && x.status === "suggested");
+    env.DB._db.prepare("UPDATE project_ideas SET evaluations = ? WHERE id = ?").run(JSON.stringify({ "HE-RIA_IA": { key: "HE-RIA_IA", lang: "en", total: 6, max: 15, threshold: 10, passed: false, criteria: [{ name: "Impact", score: 2, max: 5, min: 3, pass: false, weaknesses: ["No dissemination plan"] }], summary: "Weak.", priorityActions: ["Add a dissemination plan"], at: NOW } }), gen.id);
+    aiAnswer = JSON.stringify({ ideas: [{ callId: he, title: "Revised concept", concept: "The association runs a revised concept for youth workers in three towns.", objectives: ["a by month 6", "b 40%"], dissemination: "Webinars for 200 youth workers", workPlan: ["WP1 (M1-M3): management → plan"] }] });
+    r = await call("POST", `/api/orgs/${o}/ideas/${gen.id}/improve`, { cookie: u, body: { lang: "en" } });
+    assert.equal(r.status, 200, JSON.stringify(r.j));
+    assert.deepEqual([r.j.idea.idea.title, r.j.idea.idea.revisions, r.j.idea.idea.previous.evaluation.total, Object.keys(r.j.idea.evaluations).length], ["Revised concept", 1, 6, 0]);
+    assert.equal(r.j.idea.idea.dissemination, "Webinars for 200 youth workers");
+    assert.match(aiSeen.at(-1).messages[1].content, /No dissemination plan/);
+    assert.equal((await call("POST", `/api/orgs/${o}/ideas/${gen.id}/improve`, { cookie: u, body: {} })).j.error, "not_below", "nothing to revise without a failed evaluation");
+    // the idea and its evaluation in the other language: one translation, stored with them, not made twice
+    env.DB._db.prepare("UPDATE project_ideas SET evaluations = ? WHERE id = ?").run(JSON.stringify({ "HE-RIA_IA": { key: "HE-RIA_IA", lang: "en", total: 6, max: 15, criteria: [{ name: "Impact", score: 2, max: 5, justification: "Too vague." }], summary: "Weak.", at: NOW } }), gen.id);
+    aiAnswer = JSON.stringify({ "i|title": "Dorađeni koncept", "e|HE-RIA_IA|summary": "Slabo.", "e|HE-RIA_IA|c0.justification": "Previše neodređeno." });
+    r = await call("POST", `/api/orgs/${o}/ideas/${gen.id}/translate`, { cookie: u, body: { lang: "sr" } });
+    assert.equal(r.status, 200, JSON.stringify(r.j));
+    assert.equal(r.j.idea.idea.tr.sr.title, "Dorađeni koncept"); assert.equal(r.j.idea.idea.tr.sr.concept, "The association runs a revised concept for youth workers in three towns.", "a value the model left out keeps the original");
+    assert.equal(r.j.idea.evaluations["HE-RIA_IA"].tr.sr["c0.justification"], "Previše neodređeno.");
+    const n0 = aiSeen.length;
+    await call("POST", `/api/orgs/${o}/ideas/${gen.id}/translate`, { cookie: u, body: { lang: "sr" } });
+    assert.equal(aiSeen.length, n0, "a stored translation is not made again");
+    // asked in Serbian, answered in English: translated once before it is stored
+    aiAnswer = JSON.stringify({ ideas: [{ callId: he, title: "Youth resilience lab", concept: "The association will train youth workers in the use of digital tools for disaster resilience and run workshops in three towns with the local schools.", objectives: ["a by month 6", "b 40%"] }] });
+    const n1 = aiSeen.length;
+    r = await call("POST", `/api/orgs/${o}/ideas`, { cookie: u, body: { candidates: [{ id: he, score: 70 }], lang: "sr" } });
+    assert.equal(r.status, 200, JSON.stringify(r.j));
+    assert.equal(aiSeen.length, n1 + 2, "generation and one translation");
+    assert.match(aiSeen.at(-1).messages[0].content, /You translate the text values of a JSON object into Serbian/);
+    env.DB._db.prepare("DELETE FROM ai_usage WHERE user_id = (SELECT id FROM users WHERE email = 'ivo@example.org')").run();   // later tests start with a fresh daily allowance
   }
 });
 
@@ -846,6 +875,20 @@ await t("e-mail link sign-in is off unless EMAIL_LOGIN is 1; /api/me tells the p
   assert.equal((await call("POST", "/api/auth/request", { body: { email: "x@example.org", accept: true } })).j.error, "email_login_off");
   assert.deepEqual((await call("GET", "/api/me")).j.signin, { google: true, email: false });
   env.EMAIL_LOGIN = "1";
+});
+
+await t("AI text as flat objects: an idea and an evaluation round-trip; the reader's language picks the copy", async () => {
+  const { ideaTexts, applyIdeaTexts, evalTexts, applyEvalTexts, ideaIn, evalIn } = await import("../site/org/content.js");
+  const idea = { title: "T", concept: "C", objectives: ["a", "b"], fit: { alignment: 4, reasons: "R", explanation: { summary: "S", strengths: ["x"] } }, workPlan: ["WP1"] };
+  const t = ideaTexts(idea);
+  assert.deepEqual(Object.keys(t).sort(), ["concept", "ex.strengths", "ex.summary", "fit.reasons", "objectives", "title", "workPlan"]);
+  const sr = applyIdeaTexts(idea, { ...t, title: "N", "ex.summary": "Z" });
+  assert.deepEqual([sr.title, sr.fit.explanation.summary, sr.fit.alignment, idea.title], ["N", "Z", 4, "T"]);
+  const ev = { lang: "en", summary: "s", criteria: [{ name: "Impact", score: 2, justification: "j", strengths: ["a"] }] };
+  const et = evalTexts(ev);
+  assert.deepEqual(applyEvalTexts(ev, { ...et, "c0.justification": "o" }).criteria[0], { name: "Impact", score: 2, justification: "o", strengths: ["a"] });
+  assert.equal(evalIn(ev, "en"), ev); assert.equal(evalIn(ev, "sr"), null); assert.equal(evalIn({ ...ev, tr: { sr: { summary: "z" } } }, "sr").summary, "z");
+  assert.equal(ideaIn({ lang: "sr", idea }, "sr"), idea); assert.equal(ideaIn({ lang: "en", idea }, "sr"), null);
 });
 
 await t("idea generation: a call whose document closes the country list to the organisation is refused", async () => {

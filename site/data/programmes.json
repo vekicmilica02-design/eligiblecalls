@@ -571,7 +571,7 @@
     ]
    },
    "note": "",
-   "openCalls": 27
+   "openCalls": 25
   },
   {
    "id": "CREA",
@@ -2174,17 +2174,6 @@
    "openCalls": 24
   },
   {
-   "id": "EEANORWAY",
-   "name": "EEA and Norway Grants",
-   "short": "EEA & Norway Grants",
-   "summary": "",
-   "list": null,
-   "countries": null,
-   "source": "EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office)",
-   "note": "Calls from EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 15
-  },
-  {
    "id": "PARTNERSHIPS",
    "name": "European partnerships: joint transnational calls",
    "short": "European partnerships",
@@ -2215,7 +2204,7 @@
    "countries": null,
    "source": "EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology)",
    "note": "Calls from EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 11
+   "openCalls": 9
   },
   {
    "id": "ESA",

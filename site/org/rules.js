@@ -284,6 +284,15 @@ function partnershipCheck(p, c, rule) {
 // framework conditions (Horizon Europe General Annex B) come from frameworks. ai: conditions checked by the AI against
 // the official text for this profile ({result, condition, quote, reason, field}), each quote verified by the server.
 const FOR_PROFIT = new Set(["sme", "startup", "company"]);
+const EU27 = new Set(["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"]);
+// The closed list of eligible countries read from the call document (ingest/eligibility_docs.py, condition "countries"):
+// true or false when the list decides for this country, null when it has a category the document does not enumerate
+// (associated or third countries and the like), so nothing can be concluded from it.
+export function countryInList(cond, cc) {
+  if (!cond || cond.open || !cc) return null;
+  if ((cond.excluded || []).includes(cc)) return false;
+  return (!!cond.eu && EU27.has(cc)) || (cond.named || []).includes(cc);
+}
 const PUBLIC = new Set(["public-authority", "public-body", "university", "school", "research"]);
 function officialChecks(p, c, elig, frameworks, ai) {
   const out = [];
@@ -312,7 +321,9 @@ function officialChecks(p, c, elig, frameworks, ai) {
         : (needC === null || have >= needC) ? chk("off.consortium", "pass", "off.consortium.met", prm, "official")
         : chk("off.consortium", "unknown", "off.consortium.gap", prm, "official"));
     } else if (minA === 1) out.push(chk("off.consortium", "pass", "off.consortium.single", q(by.minApplicants), "official"));
-    if (!out.length) out.push(chk("official", "pass", "off.read", { ...src, n: (elig.conditions || []).length }, "official"));
+    const inList = countryInList(by.countries, p.country);
+    if (!out.length && inList !== false) out.push(chk("official", "pass", "off.read", { ...src, n: (elig.conditions || []).length }, "official"));
+    if (inList !== null) out.unshift(chk("off.country", inList ? "pass" : "fail", inList ? "off.country.pass" : "off.country.fail", { ...q(by.countries), cc: p.country }, "official"));
   }
   for (const a of ai || []) {
     if (!a || !["pass", "fail", "unknown"].includes(a.result)) continue;

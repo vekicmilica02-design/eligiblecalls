@@ -13,6 +13,7 @@ import { HttpError, json, randomId, utcDay } from "./http.js";
 import { FIELD } from "../../site/org/schema.js";
 import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
 import { loadCriteria, loadGuide } from "./evaluate.js";
+import { countryInList } from "../../site/org/rules.js";
 
 export const MAX_CANDIDATES = 6;   // calls sent to the model in one request (fits the smallest provider window)
 export const MAX_IDEAS = 8;
@@ -30,7 +31,22 @@ export async function loadIndex(env, url) {
   INDEX._byId = new Map(INDEX.calls.map((c) => [c.id, c]));
   return INDEX;
 }
-export function _resetIdeasIndex() { INDEX = null; }
+export function _resetIdeasIndex() { INDEX = null; ELIG = null; }
+
+// Official eligibility conditions read from the call documents (ingest/eligibility_docs.py). Not kept when unreadable,
+// so a later request tries again; without them only the call index decides.
+let ELIG = null;
+async function loadElig(env, url) {
+  if (ELIG) return ELIG;
+  try { const r = await env.ASSETS.fetch(new URL("/org/eligibility.json", url)); if (r.ok) return (ELIG = await r.json()); } catch { /* no data */ }
+  return { calls: {} };
+}
+// false when the call document's closed list of eligible countries leaves the organisation's country out.
+export function officialCountryOk(elig, callId, cc) {
+  const e = elig && elig.calls ? elig.calls[callId] : null;
+  if (!e || e.status !== "verified") return null;
+  return countryInList((e.conditions || []).find((x) => x && x.type === "countries"), cc);
+}
 
 const clip = (s, n) => { s = String(s ?? "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
 const list = (v, n, len) => (Array.isArray(v) ? v : typeof v === "string" && v ? [v] : []).map((x) => clip(x, len)).filter(Boolean).slice(0, n);
@@ -232,6 +248,7 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
     .map((c) => ({ id: String((c && c.id) || ""), score: Math.max(0, Math.min(100, Math.round(+c.score || 0))), status: ["eligible", "potential", "insufficient"].includes(c && c.status) ? c.status : "potential", band: String((c && c.band) || "") }))
     .filter((c) => c.id);
   const index = await loadIndex(env, url);
+  const elig = await loadElig(env, url);
   const valid = [], noIdea = [];
   const skip = (cand, c, why) => noIdea.push({ callId: cand.id, title: c ? c.t : "", why });
   for (const cand of cands) {
@@ -241,6 +258,8 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
     if (!nextDeadline(c, now)) { skip(cand, c, "closed"); continue; }
     const el = eligibilityFor(index, c, profile.country);
     if (el && el.status === "N") { skip(cand, c, "not_eligible"); continue; } // closed to the organisation's country
+    // The call document lists the eligible countries and the organisation's is not among them (the Portal data may not say).
+    if (officialCountryOk(elig, c.id, profile.country) === false) { skip(cand, c, "not_eligible"); continue; }
     if (valid.length >= MAX_CANDIDATES) { skip(cand, c, "too_many"); continue; }
     valid.push({ c, cand });
   }

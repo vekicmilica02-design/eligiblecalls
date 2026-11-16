@@ -10,7 +10,9 @@
 
 import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json } from "./http.js";
-import { profileBlock, loadIndex } from "./ideas.js";
+import { profileBlock, loadIndex, ideaForModel } from "./ideas.js";
+import { evalTexts, applyEvalTexts } from "../../site/org/content.js";
+import { translateTexts, textLang } from "./translate.js";
 import { matchKey } from "./extract.js";
 import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
 import { textHash } from "../../site/org/lang.js";
@@ -121,15 +123,18 @@ export async function evaluateIdea({ env, db, org, user, profile, ideaId, body, 
   const lang = body.lang === "sr" ? "sr" : body.lang === "en" ? "en" : row.lang;
   let proposal = null; try { proposal = row.proposal ? JSON.parse(row.proposal) : null; } catch { proposal = null; }
   if (proposal) { delete proposal.at; delete proposal.model; }
-  const messages = evaluationMessages({ rubric, call, idea: JSON.parse(row.idea), proposal, profile: profileBlock(profile), lang });
+  const messages = evaluationMessages({ rubric, call, idea: ideaForModel(JSON.parse(row.idea)), proposal, profile: profileBlock(profile), lang });
   // The same idea, proposal, profile, call criteria and language as the stored evaluation: the model would only give a
   // slightly different number for the same text, so the stored result is returned and no AI action is used.
   const inputHash = textHash(messages.map((m) => m.content).join("\n"));
   const all = row.evaluations ? JSON.parse(row.evaluations) : {};
   if (!body.force && all[rubric.key] && all[rubric.key].inputHash === inputHash) return json({ evaluation: all[rubric.key], cached: true });
   const r = await complete({ env, userId: user.id, messages, agent: "evaluate", maxOut: 2600, now, fetchImpl, waitUntil });
-  const ev = scoreEvaluation(rubric, parseJsonObject(r.text));
+  let ev = scoreEvaluation(rubric, parseJsonObject(r.text));
   if (!ev) throw new HttpError(502, "ai_bad_answer");
+  // Written in the other language despite the instruction: translated once, so the page does not mix languages.
+  const texts = evalTexts(ev), got = textLang(Object.values(texts).flat());
+  if (got && got !== lang) ev = applyEvalTexts(ev, await translateTexts({ env, user, texts, lang, now, fetchImpl, waitUntil }).catch(() => texts));
   const stored = { key: rubric.key, kind: rubric.kind, title: rubric.title, sourceTitle: rubric.sourceTitle, sourceUrl: rubric.url || "", half: rubric.half,
     notes: (rubric.notes || []).slice(0, 4), usedProposal: !!proposal, ...ev, at: now, model: r.model || null, lang, inputHash };
   all[rubric.key] = stored;

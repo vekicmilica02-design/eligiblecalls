@@ -77,7 +77,11 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
           if ! git diff --cached --quiet; then
-            git commit -m "Data refresh $(date -u +%Y-%m-%dT%H:%MZ)"
+            # Cloudflare Pages builds every commit to main (500 builds a month on the free plan). A commit that changes
+            # nothing under site/ (only the importer's state files) starts with [CF-Pages-Skip], so Pages skips its build.
+            skip=""
+            if git diff --cached --quiet -- site; then skip="[CF-Pages-Skip] "; fi
+            git commit -m "${skip}Data refresh $(date -u +%Y-%m-%dT%H:%MZ)"
             # main also receives pull requests while a run takes several minutes, so the first push can be rejected
             # (non-fast-forward). Rebase the data commit on the new main and push again; on a file changed in both,
             # the data from this run wins (-X theirs means the commit being replayed, which is ours). A rejected push

@@ -184,14 +184,22 @@ export function checkPublicUrl(u) {
   return x;
 }
 
+// Named entities seen on organisation websites, including the letters of Serbian Latin script. Each entity is decoded in
+// one pass, so "&amp;scaron;" becomes the text "&scaron;" and is not decoded twice.
+const ENTITY = { nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", ndash: "–", mdash: "—", hellip: "…", laquo: "«", raquo: "»",
+  bdquo: "„", ldquo: "“", rdquo: "”", lsquo: "‘", rsquo: "’", sbquo: "‚", euro: "€", copy: "©", reg: "®", deg: "°", middot: "·", bull: "•",
+  scaron: "š", Scaron: "Š", zcaron: "ž", Zcaron: "Ž", ccaron: "č", Ccaron: "Č", cacute: "ć", Cacute: "Ć", dstrok: "đ", Dstrok: "Đ",
+  eacute: "é", Eacute: "É", egrave: "è", agrave: "à", aacute: "á", uuml: "ü", Uuml: "Ü", ouml: "ö", Ouml: "Ö", auml: "ä", Auml: "Ä", szlig: "ß", ccedil: "ç" };
+const codePoint = (n, raw) => (n > 0 && n <= 0x10ffff && !(n >= 0xd800 && n <= 0xdfff) ? String.fromCodePoint(n) : raw);
 export function htmlToText(h) {
   const s = String(h).slice(0, 200000)
     .replace(/<(script|style|noscript|svg|template)[\s\S]*?<\/\1>/gi, " ")
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<(br|p|div|li|h[1-6]|tr|section|article)[^>]*>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&#039;/g, "'")
-    .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n));
+    .replace(/&#x([0-9a-f]{1,6});/gi, (m, h) => codePoint(parseInt(h, 16), m))
+    .replace(/&#(\d{1,7});/g, (m, n) => codePoint(+n, m))
+    .replace(/&([a-z]+[0-9]*);/gi, (m, n) => (ENTITY[n] !== undefined ? ENTITY[n] : m));
   return s.split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n");
 }
 const ABOUT = /about|who-we-are|mission|o-nama|onama|o_nama|misija|vizija|statut|istorijat|history|projekti|projects|nasi-projekti|our-work|team|tim/i;
@@ -221,9 +229,24 @@ export function robotsAllows(txt, path) {
   return !best || best.allow;
 }
 
-async function fetchPage(u, fetchImpl) {
+// robots.txt of every site the reader reaches, read once per site: a redirect to another site is checked against that
+// site's own rules, not the first site's.
+function robotsChecker(fetchImpl) {
+  const cache = new Map();
+  return async (u) => {
+    if (!cache.has(u.origin)) {
+      let t = "";
+      try { const rr = await fetchImpl(u.origin + "/robots.txt", { headers: { "user-agent": "EligibleCallsBot/1.0" } }); if (rr.ok) t = (await rr.text()).slice(0, 50000); } catch { /* no robots.txt */ }
+      cache.set(u.origin, t);
+    }
+    return robotsAllows(cache.get(u.origin), u.pathname);
+  };
+}
+
+async function fetchPage(u, fetchImpl, allowed = null) {
   let cur = u;
   for (let hop = 0; hop < 3; hop++) {
+    if (allowed && !(await allowed(cur))) throw new HttpError(403, "robots_disallow");
     const r = await fetchImpl(cur.href, { redirect: "manual", headers: { "user-agent": "EligibleCallsBot/1.0 (+https://eligiblecalls.pages.dev/#about; fetches pages a user asked to read)", accept: "text/html,text/plain" }, signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined });
     if (r.status >= 300 && r.status < 400 && r.headers.get("location")) {
       const next = checkPublicUrl(new URL(r.headers.get("location"), cur).href);
@@ -243,15 +266,13 @@ async function fetchPage(u, fetchImpl) {
 export async function researchUrl({ env, db, org, user, body, now, fetchImpl, waitUntil, url }) {
   const start = checkPublicUrl(String(body.url || "").trim().match(/^https?:\/\//i) ? String(body.url).trim() : "https://" + String(body.url || "").trim());
   if (!start) throw new HttpError(400, "url_invalid");
-  let robots = "";
-  try { const rr = await fetchImpl(start.origin + "/robots.txt", { headers: { "user-agent": "EligibleCallsBot/1.0" } }); if (rr.ok) robots = (await rr.text()).slice(0, 50000); } catch { /* no robots.txt */ }
-  if (!robotsAllows(robots, start.pathname)) throw new HttpError(403, "robots_disallow");
-  const first = await fetchPage(start, fetchImpl);
+  const allowed = robotsChecker(fetchImpl);
+  const first = await fetchPage(start, fetchImpl, allowed);
   const pages = [{ url: first.url.href, text: first.text }];
   for (const link of aboutLinks(first.html, first.url)) {
     const lu = checkPublicUrl(link);
-    if (!lu || !robotsAllows(robots, lu.pathname)) continue;
-    try { const p = await fetchPage(lu, fetchImpl); pages.push({ url: p.url.href, text: p.text }); } catch { /* skip pages that fail */ }
+    if (!lu || !(await allowed(lu))) continue;
+    try { const p = await fetchPage(lu, fetchImpl, allowed); pages.push({ url: p.url.href, text: p.text }); } catch { /* skip pages that fail */ }
   }
   const per = Math.floor(CHUNK_CHARS / pages.length);
   const sources = pages.map((p) => ({ url: p.url, text: p.text.slice(0, per) })).filter((p) => p.text.length > 40);

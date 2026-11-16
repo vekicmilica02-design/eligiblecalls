@@ -256,19 +256,19 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
     for (const v of valid) { const rb = rubricFor({ id: v.c.id, programme: v.c.p }, crit, guide); if (rb) rubrics.set(v.c.id, rb); }
   } catch { /* criteria data unavailable: ideas are still generated from the call text */ }
   const marks = ids.map(() => "?").join(", ");
-  const past = (await db.prepare(`SELECT call_id, idea, evaluations FROM project_ideas WHERE org_id = ? AND call_id IN (${marks}) AND evaluations IS NOT NULL ORDER BY updated_at DESC`).bind(org.id, ...ids).all()).results || [];
-  const seenCall = new Set();
+  const past = (await db.prepare(`SELECT call_id, idea, evaluations FROM project_ideas WHERE org_id = ? AND call_id IN (${marks}) AND evaluations IS NOT NULL`).bind(org.id, ...ids).all()).results || [];
+  // Per call, the idea evaluated most recently (by the evaluation's own time, not the row's: editing a note changes that).
+  const latest = new Map();
   for (const p of past) {
-    if (seenCall.has(p.call_id)) continue;
     let evs = {}, idea = null; try { evs = JSON.parse(p.evaluations || "{}"); idea = JSON.parse(p.idea); } catch { continue; }
     const rb = rubrics.get(p.call_id);
-    const all = Object.values(evs);
+    const all = Object.values(evs).filter((e) => e && typeof e === "object");
     if (!all.length) continue;
-    seenCall.add(p.call_id); // only the most recently evaluated idea of a call counts
     const ev = (rb && evs[rb.key]) || all.reduce((a, b) => ((b.at || 0) > (a.at || 0) ? b : a));
-    const block = previousBlock(idea, ev);
-    if (block) previous.set(p.call_id, block);
+    const cur = latest.get(p.call_id);
+    if (!cur || (ev.at || 0) > (cur.ev.at || 0)) latest.set(p.call_id, { idea, ev });
   }
+  for (const [callId, { idea, ev }] of latest) { const block = previousBlock(idea, ev); if (block) previous.set(callId, block); }
   const ideas = [], dropped = [], models = [];
   let used = false, firstErr = null;
   const runOne = async (v) => {

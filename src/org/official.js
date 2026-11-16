@@ -130,7 +130,7 @@ export async function officialRoute({ env, db, user, M, parts, body, now, org, r
   }
   if (M === "DELETE" && parts[3]) {
     await requireRole(db, org, user, "editor");
-    await db.prepare("DELETE FROM official_checks WHERE org_id = ? AND call_id = ?").bind(org, decodeURIComponent(parts[3])).run();
+    await db.prepare("DELETE FROM official_checks WHERE org_id = ? AND call_id = ?").bind(org, parts[3]).run();   // already decoded by the router
     return json({ ok: true });
   }
   throw new HttpError(404, "not_found");

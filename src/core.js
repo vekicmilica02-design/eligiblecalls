@@ -167,7 +167,7 @@ export function brusselsNow(now) {
   return `${WD[d.getUTCDay()]} ${d.getUTCDate()} ${MO[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} ${off === 120 ? "CEST" : "CET"}`;
 }
 
-export function systemPrompt({ index, hits, now, country, profileText, docName }) {
+export function systemPrompt({ index, hits, now, country, profileText, docName, lang }) {
   return [
     "You are the project-match assistant of Eligible Calls, a search engine for open EU funding calls imported from the EU Funding & Tenders Portal.",
     "",
@@ -180,13 +180,14 @@ export function systemPrompt({ index, hits, now, country, profileText, docName }
     `- The candidate calls were picked by keyword search from ${index.calls.length} calls imported on ${index.generated.slice(0, 10)}. Other open calls may fit too; suggest search words the user can try on the site.`,
     "- This is guidance, not an eligibility decision. The official call documents prevail.",
     "- Reply in the language the user writes in (Serbian in Latin script if they write Serbian).",
+    ...srRule(lang),
     "",
     "WHEN THE USER DESCRIBES A PROJECT OR ATTACHES AN APPLICATION",
     "1. Restate the project in two lines and list missing facts that would change the answer.",
     "2. Give a ranked shortlist of at most 4 calls: ID and title, why it fits, eligibility for their country, next deadline and time left, funding, partnership, main risk.",
     "3. Recommend which call to target first, what to adapt, partners needed, documents to prepare, and a dated plan counted back from the deadline.",
     "4. If nothing fits well, say so plainly. Do not stretch a weak match.",
-    "Use short headings and bullet lists. Write call IDs exactly as given.",
+    "Use short headings and bullet lists. Write call IDs exactly as given. Keep the answer under about 350 words unless the user asks for a full plan.",
     "",
     `APPLICANT: ${[country ? "country " + country : "country unknown", profileText].filter(Boolean).join("; ")}`,
     docName ? `The user attached a document named "${docName}"; its text is in the last user message.` : "",
@@ -196,7 +197,13 @@ export function systemPrompt({ index, hits, now, country, profileText, docName }
   ].filter((x) => x !== "").join("\n");
 }
 
-export const LIMITS = { messages: 10, msgChars: 3000, docChars: 8000, maxOutput: 1100 };
+// oldMsgChars: turns before the last two are only context; long earlier answers were resent in full with every message.
+// Added to every prompt that asks for Serbian output. Model-written Serbian had wrong genders, invented or garbled words
+// (a word-for-word rendering of English) and wrong plural forms after numbers.
+export const SR_STYLE = "Serbian writing rules: write correct, natural standard Serbian (ekavian) in Latin script with all diacritics (č, ć, š, ž, đ), in the register of Serbian public administration and EU documents (use \"konkurisati\", \"poziv\", \"podnosilac\", \"korisnik grant\", \"ciljne grupe\"). Never translate word for word from English; translate each term by its meaning and do not invent words. Check gender, case and number agreement, and use the correct form after numerals (1 / 2-4 / 5 and more). Keep names of programmes, call identifiers and official criteria names as they are; where you are not sure of a Serbian term, describe it plainly in Serbian and give the English term in brackets.";
+export const srRule = (lang) => (lang === "sr" ? [SR_STYLE] : []);
+
+export const LIMITS = { messages: 10, msgChars: 3000, oldMsgChars: 1200, docChars: 8000, maxOutput: 1100 };
 
 // Validate and trim the request body. Returns {error} or a clean object.
 export function cleanRequest(body) {
@@ -204,7 +211,7 @@ export function cleanRequest(body) {
   const msgs = Array.isArray(body.messages) ? body.messages : [];
   const messages = msgs.slice(-LIMITS.messages)
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
-    .map((m) => ({ role: m.role, content: m.content.slice(0, LIMITS.msgChars) }));
+    .map((m, i, a) => ({ role: m.role, content: m.content.slice(0, i >= a.length - 2 ? LIMITS.msgChars : LIMITS.oldMsgChars) }));
   while (messages.length && messages[0].role !== "user") messages.shift();
   if (!messages.length || messages[messages.length - 1].role !== "user") return { error: "bad_request" };
   const p = body.profile && typeof body.profile === "object" ? body.profile : {};
@@ -229,7 +236,7 @@ export function buildMessages(index, req, now, { limit = 8 } = {}) {
   const mention = index.calls.filter((c) => userText.includes(c.id)).map((c) => c.id);
   const query = [req.messages.slice(-1)[0].content, userText, req.doc ? req.doc.text.slice(0, 4000) : ""].join(" ");
   const hits = rank(index, { query, country, sectors: req.profile.sectors, applicants: req.profile.applicants, now, mention, limit });
-  const sys = systemPrompt({ index, hits, now, country, profileText: req.profile.text, docName: req.doc && req.doc.name });
+  const sys = systemPrompt({ index, hits, now, country, profileText: req.profile.text, docName: req.doc && req.doc.name, lang: req.lang });
   const msgs = req.messages.map((m) => ({ ...m }));
   if (req.doc) {
     const last = msgs[msgs.length - 1];

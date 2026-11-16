@@ -13,6 +13,8 @@ import { HttpError, json } from "./http.js";
 import { profileBlock, loadIndex } from "./ideas.js";
 import { matchKey } from "./extract.js";
 import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
+import { textHash } from "../../site/org/lang.js";
+import { SR_STYLE } from "../core.js";
 
 let GUIDE = null, CRIT = null;
 async function asset(env, url, path) {
@@ -30,7 +32,7 @@ const pts = (n) => String(n).replace(/\.0$/, "");
 
 const RULES_COMMON = (language, n) => [
   `${n}. Do not claim the project will be funded. Do not state facts about the organisation that are not in the profile.`,
-  `${n + 1}. Write all text in ${language}. Each text at most 700 characters, each list item at most 240 characters.`,
+  `${n + 1}. Write all text in ${language}. Each text at most 700 characters, each list item at most 240 characters.${language.startsWith("Serbian") ? " " + SR_STYLE : ""}`,
 ];
 const ITEM = '"score": 0, "justification": "...", "strengths": ["..."], "weaknesses": ["..."], "missing": ["..."], "recommendations": ["..."]';
 
@@ -120,12 +122,16 @@ export async function evaluateIdea({ env, db, org, user, profile, ideaId, body, 
   let proposal = null; try { proposal = row.proposal ? JSON.parse(row.proposal) : null; } catch { proposal = null; }
   if (proposal) { delete proposal.at; delete proposal.model; }
   const messages = evaluationMessages({ rubric, call, idea: JSON.parse(row.idea), proposal, profile: profileBlock(profile), lang });
-  const r = await complete({ env, userId: user.id, messages, maxOut: 2600, now, fetchImpl, waitUntil });
+  // The same idea, proposal, profile, call criteria and language as the stored evaluation: the model would only give a
+  // slightly different number for the same text, so the stored result is returned and no AI action is used.
+  const inputHash = textHash(messages.map((m) => m.content).join("\n"));
+  const all = row.evaluations ? JSON.parse(row.evaluations) : {};
+  if (!body.force && all[rubric.key] && all[rubric.key].inputHash === inputHash) return json({ evaluation: all[rubric.key], cached: true });
+  const r = await complete({ env, userId: user.id, messages, agent: "evaluate", maxOut: 2600, now, fetchImpl, waitUntil });
   const ev = scoreEvaluation(rubric, parseJsonObject(r.text));
   if (!ev) throw new HttpError(502, "ai_bad_answer");
   const stored = { key: rubric.key, kind: rubric.kind, title: rubric.title, sourceTitle: rubric.sourceTitle, sourceUrl: rubric.url || "", half: rubric.half,
-    notes: (rubric.notes || []).slice(0, 4), usedProposal: !!proposal, ...ev, at: now, model: r.model || null, lang };
-  const all = row.evaluations ? JSON.parse(row.evaluations) : {};
+    notes: (rubric.notes || []).slice(0, 4), usedProposal: !!proposal, ...ev, at: now, model: r.model || null, lang, inputHash };
   all[rubric.key] = stored;
   await db.prepare("UPDATE project_ideas SET evaluations = ?, updated_at = ? WHERE id = ? AND org_id = ?").bind(JSON.stringify(all), now, ideaId, org.id).run();
   return json({ evaluation: stored });

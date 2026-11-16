@@ -166,7 +166,7 @@ export async function extractFromText({ env, db, org, user, body, now, fetchImpl
   const tax = await taxonomy(env, url);
   const ctx = contextFrom(tax, new Date(now).getUTCFullYear());
   const label = `uploaded document "${sourceName}"${parts > 1 ? `, part ${part} of ${parts}` : ""}`;
-  const r = await complete({ env, userId: user.id, messages: extractionMessages(tax, label, text), maxOut: 1500, now, fetchImpl, waitUntil });
+  const r = await complete({ env, userId: user.id, messages: extractionMessages(tax, label, text), agent: "extract", maxOut: 1500, now, fetchImpl, waitUntil });
   const answer = parseJsonObject(r.text);
   if (!answer) throw new HttpError(502, "ai_bad_answer");
   const v = verifyFields(answer, text, ctx);
@@ -259,7 +259,7 @@ export async function researchUrl({ env, db, org, user, body, now, fetchImpl, wa
   const text = sources.map((p) => `### PAGE ${p.url}\n${p.text}`).join("\n\n");
   const tax = await taxonomy(env, url);
   const ctx = contextFrom(tax, new Date(now).getUTCFullYear());
-  const r = await complete({ env, userId: user.id, messages: extractionMessages(tax, `public web pages of the organisation (${sources.map((s) => s.url).join(", ")})`, text), maxOut: 1500, now, fetchImpl, waitUntil });
+  const r = await complete({ env, userId: user.id, messages: extractionMessages(tax, `public web pages of the organisation (${sources.map((s) => s.url).join(", ")})`, text), agent: "research", maxOut: 1500, now, fetchImpl, waitUntil });
   const answer = parseJsonObject(r.text);
   if (!answer) throw new HttpError(502, "ai_bad_answer");
   const v = verifyFields(answer, text, ctx, sources);

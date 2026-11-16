@@ -10,6 +10,7 @@
 // eligibility status (src: site/org/rules.js, officialChecks) for the profile version it was made with.
 
 import { complete, parseJsonObject } from "./ai.js";
+import { SR_STYLE } from "../core.js";
 import { HttpError, json } from "./http.js";
 import { matchKey } from "./extract.js";
 import { profileBlock, loadIndex } from "./ideas.js";
@@ -38,7 +39,7 @@ export function officialMessages({ call, doc, profile, lang }) {
     '3. "appliesTo": applicant, coordinator, consortium or all.',
     '4. "result": "pass" when the profile shows the condition is met; "fail" only when the profile clearly shows it is not met; "unknown" when the profile does not contain the information or the condition depends on the future project (for example partners still to be found). Never guess "pass".',
     '5. "field": the id of the profile field your result rests on (one of: ' + Object.keys(FIELD).join(", ") + '), or "" if none. "reason": one sentence naming what the profile says.',
-    `6. Write "condition", "reason" and "summary" in ${language}; keep "quote" in the language of the official text. Each text at most 300 characters.`,
+    `6. Write "condition", "reason" and "summary" in ${language}; keep "quote" in the language of the official text. Each text at most 300 characters.${language.startsWith("Serbian") ? " " + SR_STYLE : ""}`,
     '7. Answer with one JSON object and nothing else: {"conditions": [{"condition": "...", "quote": "...", "appliesTo": "applicant", "result": "pass", "field": "country", "reason": "..."}], "summary": "..."}',
     "",
     "OFFICIAL TEXT",
@@ -92,7 +93,13 @@ export async function officialRoute({ env, db, user, M, parts, body, now, org, r
     if (!doc || !doc.text) throw new HttpError(409, "no_official_text");
     const call = { id: callId, title: c.t, programme: c.p };
     const lang = body.lang === "sr" ? "sr" : "en";
-    const r = await complete({ env, userId: user.id, messages: officialMessages({ call, doc, profile: profileBlock(profile), lang }), maxOut: 2200, now, fetchImpl, waitUntil });
+    // Nothing changed since the stored check (profile version, verified source text, language): return it, no AI action.
+    const prev = await db.prepare("SELECT * FROM official_checks WHERE org_id = ? AND call_id = ?").bind(org, callId).first();
+    if (prev && !body.force && prev.profile_version === version && (prev.source_verified || "") === (doc.verified || "")) {
+      const same = rowOut(prev);
+      if (same.lang === lang) return json({ check: same, cached: true });
+    }
+    const r = await complete({ env, userId: user.id, messages: officialMessages({ call, doc, profile: profileBlock(profile), lang }), agent: "official", maxOut: 2200, now, fetchImpl, waitUntil });
     const v = verifyConditions(parseJsonObject(r.text), doc, profile);
     if (!v) throw new HttpError(502, "ai_bad_answer");
     const stored = { conditions: v.conditions, summary: v.summary, lang };

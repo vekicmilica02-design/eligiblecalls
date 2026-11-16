@@ -104,7 +104,7 @@ export async function translationRoute({ env, db, user, M, body, now, org, requi
     const texts = Object.fromEntries(need.map((f) => [f, String(profile[f])]));
     const chars = Object.values(texts).reduce((a, t) => a + t.length, 0);
     const maxOut = Math.min(3500, Math.max(400, Math.ceil(chars / 2.5) + 200));
-    const r = await complete({ env, userId: user.id, messages: translationMessages(texts), maxOut, now, fetchImpl, waitUntil });
+    const r = await complete({ env, userId: user.id, messages: translationMessages(texts), agent: "translate", maxOut, now, fetchImpl, waitUntil });
     const copies = cleanCopies(parseJsonObject(r.text), texts);
     if (!Object.keys(copies).length) throw new HttpError(502, "ai_bad_answer");
     for (const [f, t] of Object.entries(copies)) await upsertAuto(db, org, f, t, texts[f], version, r.model, user, now);

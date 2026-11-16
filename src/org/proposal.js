@@ -4,7 +4,7 @@
 // budget is a structure in shares of the total; a total is kept only when it is within the call's stated
 // amount per project. The PDF itself is drawn in the browser from the stored JSON.
 
-import { nextDeadline } from "../core.js";
+import { nextDeadline, srRule } from "../core.js";
 import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json } from "./http.js";
 import { loadIndex, callBlock, profileBlock } from "./ideas.js";
@@ -28,6 +28,7 @@ export function proposalMessages({ idea, call, profile, lang, maxPerProject, cur
     `4. Budget: give the structure as shares of the total (numbers that add up to 100). ${maxPerProject ? `The call states up to ${maxPerProject} ${currency || "EUR"} per project; "requestedTotal" may not exceed it.` : "The call states no amount per project: set \"requestedTotal\" to null."}`,
     "5. Work packages: 3 to 6, each with months (e.g. \"M1-M6\"), activities and deliverables. Timeline phases must match the work packages.",
     `6. Write all text in ${language}. Paragraph fields at most 1,000 characters; list items at most 220 characters.`,
+    ...srRule(lang),
     "7. Answer with one JSON object and nothing else, with these keys:",
     '{"title": "...", "durationMonths": 24, "summary": "...", "problem": "needs analysis: who, how many, where, evidence from the profile or the call", "mainObjectives": ["..."], "specificObjectives": ["..."],',
     ' "targetGroups": [{"group": "...", "description": "...", "reach": "number reached"}], "workPackages": [{"id": "WP1", "title": "...", "lead": "applicant or partner type", "months": "M1-M6", "activities": ["..."], "deliverables": ["..."]}],',
@@ -82,7 +83,7 @@ export async function makeProposal({ env, db, org, user, profile, ideaId, body, 
   const callText = c ? callBlock(index, c, profile.country, now, match).replace(/Call text \(excerpt\): .*/s, "Call text (excerpt): " + clip(c.x, 2400)) : `### ${row.call_id}\nTitle: ${row.call_title}\n(The call is no longer in the published data.)`;
   const maxPerProject = c && c.f ? c.f : null;
   const messages = proposalMessages({ idea: JSON.parse(row.idea), call: callText, profile: profileBlock(profile), lang, maxPerProject, currency: c && c.cur });
-  const r = await complete({ env, userId: user.id, messages, maxOut: 4500, now, fetchImpl, waitUntil });
+  const r = await complete({ env, userId: user.id, messages, agent: "proposal", maxOut: 4500, now, fetchImpl, waitUntil });
   const p = cleanProposal(parseJsonObject(r.text), { maxPerProject });
   if (!p || p.incomplete) throw new HttpError(502, "ai_bad_answer", p ? { incomplete: p.incomplete } : {});
   const stored = { ...p, at: now, model: r.model || null, lang, call: { id: row.call_id, title: c ? c.t : row.call_title, programme: c ? c.p : null, deadline: c ? (nextDeadline(c, now) || "").split("|")[0] : row.call_deadline, maxPerProject, currency: (c && c.cur) || "EUR" } };

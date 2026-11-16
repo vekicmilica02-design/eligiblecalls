@@ -1,5 +1,5 @@
 // AI usage for the administration page: today's counters per provider against the daily budgets the site enforces,
-// assistant messages, workspace AI actions per user, and the last 7 days. Days are UTC (the free allowances reset
+// assistant messages, workspace AI actions per user, use per function (agents), and the last 7 days. Days are UTC (the free allowances reset
 // at 00:00 UTC). Read-only; the counters are written by src/budget.js and src/org/ai.js.
 
 import { utcDay, nextReset, getUsage, groqTokens } from "../budget.js";
@@ -30,11 +30,14 @@ export async function usageReport({ env, db, now }) {
   const days = [];
   for (let i = 0; i < 7; i++) {
     const d = utcDay(now - i * 864e5), rows = week.filter((r) => r.day === d);
-    days.push({ day: d, requests: rows.reduce((s, r) => s + r.requests, 0), neurons: Math.round(rows.filter((r) => r.provider === "workers-ai").reduce((s, r) => s + r.neurons, 0)),
+    days.push({ day: d, requests: rows.filter((r) => !r.provider.startsWith("agent:")).reduce((s, r) => s + r.requests, 0), neurons: Math.round(rows.filter((r) => r.provider === "workers-ai").reduce((s, r) => s + r.neurons, 0)),
       groqTokens: rows.filter((r) => r.provider.startsWith("groq")).reduce((s, r) => s + r.tokens, 0) });
   }
+  // Today's use per function (rows "agent:<name>", written by src/org/ai.js), largest first.
+  const agents = Object.entries(usage).filter(([k]) => k.startsWith("agent:")).map(([k, v]) => ({ key: k.slice(6), neurons: Math.round(v.neurons), tokens: v.tokens, requests: v.requests }))
+    .sort((a, b) => b.neurons - a.neurons || b.tokens - a.tokens);
   return {
-    day, resetAt: nextReset(now), workspaceShare: share, perUserLimit: num(env.ORG_AI_PER_USER, 20), visitorLimit: num(env.DAILY_VISITOR_LIMIT, 10),
+    day, resetAt: nextReset(now), agents, workspaceShare: share, perUserLimit: num(env.ORG_AI_PER_USER, 20), visitorLimit: num(env.DAILY_VISITOR_LIMIT, 10),
     providers, assistant: { messages: vis ? vis.messages : 0, visitors: vis ? vis.visitors : 0 },
     workspace: { actions: users.reduce((s, u) => s + u.count, 0), users: users.map((u) => ({ email: u.email, count: u.count })) }, days,
   };

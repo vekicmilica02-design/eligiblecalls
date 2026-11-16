@@ -1,7 +1,8 @@
 // One non-streaming model call for the Organization Intelligence agents, through the same providers and
 // daily budgets as the assistant. Organisation work may use only a share of each daily budget
 // (ORG_BUDGET_SHARE, default 0.6), so the public assistant keeps working, and each user has a daily
-// number of AI actions (ORG_AI_PER_USER, default 20).
+// number of AI actions (ORG_AI_PER_USER, default 20). `agent` names the function that asks (extract, research, ideas,
+// fit, proposal, evaluate, official, translate) and is only used for the usage counters.
 
 import { workersAI, groq, groqModels, neurons, ProviderError } from "../providers.js";
 import { getUsage, addUsage, groqKey, groqTokens } from "../budget.js";
@@ -20,7 +21,7 @@ async function countUser(env, userId, now) {
   await env.DB.prepare("INSERT INTO ai_usage (day, user_id, count) VALUES (?, ?, 1) ON CONFLICT(day, user_id) DO UPDATE SET count = count + 1").bind(utcDay(now), userId).run();
 }
 
-export async function complete({ env, userId, messages, maxOut = 1500, now = Date.now(), fetchImpl = fetch, waitUntil = (p) => p }) {
+export async function complete({ env, userId, messages, agent = "other", maxOut = 1500, now = Date.now(), fetchImpl = fetch, waitUntil = (p) => p }) {
   const a = await userAllowance(env, userId, now);
   if (a.used >= a.limit) throw new HttpError(429, "ai_user_limit", { limit: a.limit });
   const db = env.DB;
@@ -44,7 +45,11 @@ export async function complete({ env, userId, messages, maxOut = 1500, now = Dat
       let text = "";
       for await (const t of run.stream) text += t;
       const u = run.usage() || { in: tokIn, out: estTokens(text) };
-      await addUsage(db, day, o.provider === "groq" ? groqKey(o.model) : "workers-ai", o.provider === "workers-ai" ? neurons(run.model, u.in, u.out) : 0, u.in + u.out).catch(() => {});
+      const used = o.provider === "workers-ai" ? neurons(run.model, u.in, u.out) : 0;
+      await addUsage(db, day, o.provider === "groq" ? groqKey(o.model) : "workers-ai", used, u.in + u.out).catch(() => {});
+      // The same use again under the agent that asked for it ("agent:<name>"), so the administration page can show
+      // which function spends the daily allowance. Counters only; no text is stored.
+      await addUsage(db, day, "agent:" + agent, used, u.in + u.out).catch(() => {});
       await countUser(env, userId, now);
       return { text, provider: run.provider, model: run.model };
     } catch (e) {

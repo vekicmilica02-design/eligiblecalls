@@ -636,6 +636,13 @@ await t("official eligibility check: quotes verified against the official text, 
   assert.equal((await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: cid, lang: "sr" } })).j.cached, undefined, "another language is a new check");
   aiAnswer = JSON.stringify({ conditions: [{ condition: "x", quote: "nothing like this is in the official text", result: "pass" }] });
   assert.equal((await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: cid, force: true } })).j.error, "ai_bad_answer");
+  // an answer cut off at the output limit keeps the conditions that were completed before the cut
+  const full = JSON.stringify({ summary: "Checked.", conditions: [
+    { condition: "Eligible country", quote: sents[0], appliesTo: "applicant", result: "pass", field: "country", reason: "RS" },
+    { condition: "Second", quote: sents[1], appliesTo: "applicant", result: "pass", field: "country", reason: "RS" } ] });
+  aiAnswer = full.slice(0, full.lastIndexOf('{"condition":"Second"') + 40);
+  r = await call("POST", `/api/orgs/${o}/official-checks`, { cookie: u, body: { callId: cid, force: true } });
+  assert.equal(r.status, 200, JSON.stringify(r.j)); assert.equal(r.j.check.conditions.length, 1, "the complete condition is kept");
   // concept fit explanation: a generic answer is rejected, a specific one is stored with the idea
   const iid = "idea-fx-" + o.slice(0, 6);
   env.DB.prepare("INSERT INTO project_ideas (id, org_id, batch_id, call_id, rank, status, idea, match, lang, profile_version, call_title, created_by, created_at, updated_at) VALUES (?, ?, 'b', ?, 1, 'saved', ?, '{}', 'en', 2, 'Call', 'x', ?, ?)")

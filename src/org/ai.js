@@ -17,14 +17,20 @@ export async function userAllowance(env, userId, now) {
   const limit = num(env.ORG_AI_PER_USER, 20);
   return { used: r ? r.count : 0, limit };
 }
-async function countUser(env, userId, now) {
-  await env.DB.prepare("INSERT INTO ai_usage (day, user_id, count) VALUES (?, ?, 1) ON CONFLICT(day, user_id) DO UPDATE SET count = count + 1").bind(utcDay(now), userId).run();
+// The action is reserved before the model is asked and given back if no provider answered, so two requests running at
+// the same time cannot both pass the limit.
+async function reserveUser(env, userId, now, limit) {
+  const r = await env.DB.prepare("INSERT INTO ai_usage (day, user_id, count) VALUES (?, ?, 1) ON CONFLICT(day, user_id) DO UPDATE SET count = count + 1 RETURNING count").bind(utcDay(now), userId).first();
+  if (r && r.count > limit) { await releaseUser(env, userId, now); return false; }
+  return true;
 }
+const releaseUser = (env, userId, now) => env.DB.prepare("UPDATE ai_usage SET count = MAX(0, count - 1) WHERE day = ? AND user_id = ?").bind(utcDay(now), userId).run();
 
 export async function complete({ env, userId, messages, agent = "other", maxOut = 1500, now = Date.now(), fetchImpl = fetch, waitUntil = (p) => p }) {
   const a = await userAllowance(env, userId, now);
   if (a.used >= a.limit) throw new HttpError(429, "ai_user_limit", { limit: a.limit });
   const db = env.DB;
+  const reserve = () => reserveUser(env, userId, now, a.limit);
   const day = utcDay(now);
   const share = num(env.ORG_BUDGET_SHARE, 0.6);
   const tokIn = estTokens(messages.map((m) => m.content).join("\n"));
@@ -37,6 +43,7 @@ export async function complete({ env, userId, messages, agent = "other", maxOut 
     if (groqTokens(usage, g.model) + tokIn + maxOut <= share * g.budget) order.push({ provider: "groq", model: g.model, budget: g.budget });
   }
   if (!order.length) throw new HttpError(503, "ai_resting");
+  if (!(await reserve())) throw new HttpError(429, "ai_user_limit", { limit: a.limit });
 
   const errs = [];
   for (const o of order) {
@@ -50,7 +57,8 @@ export async function complete({ env, userId, messages, agent = "other", maxOut 
       // The same use again under the agent that asked for it ("agent:<name>"), so the administration page can show
       // which function spends the daily allowance. Counters only; no text is stored.
       await addUsage(db, day, "agent:" + agent, used, u.in + u.out).catch(() => {});
-      await countUser(env, userId, now);
+      // An empty answer is a provider failure: the next provider is asked instead of returning nothing.
+      if (!text.trim()) throw new ProviderError("empty", 0, "empty answer");
       return { text, provider: run.provider, model: run.model };
     } catch (e) {
       errs.push(e);
@@ -61,6 +69,7 @@ export async function complete({ env, userId, messages, agent = "other", maxOut 
       }
     }
   }
+  await releaseUser(env, userId, now).catch(() => {});   // nothing answered: the action is not used
   // A per-minute limit anywhere in the chain is reported as such (the request can be repeated shortly), even when a
   // later provider failed for another reason: the last error alone hid it.
   throw new HttpError(503, errs.some((e) => e instanceof ProviderError && e.code === "busy") ? "ai_busy" : "ai_unavailable");

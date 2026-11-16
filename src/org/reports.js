@@ -20,6 +20,7 @@ const params = (p) => {
     const key = clip(k, 40);
     if (typeof v === "number" || typeof v === "boolean") out[key] = v;
     else if (Array.isArray(v)) out[key] = v.slice(0, 40).map((x) => (typeof x === "number" ? x : clip(x, 200)));
+    else if (key === "url") { if (/^https:\/\//i.test(String(v || ""))) out[key] = clip(v, 600); }   // a link is shown as a link: https only
     else if (v !== null && v !== undefined) out[key] = clip(v, 1500);
   }
   return out;

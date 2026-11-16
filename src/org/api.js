@@ -272,12 +272,25 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
       if (M === "GET" && parts[4] === "proposal") { await requireRole(db, orgId, user, "viewer"); return await getProposal(db, orgId, parts[3]); }
       const m = await requireRole(db, orgId, user, "editor");
       if (M === "POST" && !parts[3]) {
-        await requireAccess(db, user, "ideas", now);           // free generations, then premium only
-        const cur = await currentProfile(db, m);
-        const res = await generateIdeas({ env, db, org: m, user, profile: cur.profile, version: cur.version, body, now, fetchImpl, waitUntil, url: request.url });
-        const out = await res.clone().json().catch(() => ({}));
-        if (out.generated > 0) await countIdeaRun(db, user.id);   // a run that produced no idea does not use the free generation
-        return res;
+        const acc = await requireAccess(db, user, "ideas", now);   // free generations, then premium only
+        // A free generation is reserved before the run (a conditional update, so two runs started at once cannot both
+        // use the last one) and given back when the run produced no idea or failed.
+        let reserved = false;
+        if (!acc.active) {
+          const r = await db.prepare("UPDATE users SET idea_runs = idea_runs + 1 WHERE id = ? AND idea_runs < ?").bind(user.id, acc.freeIdeaRuns).run();
+          if (!r.meta || r.meta.changes !== 1) throw new HttpError(402, "premium_required", { feature: "ideas", status: acc.status, freeIdeaRuns: acc.freeIdeaRuns });
+          reserved = true;
+        }
+        let out = {};
+        try {
+          const cur = await currentProfile(db, m);
+          const res = await generateIdeas({ env, db, org: m, user, profile: cur.profile, version: cur.version, body, now, fetchImpl, waitUntil, url: request.url });
+          out = await res.clone().json().catch(() => ({}));
+          if (!reserved && out.generated > 0) await countIdeaRun(db, user.id);
+          return res;
+        } finally {
+          if (reserved && !(out.generated > 0)) await db.prepare("UPDATE users SET idea_runs = MAX(0, idea_runs - 1) WHERE id = ?").bind(user.id).run();
+        }
       }
       if (parts[3] && parts[4] === "proposal") {
         if (M === "GET") return await getProposal(db, orgId, parts[3]);

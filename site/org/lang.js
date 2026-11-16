@@ -17,6 +17,18 @@ const EN_WORDS = new Set("the and of to in for with is are on by from that this 
 
 // Language of a free text: "sr" (Serbian, either script), "en", "other" (a longer text with no English function words)
 // or "unknown" (too short to tell). Cyrillic letters or Serbian diacritics decide at once.
+// Serbian or English for a longer model-written text (an idea, an evaluation), by the share of common function words.
+// Names with diacritics ("Niš", "Udruženje") do not make an English text Serbian. null when it is not clear.
+export function proseLang(text) {
+  const words = String(text || "").toLowerCase().split(/[^\p{L}]+/u).filter(Boolean);
+  let sr = 0, en = 0;
+  for (const w of words) { if (SR_WORDS.has(w)) sr++; if (EN_WORDS.has(w)) en++; }
+  if (words.length < 12) return null;
+  if (sr >= 3 && sr > 2 * en) return "sr";
+  if (en >= 3 && en > 2 * sr) return "en";
+  return null;
+}
+
 export function detectLang(text) {
   const s = String(text || "");
   const letters = (s.match(/\p{L}/gu) || []).length;

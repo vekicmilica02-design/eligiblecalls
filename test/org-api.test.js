@@ -598,6 +598,18 @@ await t("idea evaluation uses the criteria of the idea's own call: Horizon annex
   assert.equal(r.j.evaluation.total, stored.total, "same stored result");
   r = await call("POST", `/api/orgs/${o}/ideas/${heIdea.id}/evaluate`, { cookie: u, body: { lang: "en", force: true } });
   assert.equal(aiSeen.length, before + 1, "force asks the model again"); assert.equal(r.j.evaluation.total, 3);
+  // new ideas for the same call: the generator sees the call's award criteria and the last below-threshold evaluation
+  env.DB._db.prepare("UPDATE project_ideas SET evaluations = ? WHERE id = ?").run(JSON.stringify({ "HE-RIA_IA": { ...r.j.evaluation, passed: false,
+    criteria: r.j.evaluation.criteria.map((c, i) => (i === 2 ? { ...c, score: 1, pass: false, weaknesses: ["No work plan or partner roles"] } : c)) } }), heIdea.id);
+  const heCall = JSON.parse(readFileSync(new URL("../site/data/index.json", import.meta.url), "utf8")).calls.find((c) => c.id === he);
+  if (heCall && heCall.dl.some((d) => d.split("|")[0] > new Date(NOW).toISOString().slice(0, 16))) {
+    aiAnswer = JSON.stringify({ ideas: [{ callId: he, title: "New concept", concept: "c", objectives: ["a by month 6", "b 40%"] }] });
+    r = await call("POST", `/api/orgs/${o}/ideas`, { cookie: u, body: { candidates: [{ id: he, score: 70 }], lang: "en" } });
+    assert.equal(r.status, 200, JSON.stringify(r.j));
+    const prompt = aiSeen.at(-1).messages.map((m) => m.content).join("\n");
+    assert.match(prompt, /AWARD CRITERIA[\s\S]*Quality and efficiency of the implementation: 0 to 5, at least 3 needed/);
+    assert.match(prompt, /PREVIOUS EVALUATION[\s\S]*below the threshold[\s\S]*No work plan or partner roles/);
+  }
 });
 
 await t("official eligibility check: quotes verified against the official text, consortium never fails, stored per profile version", async () => {

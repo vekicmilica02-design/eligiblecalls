@@ -90,6 +90,54 @@ def find(sents, rx, cid=None):
     return hits[0][1], hits[0][2]
 
 ENT = r"(?:independent\s+)?(?:applicants?|entities|legal entities|beneficiaries|partners|organisations|organizations|participants|members)"
+# The countries the site covers (site/data/taxonomy.json), by the names call documents use.
+COUNTRY_NAMES = {
+    "AT": ["Austria"], "BE": ["Belgium"], "BG": ["Bulgaria"], "HR": ["Croatia"], "CY": ["Cyprus"], "CZ": ["Czechia", "Czech Republic"],
+    "DK": ["Denmark"], "EE": ["Estonia"], "FI": ["Finland"], "FR": ["France"], "DE": ["Germany"], "GR": ["Greece"], "HU": ["Hungary"],
+    "IE": ["Ireland"], "IT": ["Italy"], "LV": ["Latvia"], "LT": ["Lithuania"], "LU": ["Luxembourg"], "MT": ["Malta"], "NL": ["Netherlands"],
+    "PL": ["Poland"], "PT": ["Portugal"], "RO": ["Romania"], "SK": ["Slovakia"], "SI": ["Slovenia"], "ES": ["Spain"], "SE": ["Sweden"],
+    "IS": ["Iceland"], "LI": ["Liechtenstein"], "NO": ["Norway"], "CH": ["Switzerland"], "GB": ["United Kingdom", "UK"], "AL": ["Albania"],
+    "BA": ["Bosnia and Herzegovina"], "XK": ["Kosovo"], "ME": ["Montenegro"], "MK": ["North Macedonia"], "RS": ["Serbia"],
+    "TR": ["Türkiye", "Turkiye", "Turkey"], "UA": ["Ukraine"], "MD": ["Moldova"], "GE": ["Georgia"], "AM": ["Armenia"], "FO": ["Faroe Islands", "Faroes"],
+}
+# Where the bullet list "be established in one of the eligible countries, i.e.: ..." ends: the next requirement or paragraph.
+LIST_END = re.compile(r"(?:[−–•-]\s*(?:be|have|not be|must|comply)\b|Beneficiaries (?:and affiliated entities )?must|All applicants|Other entities|"
+                      r"Given the|Applicants are required|other eligibility conditions|For the validation|Please check|In order to|Specific cases|"
+                      r"Legal entities established|Natural persons|International organisations|Consortium composition|NB:|\bb\)\s)", re.I)
+# A category whose members the document does not list: associated, candidate or third countries, regions, and the like.
+# Such a list is "open": the site cannot decide from it and the call stays "to verify".
+OPEN_LIST = re.compile(r"associat|third countr|candidate|negotiation|pre-accession|\bIPA\b|enlargement|neighbourhood|Balkan|Eastern Partnership|"
+                       r"Europol|operational agreement|any country|all countries|other countries|countries listed|list of (?:participating|eligible) countries|"
+                       r"see (?:the )?(?:list|annex|section)|Annex|programme countries|partner countries|countries receiving|non-EU donor", re.I)
+
+def countries_condition(text):
+    """The closed list of eligible countries in the EU call document template ("be established in one of the eligible
+    countries, i.e.: - EU Member States (including OCTs) - ..."). Returns None when the sentence is not there.
+    open = True when the list has a category the document does not enumerate; the site then decides nothing from it."""
+    t = re.sub(r"\s+", " ", text or "")
+    m = re.search(r"established in (?:one of )?the eligible countries,? i\.\s?e\.:?\s*", t, re.I)
+    if not m:
+        return None
+    rest = t[m.end():m.end() + 2500]
+    end = LIST_END.search(rest)
+    if not end or end.start() < 5:
+        return None   # the list cannot be delimited: no condition rather than a guess
+    seg = rest[:end.start()].strip(" .;:")
+    eu = bool(re.search(r"\bEU Member States?\b", seg))
+    excluded = [cc for cc, names in COUNTRY_NAMES.items() if re.search(r"(?:excluding|except(?: for)?|with the exception of)\s+(?:" + "|".join(map(re.escape, names)) + r")\b", seg, re.I)]
+    named = []
+    for cc, names in COUNTRY_NAMES.items():
+        if cc in excluded:
+            continue
+        if any(re.search(r"\b" + re.escape(n) + r"\b", seg) for n in names):
+            named.append(cc)
+    if re.search(r"\bEEA countries\b", seg) and not re.search(r"listed EEA", seg, re.I):
+        named += [cc for cc in ("IS", "LI", "NO") if cc not in named]
+    if not eu and not named:
+        return None
+    return {"type": "countries", "eu": eu, "named": named, "excluded": excluded, "open": bool(OPEN_LIST.search(seg)),
+            "quote": (t[m.start():m.end()] + seg)[:600]}
+
 def conditions(text, cid=None):
     """Mandatory conditions that can be read reliably; each keeps the sentence it comes from."""
     s = sentences(text)
@@ -126,6 +174,9 @@ def conditions(text, cid=None):
     q, m = find(s, cid=cid, rx=r"(?:single|mono-?beneficiary|one applicant)[^.]{0,60}(?:eligible|allowed|may apply|can apply)")
     if q and not any(c["type"] == "minApplicants" for c in out):
         out.append({"type": "minApplicants", "value": 1, "quote": q})
+    cc = countries_condition(text)
+    if cc:
+        out.append(cc)
     return out
 
 def doc_section(text):

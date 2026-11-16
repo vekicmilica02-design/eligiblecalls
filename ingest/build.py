@@ -209,7 +209,7 @@ def not_in_source(rec, extra=""):
     m = SAYS.search(re.sub(r"\s+", " ", rec.get("conditions") or ""))
     said = (' The Portal data says: "Eligible countries ' + m.group(1).strip(" .") + '."') if m else ""
     return ("C", "The eligible countries are not stated in the Portal data for this call." + said + extra +
-            " Eligible Calls does not read the call document, so eligibility is not available from the source.")
+            " Check the eligible countries in the call document.")
 
 def eligibility(rec, prog):
     cid = rec["id"]; t = rec["type"]
@@ -366,6 +366,30 @@ def type_for(rec):
     return "grant"
 
 # ---------- normalise ----------
+# Closed lists of eligible countries read from the call documents by the previous run of eligibility_docs.py
+# (site/org/eligibility.json, condition "countries"). The Portal data of some calls does not name the countries; where
+# the document lists them and a country is not on the list, that country is not eligible. Only "not stated" (C) is
+# changed, and only to N: an eligibility the Portal data states is never overridden here.
+def load_doc_countries():
+    try:
+        calls = json.load(open(os.path.join(ROOT, "site", "org", "eligibility.json"), encoding="utf-8")).get("calls", {})
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for cid, e in calls.items():
+        if (e or {}).get("status") != "verified":
+            continue
+        cond = next((x for x in e.get("conditions") or [] if x.get("type") == "countries"), None)
+        if cond and not cond.get("open") and (cond.get("eu") or cond.get("named")):
+            out[cid] = dict(cond, title=e.get("title") or "the call document")
+    return out
+DOC_COUNTRIES = load_doc_countries()
+
+def doc_list_text(cond):
+    name = lambda c: NAMES.get(c, c)
+    parts = (["EU Member States" + (" except " + ", ".join(map(name, cond["excluded"])) if cond.get("excluded") else "")] if cond.get("eu") else []) + [name(c) for c in cond.get("named") or []]
+    return ", ".join(parts)
+
 def d10(s): return str(s)[:10] if s else None
 def clean(t): return re.sub(r'^"?>\s*', "", re.sub(r"[ \t]+"," ", html.unescape(t or "")).strip())
 
@@ -418,6 +442,13 @@ for r in RECS:
             if c not in EU27 and el[c][0] in ("Y", "P"):
                 el[c] = ("C", note)
         unreviewed.append((r["id"], hits))
+    dc = DOC_COUNTRIES.get(r["id"])
+    if dc:
+        note = f"The call document ({dc['title']}) lists the eligible countries: {doc_list_text(dc)}. This country is not on the list."
+        for c in COUNTRIES:
+            listed = (dc.get("eu") and c in EU27 and c not in (dc.get("excluded") or [])) or c in (dc.get("named") or [])
+            if not listed and el[c][0] == "C":
+                el[c] = ("N", note)
     reasons, emap = [], {}
     for c,(st,note) in el.items():
         if note not in reasons: reasons.append(note)

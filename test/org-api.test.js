@@ -4,6 +4,7 @@ import { handleApi } from "../src/org/api.js";
 import { _resetTaxonomy } from "../src/org/http.js";
 import { verifyFields, robotsAllows, checkPublicUrl, aboutLinks, matchKey, htmlToText } from "../src/org/extract.js";
 import { parseJsonObject, complete } from "../src/org/ai.js";
+import { officialCountryOk } from "../src/org/ideas.js";
 import { GROQ_FREE } from "../src/providers.js";
 import { contextFrom } from "../site/org/schema.js";
 import { mockD1, mockAssets, sseStream, mockFetch } from "./mocks.js";
@@ -845,6 +846,12 @@ await t("e-mail link sign-in is off unless EMAIL_LOGIN is 1; /api/me tells the p
   assert.equal((await call("POST", "/api/auth/request", { body: { email: "x@example.org", accept: true } })).j.error, "email_login_off");
   assert.deepEqual((await call("GET", "/api/me")).j.signin, { google: true, email: false });
   env.EMAIL_LOGIN = "1";
+});
+
+await t("idea generation: a call whose document closes the country list to the organisation is refused", async () => {
+  const elig = { calls: { A: { status: "verified", conditions: [{ type: "countries", eu: true, named: [], excluded: [], open: false }] }, B: { status: "verified", conditions: [{ type: "countries", eu: true, named: [], open: true }] }, C: { status: "not_researched", conditions: [{ type: "countries", eu: true, named: [], open: false }] } } };
+  assert.deepEqual(["A", "B", "C", "D"].map((id) => officialCountryOk(elig, id, "RS")), [false, null, null, null]);
+  assert.equal(officialCountryOk(elig, "A", "AT"), true);
 });
 
 await t("AI chain for organisation work: no retired Groq models; a per-minute limit is reported even when a later provider fails differently", async () => {

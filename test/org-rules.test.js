@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ROOT } from "./mocks.js";
-import { assess, assessAll, buildDF, band, scoreTier, DEFAULT_WEIGHTS, callFingerprint, mandatorySummary, HIGH, MEDIUM, setGlossary, expandText, norm, terms } from "../site/org/rules.js";
+import { assess, assessAll, buildDF, band, scoreTier, DEFAULT_WEIGHTS, callFingerprint, mandatorySummary, HIGH, MEDIUM, setGlossary, expandText, norm, terms, countryInList } from "../site/org/rules.js";
 import { detectLang, foldText, textHash } from "../site/org/lang.js";
 import { rubricFor } from "../site/org/rubric.js";
 import { scoreEvaluation } from "../src/org/evaluate.js";
@@ -233,6 +233,20 @@ t("official text not verified: the requirement stays to be verified, so the call
   assert.equal(r.status, "potential");
   assert.ok(r.next.some((x) => x.code === "rec.verifyOfficial"));
   assert.equal(assess(ngo, call(), { now: NOW, elig: { frameworks: FW, calls: { "TEST-1": { status: "robots" } } } }).checks.find((x) => x.id === "official").params.status, "robots");
+});
+
+t("official list of eligible countries: a closed list decides, an open one does not", () => {
+  const list = (o) => [{ type: "countries", eu: true, named: [], excluded: [], open: false, quote: "be established in one of the eligible countries, i.e.: − EU Member States", ...o }];
+  const rs = { ...ngo, country: "RS" }, at = { ...ngo, country: "AT" };
+  let r = assess(rs, call(), { now: NOW, elig: elig(list()) });
+  assert.equal(ids(r)["off.country"], "fail"); assert.equal(r.status, "ineligible", "a country left out of the document's list makes the call not eligible");
+  assert.ok(!r.checks.some((x) => x.code === "off.read"), "no 'nothing excludes you' message next to a failed country");
+  assert.equal(r.checks.find((x) => x.id === "off.country").params.cc, "RS");
+  assert.equal(ids(assess(at, call(), { now: NOW, elig: elig(list()) }))["off.country"], "pass");
+  assert.equal(ids(assess(rs, call(), { now: NOW, elig: elig(list({ named: ["RS"] })) }))["off.country"], "pass");
+  assert.equal(ids(assess({ ...ngo, country: "DK" }, call(), { now: NOW, elig: elig(list({ excluded: ["DK"] })) }))["off.country"], "fail");
+  assert.equal(ids(assess(rs, call(), { now: NOW, elig: elig(list({ open: true })) }))["off.country"], undefined, "an open list decides nothing");
+  assert.deepEqual([countryInList(null, "RS"), countryInList(list()[0], ""), countryInList(list({ open: true })[0], "RS")], [null, null, null]);
 });
 
 t("official conditions: legal entity, natural persons, coordinator, consortium met or short, single applicant", () => {

@@ -57,6 +57,27 @@ def test_other_topic_sentence_is_ignored():
     assert any(c["type"] == "minApplicants" and c["value"] == 1 for c in E.conditions(text, "CREA-OTHER-2027-TOPIC"))
 
 
+def test_eligible_countries_list():
+    head = "In order to be eligible, the applicants must: \u2212 be legal entities (public or private bodies) \u2212 be established in one of the eligible countries, i.e.: "
+    tail = " Beneficiaries and affiliated entities must register in the Participant Register."
+    eu = E.countries_condition(head + "\u2212 EU Member States (including overseas countries and territories (OCTs))" + tail)
+    assert eu["eu"] is True and eu["named"] == [] and eu["open"] is False and "EU Member States" in eu["quote"]
+    eea = E.countries_condition(head + "\u2212 EU Member States (including OCTs) \u2212 EEA countries (Norway, Iceland, Liechtenstein)" + tail)
+    assert sorted(eea["named"]) == ["IS", "LI", "NO"] and eea["open"] is False
+    ua = E.countries_condition(head + "\u2212 EU Member States (including OCTs) \u2212 non-EU countries: \u2212 Ukraine Legal entities established in the non-government controlled areas are not eligible.")
+    assert ua["named"] == ["UA"] and ua["open"] is False
+    dk = E.countries_condition(head + "\u2212 EU Member States (including OCTs, excluding Denmark) \u2212 Serbia" + tail)
+    assert dk["excluded"] == ["DK"] and dk["named"] == ["RS"]
+    # a category the document does not enumerate: nothing can be concluded
+    for open_list in ["\u2212 non-EU countries: \u2212 listed EEA countries and countries associated to the CERV Programme (list of participating countries)",
+                      "\u2212 third countries that have an operational agreement with Europol"]:
+        assert E.countries_condition(head + "\u2212 EU Member States " + open_list + tail)["open"] is True
+    # no list sentence, or a list that cannot be delimited: no condition
+    assert E.countries_condition("Applicants must be established in an eligible country.") is None
+    assert E.countries_condition(head + "\u2212 EU Member States") is None
+    assert any(c["type"] == "countries" for c in E.conditions(head + "\u2212 EU Member States (including OCTs)" + tail))
+
+
 def test_number_words_and_file_names():
     assert E.num("three") == 3 and E.num("4") == 4
     assert E.fname("A/B C:1") == "A_B_C_1.json"

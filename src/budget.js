@@ -38,6 +38,11 @@ export async function visitorHit(db, day, vhash) {
   return r ? r.count : 1;
 }
 
+export async function visitorUndo(db, day, vhash) {
+  if (!db) return;
+  await db.prepare("UPDATE visitor_usage SET count = MAX(0, count - 1) WHERE day = ? AND vhash = ?").bind(day, vhash).run();
+}
+
 export async function visitorHash(ip, day, salt) {
   const data = new TextEncoder().encode(`${ip}|${day}|${salt}`);
   const h = await crypto.subtle.digest("SHA-256", data);

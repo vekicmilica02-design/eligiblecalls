@@ -1,7 +1,7 @@
 // POST /api/chat handler. Shared by the Pages Function and the local test server.
 import { cleanRequest, buildMessages, estTokens, LIMITS } from "./core.js";
 import { workersAI, groq, groqModels, neurons, ProviderError } from "./providers.js";
-import { utcDay, nextReset, getUsage, addUsage, groqKey, groqTokens, visitorHit, visitorHash } from "./budget.js";
+import { utcDay, nextReset, getUsage, addUsage, groqKey, groqTokens, visitorHit, visitorUndo, visitorHash } from "./budget.js";
 
 let INDEX = null;
 async function loadIndex(env, url) {
@@ -70,7 +70,8 @@ export async function handleChat({ request, env, waitUntil = (p) => p, now = Dat
   if (!order.length) return json({ error: "resting", resetAt: new Date(nextReset(now)).toISOString() }, 503);
 
   const perVisitor = num(env.DAILY_VISITOR_LIMIT, 10);
-  const count = await visitorHit(db, day, await visitorHash(ip, day, env.HASH_SALT || "eligiblecalls"));
+  const vhash = await visitorHash(ip, day, env.HASH_SALT || "eligiblecalls");
+  const count = await visitorHit(db, day, vhash);
   if (count > perVisitor) return json({ error: "visitor_limit", limit: perVisitor, resetAt: new Date(nextReset(now)).toISOString() }, 429);
 
   let run = null, used = null, lastErr = null, busy = false;
@@ -90,6 +91,7 @@ export async function handleChat({ request, env, waitUntil = (p) => p, now = Dat
     }
   }
   if (!run) {
+    await visitorUndo(db, day, vhash).catch(() => {});   // no answer was started: the message is not counted
     if (busy) return json({ error: "rate_limited" }, 429);
     const quota = lastErr instanceof ProviderError && lastErr.code === "quota";
     return json({ error: quota ? "resting" : "provider_error", resetAt: quota ? new Date(nextReset(now)).toISOString() : undefined }, 503);

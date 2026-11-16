@@ -40,7 +40,7 @@ export const EXPERIENCE = [["none", "None", "Nema"], ["partner", "As partner", "
 // w: weight in the completeness percentage. req: needed for any eligibility check.
 export const FIELDS = [
   { id: "name", kind: "text", max: 200, w: 4, req: true, en: "Organisation name", sr: "Naziv organizacije" },
-  { id: "orgType", kind: "enum", options: ORG_TYPES, w: 6, req: true, en: "Organisation type", sr: "Tip organizacije" },
+  { id: "orgType", kind: "enum", options: ORG_TYPES, w: 6, req: true, en: "Organisation type", sr: "Vrsta organizacije" },
   { id: "country", kind: "country", w: 6, req: true, en: "Country of establishment", sr: "Država sedišta" },
   { id: "city", kind: "text", max: 120, w: 1, en: "City", sr: "Grad" },
   { id: "registrationNumber", kind: "text", max: 60, w: 1, optional: true, en: "Registration number (optional)", sr: "Matični broj (opciono)" },

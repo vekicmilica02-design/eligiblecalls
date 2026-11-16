@@ -51,6 +51,25 @@ export function officialMessages({ call, doc, profile, lang }) {
   return [{ role: "system", content: system }, { role: "user", content: user }];
 }
 
+// A long answer can be cut off at the output limit, which leaves invalid JSON. Every condition object that was
+// completed before the cut is still usable, so it is recovered here instead of discarding the whole answer.
+export function salvageConditions(text) {
+  const s = String(text || "");
+  const m = /"conditions"\s*:\s*\[/.exec(s);
+  if (!m) return null;
+  const items = [];
+  let depth = 0, inStr = false, esc = false, from = -1;
+  for (let i = m.index + m[0].length; i < s.length; i++) {
+    const ch = s[i];
+    if (inStr) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"') inStr = true;
+    else if (ch === "{") { if (depth++ === 0) from = i; }
+    else if (ch === "}" && --depth === 0) { try { items.push(JSON.parse(s.slice(from, i + 1))); } catch { /* skip a broken object */ } }
+    else if (ch === "]" && depth === 0) break;
+  }
+  return items.length ? { conditions: items, summary: "" } : null;
+}
+
 // Keeps only conditions quoted from the official text; results resting on no filled profile field become unknown.
 export function verifyConditions(answer, doc, profile) {
   const text = matchKey([doc.heading, ...(doc.topic || []), doc.text].filter(Boolean).join("\n"));
@@ -100,8 +119,9 @@ export async function officialRoute({ env, db, user, M, parts, body, now, org, r
       if (same.lang === lang) return json({ check: same, cached: true });
     }
     const r = await complete({ env, userId: user.id, messages: officialMessages({ call, doc, profile: profileBlock(profile), lang }), agent: "official", maxOut: 2200, now, fetchImpl, waitUntil });
-    const v = verifyConditions(parseJsonObject(r.text), doc, profile);
-    if (!v) throw new HttpError(502, "ai_bad_answer");
+    const answer = parseJsonObject(r.text) || salvageConditions(r.text);
+    const v = verifyConditions(answer, doc, profile);
+    if (!v) { console.warn("official check: unusable AI answer", answer ? "no condition quoted from the official text" : "not valid JSON", String(r.text || "").length, "chars"); throw new HttpError(502, "ai_bad_answer"); }
     const stored = { conditions: v.conditions, summary: v.summary, lang };
     await db.prepare("INSERT INTO official_checks (org_id, call_id, profile_version, source_url, source_title, source_verified, result, model, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
       "ON CONFLICT(org_id, call_id) DO UPDATE SET profile_version = excluded.profile_version, source_url = excluded.source_url, source_title = excluded.source_title, source_verified = excluded.source_verified, result = excluded.result, model = excluded.model, created_by = excluded.created_by, created_at = excluded.created_at")

@@ -38,7 +38,15 @@ jobs:
       - run: pip install -r ingest/requirements.txt
 
       - name: Fetch open calls from the EU Funding & Tenders Portal
-        run: python ingest/fetch.py
+        # The Portal API is public and sometimes unavailable for a few minutes. fetch.py already retries each request;
+        # this repeats the whole import (3 tries, 90 and 180 seconds apart) before the run is reported as failed.
+        run: |
+          for attempt in 1 2 3; do
+            if python ingest/fetch.py; then exit 0; fi
+            echo "::warning::Portal import failed (attempt $attempt of 3)"
+            if [ "$attempt" -lt 3 ]; then sleep $((attempt * 90)); fi
+          done
+          exit 1
 
       - name: Fetch calls from the other sources (Interreg, EEA and Norway Grants, ERA-LEARN, UKRI, EU project calls)
         run: python ingest/fetch_extra.py
@@ -70,7 +78,19 @@ jobs:
           fi
           if ! git diff --cached --quiet; then
             git commit -m "Data refresh $(date -u +%Y-%m-%dT%H:%MZ)"
-            git push
+            # main also receives pull requests while a run takes several minutes, so the first push can be rejected
+            # (non-fast-forward). Rebase the data commit on the new main and push again; on a file changed in both,
+            # the data from this run wins (-X theirs means the commit being replayed, which is ours). A rejected push
+            # was the likely cause of runs that failed at this step with everything before it green.
+            pushed=false
+            for attempt in 1 2 3 4 5; do
+              if git push; then pushed=true; break; fi
+              echo "::warning::push rejected (attempt $attempt of 5): rebasing the data commit on origin/main"
+              git fetch --depth=50 origin main
+              if ! git rebase -X theirs origin/main; then git rebase --abort || true; fi
+              sleep $((attempt * 4))
+            done
+            if [ "$pushed" != "true" ]; then echo "::error::Could not push the data commit after 5 tries"; exit 1; fi
           fi
         id: commit
 
@@ -88,6 +108,7 @@ jobs:
 
       - name: Open an issue when calls need review
         if: hashFiles('ingest/review.md') != ''
+        continue-on-error: true   # the data is already published at this point; a failed issue must not fail the run
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

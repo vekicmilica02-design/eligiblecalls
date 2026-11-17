@@ -65,15 +65,6 @@ After checking the call document, either add a rule to CALL_RULES in build.py or
 - For Member States and Associated Countries with an overall population exceeding 35 million, the participation is limited to two hubs in the given consortium
 - For Member States and Associated Countries with an overall population not exceeding 35 million[[ The most recent available data from Eurostat at the time of opening of the call will be used as reference ( Population on 1 January by age and sex )]], participation is limited to a single hub in the given consortium
 
-## HORIZON-JU-EUROHPC-2026-QEXP-14-01
-- 5 of the HE Regulation, the Governing Board has decided that in order to achieve the expected outcomes, and safeguard the Union’s strategic assets, interests, autonomy, or security participation is limited to legal entities established in Member States or Participating States of the EuroHPC JU [ At the moment of the adoption of the Amendment No 5, the Participating States of EuroHPC JU are Albania, Austria, Belgium, Bulgaria, Croatia, Cyprus, Czechia, Denmark, Estonia, Finland, France, Germany, 
-
-## HORIZON-JU-EUROHPC-2026-QTI-13-01
-- 5 of the HE Regulation, the Governing Board has decided that in order to achieve the expected outcomes, and safeguard the Union’s strategic assets, interests, autonomy, or security participation is limited to legal entities established in Member States or Participating States of the EuroHPC JU [ At the moment of the adoption of the Amendment No 5, the Participating States of EuroHPC JU are Albania, Austria, Belgium, Bulgaria, Croatia, Cyprus, Czechia, Denmark, Estonia, Finland, France, Germany, 
-
-## HORIZON-JU-EUROHPC-2026-SPT-10-01
-- 5 of the HE Regulation, the Governing Board has decided that in order to achieve the expected outcomes, and safeguard the Union’s strategic assets, interests, autonomy, or security participation is limited to legal entities established in Member States or Participating States of the EuroHPC JU [ At the moment of the adoption of the Amendment No 5, the Participating States of EuroHPC JU are Albania, Austria, Belgium, Bulgaria, Croatia, Cyprus, Czechia, Denmark, Estonia, Finland, France, Germany, 
-
 ## HORIZON-CL3-2027-02-CS-ECCC-01
 - Other Eligible Conditions
  In order to achieve the expected outcomes, and safeguard the Union’s strategic assets, interests, autonomy, and security, participation in this topic is limited to legal entities established in Member States and Associated Countries

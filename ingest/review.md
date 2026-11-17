@@ -43,6 +43,9 @@ After checking the call document, either add a rule to CALL_RULES in build.py or
 - Other Eligible Conditions
  To increase EU resilience in raw materials supply chains and thus reduce the serious risk to the Union's strategic assets, economic and societal interests, autonomy and security associated with the current EU reliance on a few third countries for critical raw materials, by increasing sustainable and responsible sourcing of primary and secondary raw materials necessary to enable the green and digital transition and in alignment with the objectives of the Critical Raw Ma
 
+## HORIZON-CL4-2027-05-DIGITAL-EMERGING-03
+- For this reason, participation is limited to legal entities established in Member States, Iceland and Norway, associated countries, OECD countries and MERCOSUR countries
+
 ## HORIZON-EIE-2027-02-CONNECT-01
 - For Member States and Associated Countries with an overall population exceeding 35 million, the participation is limited to two hubs in the given consortium
 - For Member States and Associated Countries with an overall population not exceeding 35 million[[ The most recent available data from Eurostat at the time of opening of the call will be used as reference ( Population on 1 January by age and sex )]], participation is limited to a single hub in the given consortium
@@ -86,9 +89,6 @@ After checking the call document, either add a rule to CALL_RULES in build.py or
 
 ## HORIZON-CL4-2027-04-DIGITAL-EMERGING-11
 - For this reason, participation is limited to legal entities established in Member States, Iceland and Norway and the following additional associated countries: Canada, Israel, Republic of Korea, New Zealand, Switzerland, and the United Kingdom
-
-## HORIZON-CL4-2027-05-DIGITAL-EMERGING-03
-- For this reason, participation is limited to legal entities established in Member States, Iceland and Norway, associated countries, OECD countries and MERCOSUR countries
 
 ## HORIZON-CL4-2027-SPACE-03-12
 - For this reason, participation is limited to legal entities established in Member States, Iceland and Norway and the following additional associated countries : Canada, New-Zealand, United Kingdom and Switzerland

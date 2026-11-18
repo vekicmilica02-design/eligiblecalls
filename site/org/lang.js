@@ -29,6 +29,14 @@ export function proseLang(text) {
   return null;
 }
 
+// Croatian words and ijekavian forms in a text meant to be Serbian (ekavian). Word stems, matched at the start of a
+// word: each one is wrong in standard Serbian. Used to send model text back for rewriting before it is shown.
+const NOT_SR = /(?<![\p{L}])(?:vrijed|vrijem|riješ|riječ|rješen|mjer|mjest|mjese|djel|djec|cjel|cijel|cijen|svijet|ocjen|uvjet|tijek|surad|projekt(?![\p{L}])|tisuć|znanost|sveučiliš|tvrtk|općin|poduzeć|sudionik|unaprjeđ|glede|primjer|vrijeme|lijep|bijel|dijel|smjer|pjesm|svjet|sjedišt)/giu;
+export function nonStandardSerbian(text) {
+  const hits = String(text || "").match(NOT_SR) || [];
+  return hits.length >= 2 ? hits.slice(0, 8) : null;
+}
+
 export function detectLang(text) {
   const s = String(text || "");
   const letters = (s.match(/\p{L}/gu) || []).length;

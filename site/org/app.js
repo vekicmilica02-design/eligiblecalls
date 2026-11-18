@@ -2,9 +2,9 @@
 // Uses the page's loaded data through window.EC (index.html) and the API under /api/.
 import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completeness } from "./schema.js";
 import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS, HIGH, mandatorySummary, setGlossary, glossaryVersion } from "./rules.js";
-import { TEXT_FIELDS, textHash, estTokens } from "./lang.js";
+import { TEXT_FIELDS, textHash, estTokens, nonStandardSerbian } from "./lang.js";
 import { rubricFor, erasmusAction } from "./rubric.js";
-import { ideaIn, evalIn } from "./content.js";
+import { ideaIn, evalIn, ideaTexts, evalTexts } from "./content.js";
 
 const EC = window.EC;
 const esc = EC.esc;
@@ -57,7 +57,7 @@ const S = {
     deadline: "Deadline", funding: "Funding", notStated: "No requirement stated", missingCall: "The profile has the information this assessment uses for this call.", perGrant: "per grant", topicBudget: "total budget of the topic", programme: "Programme", noCountry: "Add your country and organisation type to the profile: without them no call can be checked.",
     statusL: { eligible: "Eligible based on available information", potential: "Potentially eligible: verification required", ineligible: "Ineligible: mandatory requirement not met", insufficient: "Insufficient information" },
     bandL: { high: "High compatibility", medium: "Medium compatibility", excellent: "Excellent compatibility", strong: "Strong compatibility", moderate: "Moderate compatibility", low: "Low compatibility", verylow: "Very low compatibility" },
-    repA: "A. Overall assessment", mandT: "Mandatory eligibility: can you apply?", stratT: "Strategic compatibility: how well does it fit?", stratWhat: "Weighted fit of the call with your mission and areas of activity, experience, target groups, capacity and partnerships. Country and organisation type are not part of it: they decide the status.", offT: "Official eligibility documentation", offLede: "The mandatory conditions above that are marked as an official call document come from this source. Eligible Calls reads the eligibility section of the call document (or the funder page) and keeps the quoted sentence of every condition.", offPub: "Publisher", offDoc: "Document", offPublished: "Published", offVerified: "Last verified", offNone: "No official eligibility document is read for this call.", aiT: "AI check against the official text", aiLede: "The AI lists every mandatory condition in the official text, quotes it, and checks your profile against it. Only conditions whose quote is found in the official text are kept; a result that does not rest on a filled profile field is shown as to verify. The results count in the eligibility status. The check runs on its own the first time an editor opens the report of this call; after the profile changes, run it again with the button.", aiRun: "Check my profile against the official text", aiRerun: "Check again", aiStale: (v) => `Made with profile version ${v}; your profile has changed since. Run the check again to update the status.`, aiNoText: "There is no official text for an AI check of this call.", aiApplies: { applicant: "applicant", coordinator: "coordinator", consortium: "consortium", all: "all participants" }, aiMade: (t) => `Checked ${t}`, aiCounts: "These results count in the status above.", repB: "B. Requirements checked", repB2: "Compatibility by dimension", repC: "C. Organisational strengths", repD: "D. Eligibility gaps", repE: "E. Missing information", repF: "F. Recommendations",
+    repA: "Overall assessment", mandT: "Mandatory eligibility: can you apply?", stratT: "Strategic compatibility: how well does it fit?", stratWhat: "Weighted fit of the call with your mission and areas of activity, experience, target groups, capacity and partnerships. Country and organisation type are not part of it: they decide the status.", offT: "Official eligibility documentation", offLede: "The mandatory conditions above that are marked as an official call document come from this source. Eligible Calls reads the eligibility section of the call document (or the funder page) and keeps the quoted sentence of every condition.", offPub: "Publisher", offDoc: "Document", offPublished: "Published", offVerified: "Last verified", offNone: "No official eligibility document is read for this call.", aiT: "AI check against the official text", aiLede: "The AI lists every mandatory condition in the official text, quotes it, and checks your profile against it. Only conditions whose quote is found in the official text are kept; a result that does not rest on a filled profile field is shown as to verify. The results count in the eligibility status. The check runs on its own the first time an editor opens the report of this call; after the profile changes, run it again with the button.", aiRun: "Check my profile against the official text", aiRerun: "Check again", aiStale: (v) => `Made with profile version ${v}; your profile has changed since. Run the check again to update the status.`, aiNoText: "There is no official text for an AI check of this call.", aiApplies: { applicant: "applicant", coordinator: "coordinator", consortium: "consortium", all: "all participants" }, aiMade: (t) => `Checked ${t}`, aiCounts: "These results count in the status above.", repB: "Requirements checked", repB2: "Compatibility by dimension", repC: "Organisational strengths", repD: "Eligibility gaps", repE: "Missing information", repF: "Recommendations",
     requirement: "Requirement", result: "Result", basis: "Basis", weight: "Weight", part: "Score",
     resL: { pass: "Met", fail: "Not met", warn: "Possible problem", unknown: "To verify", missing: "Profile data missing" },
     srcL: { official: "official call document", "official-ai": "official document, AI-checked", "programme-list": "Commission list of participating countries", call: "call text", source: "source of the call", derived: "Eligible Calls rules on the call text", "call-rule": "official text quoted", none: "source data" },
@@ -240,7 +240,7 @@ const S = {
     deadline: "Rok", funding: "Iznos", notStated: "Uslov nije naveden", missingCall: "Profil sadrži podatke koje ova procena koristi za ovaj poziv.", perGrant: "po grantu", topicBudget: "ukupan budžet teme", programme: "Program", noCountry: "Dodajte državu i vrstu organizacije u profil: bez njih nijedan poziv ne može da se proveri.",
     statusL: { eligible: "Podobna prema dostupnim podacima", potential: "Moguće podobna: potrebna provera", ineligible: "Nije podobna: obavezan uslov nije ispunjen", insufficient: "Nedovoljno podataka" },
     bandL: { high: "Visoka kompatibilnost", medium: "Srednja kompatibilnost", excellent: "Odlična kompatibilnost", strong: "Velika kompatibilnost", moderate: "Umerena kompatibilnost", low: "Niska kompatibilnost", verylow: "Veoma niska kompatibilnost" },
-    repA: "A. Ukupna procena", mandT: "Obavezna podobnost: da li možete da konkurišete?", stratT: "Strateška usklađenost: koliko poziv odgovara?", stratWhat: "Ponderisana usklađenost poziva sa vašom misijom i oblastima rada, iskustvom, ciljnim grupama, kapacitetom i partnerstvima. Država i vrsta organizacije nisu deo nje: one određuju status.", offT: "Zvanična dokumentacija o podobnosti", offLede: "Obavezni uslovi iznad koji su označeni kao zvanični dokument poziva potiču iz ovog izvora. Eligible Calls čita deo o podobnosti iz dokumenta poziva (ili sa stranice finansijera) i čuva citiranu rečenicu za svaki uslov.", offPub: "Izdavač", offDoc: "Dokument", offPublished: "Objavljeno", offVerified: "Poslednja provera", offNone: "Za ovaj poziv se ne čita zvanični dokument o podobnosti.", aiT: "AI provera prema zvaničnom tekstu", aiLede: "AI navodi svaki obavezan uslov iz zvaničnog teksta, citira ga i proverava vaš profil. Zadržavaju se samo uslovi čiji je citat pronađen u zvaničnom tekstu; rezultat koji se ne oslanja na popunjeno polje profila prikazuje se kao za proveru. Rezultati se računaju u status podobnosti. Provera se pokreće sama kada urednik prvi put otvori izveštaj o ovom pozivu; posle izmene profila pokrećete je dugmetom „Proveri ponovo“.", aiRun: "Proveri profil prema zvaničnom tekstu", aiRerun: "Proveri ponovo", aiStale: (v) => `Urađeno na osnovu verzije profila ${v}; profil se od tada promenio. Ponovite proveru da biste ažurirali status.`, aiNoText: "Za ovaj poziv nema zvaničnog teksta za AI proveru.", aiApplies: { applicant: "podnosilac", coordinator: "koordinator", consortium: "konzorcijum", all: "svi učesnici" }, aiMade: (t) => `Provereno ${t}`, aiCounts: "Ovi rezultati se računaju u status iznad.", repB: "B. Provereni uslovi", repB2: "Kompatibilnost po dimenzijama", repC: "C. Prednosti organizacije", repD: "D. Nedostaci u podobnosti", repE: "E. Podaci koji nedostaju", repF: "F. Preporuke",
+    repA: "Ukupna procena", mandT: "Obavezna podobnost: da li možete da konkurišete?", stratT: "Strateška usklađenost: koliko poziv odgovara?", stratWhat: "Ponderisana usklađenost poziva sa vašom misijom i oblastima rada, iskustvom, ciljnim grupama, kapacitetom i partnerstvima. Država i vrsta organizacije nisu deo nje: one određuju status.", offT: "Zvanična dokumentacija o podobnosti", offLede: "Obavezni uslovi iznad koji su označeni kao zvanični dokument poziva potiču iz ovog izvora. Eligible Calls čita deo o podobnosti iz dokumenta poziva (ili sa stranice finansijera) i čuva citiranu rečenicu za svaki uslov.", offPub: "Izdavač", offDoc: "Dokument", offPublished: "Objavljeno", offVerified: "Poslednja provera", offNone: "Za ovaj poziv se ne čita zvanični dokument o podobnosti.", aiT: "AI provera prema zvaničnom tekstu", aiLede: "AI navodi svaki obavezan uslov iz zvaničnog teksta, citira ga i proverava vaš profil. Zadržavaju se samo uslovi čiji je citat pronađen u zvaničnom tekstu; rezultat koji se ne oslanja na popunjeno polje profila prikazuje se kao za proveru. Rezultati se računaju u status podobnosti. Provera se pokreće sama kada urednik prvi put otvori izveštaj o ovom pozivu; posle izmene profila pokrećete je dugmetom „Proveri ponovo“.", aiRun: "Proveri profil prema zvaničnom tekstu", aiRerun: "Proveri ponovo", aiStale: (v) => `Urađeno na osnovu verzije profila ${v}; profil se od tada promenio. Ponovite proveru da biste ažurirali status.`, aiNoText: "Za ovaj poziv nema zvaničnog teksta za AI proveru.", aiApplies: { applicant: "podnosilac", coordinator: "koordinator", consortium: "konzorcijum", all: "svi učesnici" }, aiMade: (t) => `Provereno ${t}`, aiCounts: "Ovi rezultati se računaju u status iznad.", repB: "Provereni uslovi", repB2: "Kompatibilnost po dimenzijama", repC: "Prednosti organizacije", repD: "Nedostaci u podobnosti", repE: "Podaci koji nedostaju", repF: "Preporuke",
     requirement: "Uslov", result: "Rezultat", basis: "Osnov", weight: "Ponder", part: "Ocena",
     resL: { pass: "Ispunjen", fail: "Nije ispunjen", warn: "Mogući problem", unknown: "Za proveru", missing: "Nedostaju podaci u profilu" },
     srcL: { official: "zvanični dokument poziva", "official-ai": "zvanični dokument, AI provera", "programme-list": "lista zemalja učesnica Evropske komisije", call: "tekst poziva", source: "izvor poziva", derived: "pravila Eligible Calls nad tekstom poziva", "call-rule": "citiran zvanični tekst", none: "izvorni podaci" },
@@ -320,7 +320,7 @@ const S = {
     evPass: "Iznad pragova", evFail: "Ispod praga",
     evStrengths: "Snage", evWeak: "Slabosti", evMissing: "Elementi koji nedostaju", evRec: "Preporuke",
     evNoMin: (names) => `Nema pojedinačnog minimuma za: ${names}. Dokument poziva ga ne navodi („n/a“), pa se ovi kriterijumi računaju samo u ukupni prag.`,
-    evAuto: (i, n) => `ideja ${i} od ${n}`, evAutoDone: (n, f) => `Automatski ocenjeno: ${n} ideja, ispod praga: ${f}.`, evAutoRevised: (n, ok) => `Ideje ispod praga dorađene na osnovu ocene: ${n}; sada prolazi: ${ok}.`, improveRun: "Doradi ideju na osnovu ove ocene", improveBusy: "Ideja se dorađuje na osnovu ocene…", revised: (n, t, m) => `Dorađena verzija ${n}, napisana na osnovu ocene prethodne verzije (${t} / ${m}).`, trNeeded: "Deo ove ideje ili njene ocene napisan je na engleskom.", trRun: "Prikaži na srpskom", trBusy: "Prevodi se…", evNoteQuoted: "Iz dokumenta poziva (citat na engleskom):", evAutoStop: "Automatsko ocenjivanje je zaustavljeno:", evAutoMore: (n) => `Preostale ideje (${n}) možete oceniti dugmetom „Oceni“ na njihovim karticama.`, evSame: "Od poslednje ocene ništa se nije promenilo, pa je prikazan sačuvani rezultat.",
+    evAuto: (i, n) => `ideja ${i} od ${n}`, evAutoDone: (n, f) => `Automatski ocenjeno: ${n} ideja, ispod praga: ${f}.`, evAutoRevised: (n, ok) => `Ideje ispod praga dorađene na osnovu ocene: ${n}; sada prolazi: ${ok}.`, improveRun: "Doradi ideju na osnovu ove ocene", improveBusy: "Ideja se dorađuje na osnovu ocene…", revised: (n, t, m) => `Dorađena verzija ${n}, napisana na osnovu ocene prethodne verzije (${t} / ${m}).`, trNeeded: "Deo ove ideje ili njene ocene nije napisan na standardnom srpskom jeziku.", trRun: "Prikaži na srpskom", trBusy: "Prevodi se…", evNoteQuoted: "Iz dokumenta poziva (citat na engleskom):", evAutoStop: "Automatsko ocenjivanje je zaustavljeno:", evAutoMore: (n) => `Preostale ideje (${n}) možete oceniti dugmetom „Oceni“ na njihovim karticama.`, evSame: "Od poslednje ocene ništa se nije promenilo, pa je prikazan sačuvani rezultat.",
     evAutoPremium: "Ideje se automatski ocenjuju uz premijum pristup; bez njega ocena ostaje prazna.", evAutoNone: "Kriterijumi za dodelu izabranih poziva nisu u našim podacima, pa nijedna ideja nije mogla automatski da se oceni.",
     ideasBelow: "Ispod praga ocenjivanja", ideaBelowChip: "Ispod praga ocenjivanja", pickBelow: "vaša poslednja ideja za ovaj poziv bila je ispod praga ocenjivanja",
     ideasBelowNote: "Okvirna ocena je ove koncepte bodovala ispod praga njihovog poziva, pa ih u ovom obliku ne preporučujemo. Ostaju ovde da biste ih doradili i ponovo ocenili; sam poziv i dalje može da odgovara vašoj organizaciji uz drugačiji koncept.",
@@ -596,7 +596,7 @@ async function render(h) {
     if (parts[1] === "admin") return await renderAdmin(parts.slice(2));
     const id = parts[1];
     let sec = parts[2] || "overview", arg = parts.slice(3).join("/");
-    shell(id, sec, `<div class="page-wait" role="status" aria-busy="true">${esc(T("loadingPage"))}</div>`);
+    if (!ST.quiet) shell(id, sec, `<div class="page-wait" role="status" aria-busy="true">${esc(T("loadingPage"))}</div>`);
     await loadOrg(id);
     const body = await ({ overview: secOverview, profile: secProfile, documents: secDocuments, matching: secMatching, match: secReport, ideas: secIdeas, evaluation: secEvaluation, reports: secReports, settings: secSettings }[sec] || secOverview)(arg);
     shell(id, sec === "match" ? "matching" : sec === "report" ? "reports" : sec, body);
@@ -606,6 +606,23 @@ async function render(h) {
     app().innerHTML = `<div class="wrap page"><h1>${esc(T("title"))}</h1><p class="note err">${esc(errText(e))}</p><p><a href="#org">${esc(T("nav.overview"))}</a></p></div>`;
   }
 }
+
+// Shows the result of an action on the page the user is on: the page is drawn again without the loading placeholder,
+// at the same scroll position and with the same sections open. (refresh() is a navigation: it starts at the top.)
+function detailsKey(d, i) { const c = d.closest("[data-idea]"); return (c ? c.dataset.idea : "") + ":" + (d.id || d.dataset.ev || d.querySelector("summary") && d.querySelector("summary").textContent.replace(/[\d.,/%\s]+/g, " ").trim().slice(0, 40) || i); }
+let refreshing = null;
+function refresh() {
+  if (refreshing) return refreshing;
+  const y = scrollY, open = new Set([...app().querySelectorAll("details")].map((d, i) => (d.open ? detailsKey(d, i) : null)).filter(Boolean));
+  ST.quiet = true;
+  refreshing = render(decodeURIComponent(location.hash.slice(1))).finally(() => {
+    ST.quiet = false; refreshing = null;
+    app().querySelectorAll("details").forEach((d, i) => { if (open.has(detailsKey(d, i))) d.open = true; });
+    scrollTo(0, y);
+  });
+  return refreshing;
+}
+EC.refresh = refresh;
 
 function shell(id, sec, body) {
   const me = ST.me, org = ST.org && ST.org.id === id ? ST.org : null;
@@ -991,7 +1008,7 @@ afterRender.profile = (arg) => {
         msg.textContent = T("invalid");
       } else if (e.message === "version_conflict") msg.innerHTML = `${esc(T("conflict"))} <a href="#org/${org.id}/profile" id="oiReload">${esc(T("reload"))}</a>`;
       else msg.textContent = errText(e);
-      const rl = document.getElementById("oiReload"); if (rl) rl.addEventListener("click", async (x) => { x.preventDefault(); await loadOrg(org.id, true); EC.route(); });
+      const rl = document.getElementById("oiReload"); if (rl) rl.addEventListener("click", async (x) => { x.preventDefault(); await loadOrg(org.id, true); refresh(); });
     }
   });
 };
@@ -1182,7 +1199,7 @@ async function runDocJob(f) {
     if (ST.org && ST.org.id === orgId) {
       await loadOrg(orgId, true); ST.me = undefined; await loadMe(); ST.resultsKey = null;
       ensureEnglish(document.getElementById("oiTrMsg"));
-      if (location.hash === `#org/${orgId}/documents`) { ST.openRun = runId; EC.route(); }
+      if (location.hash === `#org/${orgId}/documents`) { ST.openRun = runId; refresh(); }
     }
   } catch (e) {
     j.err = true;
@@ -1215,7 +1232,7 @@ afterRender.documents = () => {
   };
   bindFill(document.getElementById("oiReview"));
   document.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => show(ST.runs.find((x) => x.id === b.dataset.open))));
-  document.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => { await api("DELETE", `/orgs/${org.id}/extractions/${b.dataset.del}`).catch(() => {}); if (ST.openRun === b.dataset.del) ST.openRun = null; EC.route(); }));
+  document.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => { await api("DELETE", `/orgs/${org.id}/extractions/${b.dataset.del}`).catch(() => {}); if (ST.openRun === b.dataset.del) ST.openRun = null; refresh(); }));
   const file = document.getElementById("oiFile");
   if (file) file.addEventListener("change", () => {
     const f = file.files[0]; file.value = ""; if (!f) return;
@@ -1296,11 +1313,11 @@ function matchingHTML() {
 }
 // Filters re-render the list and keep it in view.
 function bindMatching() {
-  const F = ST.filters, re = () => { F.shown = 30; ST.keepList = true; EC.route(); };
+  const F = ST.filters, re = () => { F.shown = 30; refresh(); };
   const on = (id, k, f = (e) => e.value) => { const el = document.getElementById(id); if (el) el.addEventListener("change", () => { F[k] = f(el); re(); }); };
   on("ofStatus", "status"); on("ofProg", "prog"); on("ofDl", "dl"); on("ofSort", "sort"); on("ofHigh", "high", (e) => e.checked);
   const rs = document.getElementById("ofReset"); if (rs) rs.addEventListener("click", () => { Object.assign(F, { status: "", prog: "", dl: "", high: false, sort: "score" }); re(); });
-  const m = document.getElementById("ofMore"); if (m) m.addEventListener("click", () => { F.shown += 30; const y = scrollY; EC.route(); scrollTo(0, y); });
+  const m = document.getElementById("ofMore"); if (m) m.addEventListener("click", () => { F.shown += 30; refresh(); });
   if (ST.keepList) { ST.keepList = false; const l = document.getElementById("oiMatches"); if (l) l.scrollIntoView({ block: "start" }); }
 }
 
@@ -1373,7 +1390,7 @@ afterRender.match = () => {
     try {
       await api("POST", `/orgs/${id}/official-checks`, { callId: run.dataset.call, lang: L() });
       await loadOfficial(id); ST.resultsKey = null;
-      if (location.hash === route) EC.route();
+      if (location.hash === route) refresh();
     } catch (e) { opState(m, "failed", errText(e)); run.hidden = false; run.disabled = false; }
   };
   if (run) run.addEventListener("click", check);
@@ -1484,11 +1501,11 @@ async function secEvaluation() {
     ${list.length > EF.shown ? `<button type="button" class="btn ghost" id="evMore">${esc(T("more"))}</button>` : ""}`;
 }
 afterRender.evaluation = () => {
-  document.querySelectorAll("[data-etab]").forEach((b) => b.addEventListener("click", () => { ST.evalTab = b.dataset.etab; EC.route(); }));
+  document.querySelectorAll("[data-etab]").forEach((b) => b.addEventListener("click", () => { ST.evalTab = b.dataset.etab; refresh(); }));
   const EF = ST.evalF;
-  const p = document.getElementById("evProg"); if (p) p.addEventListener("change", () => { EF.prog = p.value; EF.shown = 20; EC.route(); });
-  const a = document.getElementById("evAll"); if (a) a.addEventListener("change", () => { EF.all = a.checked; EF.shown = 20; EC.route(); });
-  const m = document.getElementById("evMore"); if (m) m.addEventListener("click", () => { EF.shown += 20; const y = scrollY; EC.route(); scrollTo(0, y); });
+  const p = document.getElementById("evProg"); if (p) p.addEventListener("change", () => { EF.prog = p.value; EF.shown = 20; refresh(); });
+  const a = document.getElementById("evAll"); if (a) a.addEventListener("change", () => { EF.all = a.checked; EF.shown = 20; refresh(); });
+  const m = document.getElementById("evMore"); if (m) m.addEventListener("click", () => { EF.shown += 20; refresh(); });
 };
 /* ---------- project ideas ---------- */
 const IDEA_CALLS = 6;
@@ -1570,7 +1587,28 @@ const ideaEval = (x) => {
 // Below a documented threshold (an individual minimum or the overall threshold): not offered as a recommendation.
 const belowThreshold = (x) => { const e = ideaEval(x); return !!e && e.passed === false; };
 // Text in another language than the page and no stored translation yet (the idea or one of its evaluations).
-const otherLang = (x) => !ideaIn(x, L()) || Object.values(x.evaluations || {}).some((e) => !evalIn(e, L()));
+const flatText = (t) => Object.values(t).flat().join(" ");
+const srFix = (t) => L() === "sr" && !!nonStandardSerbian(flatText(t));   // Serbian with Croatian words or ijekavian forms
+const otherLang = (x) => !ideaIn(x, L()) || Object.values(x.evaluations || {}).some((e) => !evalIn(e, L()))
+  || srFix(ideaTexts(ideaIn(x, L()) || x.idea)) || Object.values(x.evaluations || {}).some((e) => evalIn(e, L()) && srFix(evalTexts(evalIn(e, L()))));
+// Ideas and evaluations that are in the other language, or not in standard Serbian, get a copy in the page language on
+// their own: one idea at a time, at most 6 per visit, each tried once per session (one AI action per idea).
+async function autoTranslate() {
+  if (ST.translating || !ST.org) return;
+  const tried = ST.trTried || (ST.trTried = new Set()), lang = L();
+  const todo = (ST.ideas || []).filter((x) => otherLang(x) && !tried.has(x.id + ":" + lang)).slice(0, 6);
+  if (!todo.length) return;
+  ST.translating = true; let changed = 0;
+  for (const x of todo) {
+    tried.add(x.id + ":" + lang);
+    const m = document.querySelector(`article.idea[data-idea="${CSS.escape(x.id)}"] [data-trmsg]`);
+    if (m) opState(m, "analysing", T("trBusy"));
+    try { Object.assign(x, (await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/translate`, { lang })).idea); changed++; }
+    catch (e) { if (m) opState(m, "failed", errText(e)); if (e && (e.status === 429 || e.status === 503)) break; }
+  }
+  ST.translating = false;
+  if (changed && L() === lang && /\/ideas/.test(location.hash)) refresh();
+}
 const MAX_REVISIONS = 2;   // src/org/ideas.js
 function evalBox(x) {
   const evs = x.evaluations || {}, keys = Object.keys(evs), rb = ideaRubric(x);
@@ -1806,7 +1844,7 @@ async function autoEvaluate(ids) {
   };
   await Promise.all([worker(), worker()]);
   ST.evalNote = { ok: !stop, text: (done ? T("evAutoDone", done, below) : "") + (revised ? " " + T("evAutoRevised", revised, lifted) : "") + (stop ? (done ? " " : "") + T("evAutoStop") + " " + errText(stop) : "") + (left && !stop ? (done ? " " : "") + T("evAutoMore", left) : "") };
-  if (location.hash === route) { ST.ideaNote = ST.lastIdeaNote || null; EC.route(); }   // regroup the ideas: below-threshold concepts move to their own section
+  if (location.hash === route) { ST.ideaNote = ST.lastIdeaNote || null; refresh(); }   // regroup the ideas: below-threshold concepts move to their own section
 }
 // Evaluation box of one idea card: switch between stored evaluations, run a new one, redraw in place.
 function bindEval(card, x) {
@@ -1829,8 +1867,8 @@ afterRender.ideas = (arg) => {
     b.disabled = true; opState(m, "analysing");
     try {
       const r = await api("POST", `/orgs/${org.id}/ideas/${x.id}/fit-explanation`, { lang: L() });
-      x.idea.fit = { ...(x.idea.fit || {}), explanation: r.explanation };
-      const box = card.querySelector(".fit-ex"), nb = document.createElement("div"); nb.innerHTML = fitExplainHTML(x); box.replaceWith(nb.firstElementChild);
+      if (r.idea) Object.assign(x, r.idea); else x.idea.fit = { ...(x.idea.fit || {}), explanation: r.explanation };
+      refresh();
     } catch (e) { opState(m, "failed", errText(e)); b.disabled = false; }
   }));
   document.querySelectorAll("[data-pick]").forEach((cb) => cb.addEventListener("change", () => {
@@ -1854,7 +1892,7 @@ afterRender.ideas = (arg) => {
       ST.lastIdeaNote = null;
       if (fresh.length && premium()) ST.autoEval = fresh;
       else if (fresh.length) ST.evalNote = { ok: true, text: T("evAutoPremium") };
-      EC.route();
+      refresh();
     } catch (e) { gen.disabled = false; opState(msg, "failed", errText(e)); }
     finally { if (skel && skel.classList.contains("skel-list")) skel.remove(); }
   });
@@ -1870,7 +1908,7 @@ afterRender.ideas = (arg) => {
   const pwMsg = document.getElementById("pwMsg");
   const pwDo = async (path, body) => {
     opState(pwMsg, "saving");
-    try { const a = await api("POST", path, body); ST.me.access = a; ST.pwNote = T(path.endsWith("payment") ? "pwPaidDone" : "pwAskDone"); EC.route(); }
+    try { const a = await api("POST", path, body); ST.me.access = a; ST.pwNote = T(path.endsWith("payment") ? "pwPaidDone" : "pwAskDone"); refresh(); }
     catch (e) { pwMsg.className = "note err"; pwMsg.textContent = errText(e); }
   };
   const ask = document.getElementById("pwAsk");
@@ -1883,9 +1921,9 @@ afterRender.ideas = (arg) => {
   document.querySelectorAll("article.idea").forEach((card) => {
     const id = card.dataset.idea, x = ST.ideas.find((y) => y.id === id), msg = card.querySelector("[data-msg]");
     const on = (act, ev, fn) => { const el = card.querySelector(`[data-act="${act}"]`); if (el) el.addEventListener(ev, fn); };
-    on("save", "click", async () => { try { await api("PATCH", `/orgs/${org.id}/ideas/${id}`, { status: x.status === "saved" ? "suggested" : "saved" }); EC.route(); } catch (e) { msg.textContent = errText(e); } });
+    on("save", "click", async () => { try { await api("PATCH", `/orgs/${org.id}/ideas/${id}`, { status: x.status === "saved" ? "suggested" : "saved" }); refresh(); } catch (e) { msg.textContent = errText(e); } });
     on("notes", "click", async () => { try { const v = card.querySelector("textarea").value; await api("PATCH", `/orgs/${org.id}/ideas/${id}`, { notes: v }); x.notes = v; msg.textContent = T("ideaNotesSaved"); const cmp = document.getElementById("oiCmp"); if (cmp) cmp.innerHTML = compareHTML(ST.ideas, results()); } catch (e) { msg.textContent = errText(e); } });
-    on("del", "click", async () => { try { await api("DELETE", `/orgs/${org.id}/ideas/${id}`); ST.compare.delete(id); EC.route(); } catch (e) { msg.textContent = errText(e); } });
+    on("del", "click", async () => { try { await api("DELETE", `/orgs/${org.id}/ideas/${id}`); ST.compare.delete(id); refresh(); } catch (e) { msg.textContent = errText(e); } });
     const pdfMsg = card.querySelector("[data-pdfmsg]");
     const makePdf = async (fresh, btn) => {
       btn.disabled = true; opState(pdfMsg, fresh || !x.proposal ? "generating" : "drawing", T(fresh || !x.proposal ? "pdfBusy" : "pdfDrawing"));
@@ -1905,11 +1943,11 @@ afterRender.ideas = (arg) => {
     bindEval(card, x);
     on("improve", "click", async (ev) => {
       const b = ev.currentTarget, m = card.querySelector("[data-immsg]"); b.disabled = true;
-      try { await improveIdea(x, m); EC.route(); } catch (e) { opState(m, "failed", errText(e)); b.disabled = false; }
+      try { await improveIdea(x, m); refresh(); } catch (e) { opState(m, "failed", errText(e)); b.disabled = false; }
     });
     on("translate", "click", async (ev) => {
       const b = ev.currentTarget, m = card.querySelector("[data-trmsg]"); b.disabled = true; opState(m, "analysing", T("trBusy"));
-      try { Object.assign(x, (await api("POST", `/orgs/${org.id}/ideas/${id}/translate`, { lang: L() })).idea); EC.route(); } catch (e) { opState(m, "failed", errText(e)); b.disabled = false; }
+      try { Object.assign(x, (await api("POST", `/orgs/${org.id}/ideas/${id}/translate`, { lang: L() })).idea); refresh(); } catch (e) { opState(m, "failed", errText(e)); b.disabled = false; }
     });
     on("compare", "change", (ev) => {
       if (ev.target.checked && ST.compare.size >= 3) { ev.target.checked = false; if (msg) msg.textContent = T("compareMax"); return; }
@@ -1921,6 +1959,7 @@ afterRender.ideas = (arg) => {
   if (ST.evalNote && evMsg && ST.evalNote.text) { evMsg.className = ST.evalNote.ok ? "note ok" : "note warn"; evMsg.textContent = ST.evalNote.text; }
   ST.evalNote = null;
   if (ST.autoEval && canEdit()) { const ids = ST.autoEval; ST.autoEval = null; autoEvaluate(ids); }
+  else autoTranslate();
 };
 /* ---------- saved reports ---------- */
 // The live assessment of a saved report's call, if the call is still published.
@@ -2065,11 +2104,11 @@ async function secSettings() {
 }
 afterRender.settings = () => {
   const org = ST.org, msg = document.getElementById("oiMemMsg");
-  const act = async (fn) => { try { await fn(); EC.route(); } catch (e) { msg.innerHTML = `<p class="note err">${esc(errText(e))}</p>`; } };
+  const act = async (fn) => { try { await fn(); refresh(); } catch (e) { msg.innerHTML = `<p class="note err">${esc(errText(e))}</p>`; } };
   document.querySelectorAll("[data-role]").forEach((s) => {
     const before = s.value;
     s.addEventListener("change", async () => {
-      try { await api("PATCH", `/orgs/${org.id}/members/${s.dataset.role}`, { role: s.value }); EC.route(); }
+      try { await api("PATCH", `/orgs/${org.id}/members/${s.dataset.role}`, { role: s.value }); refresh(); }
       catch (e) { s.value = before; msg.innerHTML = `<p class="note err">${esc(errText(e))}</p>`; }
     });
   });

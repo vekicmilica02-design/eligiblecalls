@@ -37,6 +37,22 @@ export function nonStandardSerbian(text) {
   return hits.length >= 2 ? hits.slice(0, 8) : null;
 }
 
+// Word-level correction of the most frequent ijekavian forms and Croatian words to standard Serbian, used after a model
+// rewrite (models tend to leave such text as it is). Only stems whose Serbian form takes the same endings are changed.
+const SR_LEX = [["vrijed", "vred"], ["vrijem", "vrem"], ["riješ", "reš"], ["riječ", "reč"], ["rješen", "rešen"], ["mjer", "mer"], ["mjest", "mest"],
+  ["mjese", "mese"], ["djel", "del"], ["djec", "dec"], ["cjel", "cel"], ["cijel", "cel"], ["cijen", "cen"], ["svijet", "svet"], ["ocjen", "ocen"],
+  ["uvjet", "uslov"], ["tijekom", "tokom"], ["surad", "sarad"], ["tisuć", "hiljad"], ["općin", "opštin"], ["poduzeć", "preduzeć"], ["sudionik", "učesnik"],
+  ["sveučilišt", "univerzitet"], ["unaprjeđ", "unapređ"], ["učinkovitost", "efikasnost"], ["primjer", "primer"], ["smjer", "smer"], ["dijel", "del"]];
+const LEX_RE = new RegExp("(?<![\\p{L}])(" + SR_LEX.map(([a]) => a).join("|") + ")", "giu");
+const LEX = Object.fromEntries(SR_LEX);
+export function serbianLexFix(text) {
+  if (typeof text !== "string") return text;
+  return text
+    .replace(LEX_RE, (m) => { const r = LEX[m.toLowerCase()]; return m[0] === m[0].toUpperCase() ? r[0].toUpperCase() + r.slice(1) : r; })
+    .replace(/(?<![\p{L}])([Pp])rojekt(?![\p{L}])/gu, "$1rojekat")
+    .replace(/(?<![\p{L}])call-(a|u|om)(?![\p{L}])/gu, (m, e) => ({ a: "poziva", u: "pozivu", om: "pozivom" })[e]);
+}
+
 export function detectLang(text) {
   const s = String(text || "");
   const letters = (s.match(/\p{L}/gu) || []).length;

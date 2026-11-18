@@ -1598,16 +1598,20 @@ async function autoTranslate() {
   const tried = ST.trTried || (ST.trTried = new Set()), lang = L();
   const todo = (ST.ideas || []).filter((x) => otherLang(x) && !tried.has(x.id + ":" + lang)).slice(0, 6);
   if (!todo.length) return;
-  ST.translating = true; let changed = 0;
+  ST.translating = true;
   for (const x of todo) {
     tried.add(x.id + ":" + lang);
     const m = document.querySelector(`article.idea[data-idea="${CSS.escape(x.id)}"] [data-trmsg]`);
     if (m) opState(m, "analysing", T("trBusy"));
-    try { Object.assign(x, (await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/translate`, { lang })).idea); changed++; }
-    catch (e) { if (m) opState(m, "failed", errText(e)); if (e && (e.status === 429 || e.status === 503)) break; }
+    try {
+      Object.assign(x, (await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/translate`, { lang })).idea);
+      if (L() === lang && /\/ideas/.test(location.hash)) await refresh();   // each idea is shown as soon as its copy is ready
+    } catch (e) {
+      const m2 = document.querySelector(`article.idea[data-idea="${CSS.escape(x.id)}"] [data-trmsg]`);
+      if (m2) opState(m2, "failed", errText(e)); if (e && (e.status === 429 || e.status === 503)) break;
+    }
   }
   ST.translating = false;
-  if (changed && L() === lang && /\/ideas/.test(location.hash)) refresh();
 }
 const MAX_REVISIONS = 2;   // src/org/ideas.js
 function evalBox(x) {

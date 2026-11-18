@@ -23,6 +23,7 @@ Follow the steps in this order. Until steps 1 to 3 are done, the rest of the sit
 6. Saved reports: run `migrations/0005_reports.sql` if it has not been run.
 7. Official eligibility checks: run `migrations/0006_official_checks.sql` (bookmark first). It adds the table `official_checks`: one AI check per organisation and call against the call's official eligibility text, with the profile version it was made for. Running it twice does nothing.
 8. English copy of profile text: run `migrations/0007_profile_translations.sql` (bookmark first). It adds the table `profile_translations`: per organisation and free-text field, the English copy used for matching, the profile version it was made from, a fingerprint of the source text and whether the user edited it. Running it twice does nothing.
+9. Stored AI answers: run `migrations/0008_ai_cache.sql` (bookmark first). It adds the table `ai_cache`: per organisation, the model's answer for a part of a document or a set of web pages, keyed by a SHA-256 fingerprint of the full prompt. The same text read again within `AI_CACHE_DAYS` days (default 30) uses no AI action. Rows are deleted with the organisation. Until the table exists the site works as before, without the cache. Running it twice does nothing.
 
 The migration only adds tables. Running it twice does nothing.
 
@@ -51,7 +52,7 @@ Workers & Pages → `eligiblecalls` → **Settings → Variables and Secrets** �
 | `RESEND_API_KEY` | Secret | API key from resend.com, for the e-mail to administrators when someone asks for premium access |
 | `EMAIL_FROM` | Text | sender, for example `Eligible Calls <onboarding@resend.dev>` (Resend's test sender delivers only to the address of the Resend account) or an address on a domain verified in Resend |
 
-Optional: `ADMIN_NOTIFY_EMAILS` (where access requests are e-mailed, comma separated; default `ADMIN_EMAILS`), `ORG_AI_PER_USER` (AI actions per user per day, default 20), `ORG_BUDGET_SHARE` (share of each daily AI allowance the module may use, default 0.6), `MAX_ORGS_PER_USER` (default 10).
+Optional: `ADMIN_NOTIFY_EMAILS` (where access requests are e-mailed, comma separated; default `ADMIN_EMAILS`), `ORG_AI_PER_USER` (AI actions per user per day, default 20), `ORG_BUDGET_SHARE` (share of each daily AI allowance the module may use, default 0.6), `MAX_ORGS_PER_USER` (default 10), `AI_CACHE_DAYS` (how long stored document and web-page answers are reused, default 30; 0 turns the cache off), `CEREBRAS_API_KEY` (secret; adds Cerebras gpt-oss-120b to the workspace chain after Workers AI and before Groq; its Free Trial tier allows 5 requests and 30,000 tokens a minute and 1,000,000 tokens a day; `CEREBRAS_DAILY_TOKENS` and `CEREBRAS_TPM` change the limits the site assumes).
 
 The existing bindings (`DB` = `calldar`, `AI`) and secrets (`TURNSTILE_SECRET`, `GROQ_API_KEY`, `HASH_SALT`) stay as they are. New settings apply from the next deployment, which step 4 starts.
 

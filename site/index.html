@@ -486,6 +486,7 @@ body.chat-open .chat-fab { display: none; }
 .chat-note.info { color: var(--ink-2); }
 .chat-ts:empty { display: none; }
 .badge.new { background: var(--orange-soft); color: var(--orange); font-weight: 600; }
+.badge.scope { background: var(--accent-soft, var(--sunk)); color: var(--accent-text, var(--ink-2)); }
 .updates { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
 .updates li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .updates .k { font-size: 13px; font-weight: 600; letter-spacing: 0; }
@@ -622,7 +623,7 @@ const I18N = {
     searchPh: "Keyword or call ID", search: "Search", tryLabel: "Try:",
     closingSoon: "Closing in the next 14 days", seeAll: "All deadlines",
     filters: "Filters", clearAll: "Clear all", showResults: "Show results",
-    fStatus: "Status", stOpenNow: "Open now", stSoon: "Opening soon", opensOn: (d) => `Opens ${d}`, resultsAll: "Open and upcoming calls", fCountry: "Your country", fApplicant: "Applicant type", fSector: "Sector", fProgramme: "Programme", fFunding: "Funding per project", budgetMin: "Minimum (€)", budgetMax: "Maximum (€)", budgetIn: (n) => `${n} calls in this range.`, budgetHidden: (n) => `${n} without an amount per project are hidden.`, budgetShown: (n) => `${n} without an amount per project are shown.`, budgetHow: "How amounts are read", budgetRule: "A call is shown when its amount per project overlaps your range. Where a call gives only a total budget, the amount per project is not known.", budgetUnknown: "Also show calls that state no amount per project", budgetFx: (cur, d, r) => `${cur} amounts are shown in euros at the European Central Bank reference rate of ${d} (1 € = ${r} ${cur}).`, budgetNoFx: (cur) => `No exchange rate for ${cur} is available, so those calls count as having no amount in euros.`, budgetCap: "Calls that state only a total budget are hidden when the total is below your minimum.", approx: "≈", fDeadline: "Deadline", fType: "Type of call", fPartner: "Partnership",
+    fStatus: "Status", stOpenNow: "Open now", stSoon: "Opening soon", opensOn: (d) => `Opens ${d}`, resultsAll: "Open and upcoming calls", fCountry: "Your country", fApplicant: "Applicant type", fSector: "Sector", fProgramme: "Programme", fScope: "Where", sc_eu: "European programmes", sc_rs: "Serbia (national)", sc_wb: "Western Balkans", fFunding: "Funding per project", budgetMin: "Minimum (€)", budgetMax: "Maximum (€)", budgetIn: (n) => `${n} calls in this range.`, budgetHidden: (n) => `${n} without an amount per project are hidden.`, budgetShown: (n) => `${n} without an amount per project are shown.`, budgetHow: "How amounts are read", budgetRule: "A call is shown when its amount per project overlaps your range. Where a call gives only a total budget, the amount per project is not known.", budgetUnknown: "Also show calls that state no amount per project", budgetFx: (cur, d, r) => `${cur} amounts are shown in euros at the European Central Bank reference rate of ${d} (1 € = ${r} ${cur}).`, budgetNoFx: (cur) => `No exchange rate for ${cur} is available, so those calls count as having no amount in euros.`, budgetCap: "Calls that state only a total budget are hidden when the total is below your minimum.", approx: "≈", fDeadline: "Deadline", fType: "Type of call", fPartner: "Partnership",
     showMore: "Show all", showLess: "Show fewer", moreCalls: (n) => `Show more calls (${n} more)`,
     elY: "Eligible", elP: "Eligible with a condition", elN: "Not eligible", elC: "Not available from the source",
     elShortY: "Eligible", elShortP: "Condition", elShortN: "Not eligible", elShortC: "Not in source",
@@ -690,7 +691,7 @@ const I18N = {
     searchPh: "Ključna reč ili oznaka poziva", search: "Traži", tryLabel: "Primeri:",
     closingSoon: "Ističu u narednih 14 dana", seeAll: "Svi rokovi",
     filters: "Filteri", clearAll: "Obriši sve", showResults: "Prikaži rezultate",
-    fStatus: "Status", stOpenNow: "Otvoren", stSoon: "Uskoro se otvara", opensOn: (d) => `Otvara se ${d}`, resultsAll: "Otvoreni i najavljeni pozivi", fCountry: "Vaša zemlja", fApplicant: "Vrsta podnosioca", fSector: "Oblast", fProgramme: "Program", fFunding: "Iznos po projektu", budgetMin: "Najmanje (€)", budgetMax: "Najviše (€)", budgetIn: (n) => `Poziva u ovom rasponu: ${n}.`, budgetHidden: (n) => `Skriveno bez iznosa po projektu: ${n}.`, budgetShown: (n) => `Prikazano bez iznosa po projektu: ${n}.`, budgetHow: "Kako se čitaju iznosi", budgetRule: "Poziv se prikazuje kada se njegov iznos po projektu preklapa sa vašim rasponom. Kada poziv navodi samo ukupan budžet, iznos po projektu nije poznat.", budgetUnknown: "Prikaži i pozive koji ne navode iznos po projektu", budgetFx: (cur, d, r) => `Iznosi u valuti ${cur} prikazani su u evrima po referentnom kursu Evropske centralne banke od ${d} (1 € = ${r} ${cur}).`, budgetNoFx: (cur) => `Kurs za ${cur} nije dostupan, pa se ti pozivi računaju kao pozivi bez iznosa u evrima.`, budgetCap: "Pozivi koji navode samo ukupan budžet skrivaju se kada je taj budžet manji od vašeg minimuma.", approx: "≈", fDeadline: "Rok", fType: "Vrsta poziva", fPartner: "Partnerstvo",
+    fStatus: "Status", stOpenNow: "Otvoren", stSoon: "Uskoro se otvara", opensOn: (d) => `Otvara se ${d}`, resultsAll: "Otvoreni i najavljeni pozivi", fCountry: "Vaša zemlja", fApplicant: "Vrsta podnosioca", fSector: "Oblast", fProgramme: "Program", fScope: "Odakle", sc_eu: "Evropski programi", sc_rs: "Srbija (nacionalni)", sc_wb: "Zapadni Balkan", fFunding: "Iznos po projektu", budgetMin: "Najmanje (€)", budgetMax: "Najviše (€)", budgetIn: (n) => `Poziva u ovom rasponu: ${n}.`, budgetHidden: (n) => `Skriveno bez iznosa po projektu: ${n}.`, budgetShown: (n) => `Prikazano bez iznosa po projektu: ${n}.`, budgetHow: "Kako se čitaju iznosi", budgetRule: "Poziv se prikazuje kada se njegov iznos po projektu preklapa sa vašim rasponom. Kada poziv navodi samo ukupan budžet, iznos po projektu nije poznat.", budgetUnknown: "Prikaži i pozive koji ne navode iznos po projektu", budgetFx: (cur, d, r) => `Iznosi u valuti ${cur} prikazani su u evrima po referentnom kursu Evropske centralne banke od ${d} (1 € = ${r} ${cur}).`, budgetNoFx: (cur) => `Kurs za ${cur} nije dostupan, pa se ti pozivi računaju kao pozivi bez iznosa u evrima.`, budgetCap: "Pozivi koji navode samo ukupan budžet skrivaju se kada je taj budžet manji od vašeg minimuma.", approx: "≈", fDeadline: "Rok", fType: "Vrsta poziva", fPartner: "Partnerstvo",
     showMore: "Prikaži sve", showLess: "Prikaži manje", moreCalls: (n) => `Prikaži još poziva (još ${n})`,
     elY: "Ispunjava uslove", elP: "Ispunjava uz uslov", elN: "Ne ispunjava uslove", elC: "Nije dostupno u izvoru",
     elShortY: "Da", elShortP: "Uz uslov", elShortN: "Ne", elShortC: "Nema podatka",
@@ -862,8 +863,8 @@ function stampHTML(c, cc, short) {
 }
 
 /* ---------- filters ---------- */
-const FACETS = ["status", "applicants", "sectors", "programmes", "deadline", "types", "partnership"]; // funding: budget range below
-const emptyFilters = () => ({ q: "", country: store.get("country", ""), status: [], applicants: [], sectors: [], programmes: [], budget: null, budgetUnknown: false, deadline: [], types: [], partnership: [], elig: ["Y", "P", "C"], sort: "deadline" });
+const FACETS = ["status", "scope", "applicants", "sectors", "programmes", "deadline", "types", "partnership"]; // funding: budget range below
+const emptyFilters = () => ({ q: "", country: store.get("country", ""), status: [], scope: [], applicants: [], sectors: [], programmes: [], budget: null, budgetUnknown: false, deadline: [], types: [], partnership: [], elig: ["Y", "P", "C"], sort: "deadline" });
 let F = emptyFilters();
 /* ---------- budget per project (dual-range filter) ----------
    Amount per project in euros, from the call's own funding data: the stated range or maximum per grant, or the topic
@@ -905,6 +906,7 @@ function match(c, f, skip) {
   if (f.q && !norm(f.q).split(/\s+/).filter(Boolean).every((w) => hay(c).includes(w))) return false;
   const any = (arr, fn) => arr.length === 0 || arr.some(fn);
   if (skip !== "status" && !any(f.status, (s) => (c.status || "open") === s)) return false;
+  if (skip !== "scope" && !any(f.scope || [], (s) => (c.scope || "eu") === s)) return false;
   if (skip !== "applicants" && !any(f.applicants, (s) => c.applicants.includes(s))) return false;
   if (skip !== "sectors" && !any(f.sectors, (s) => c.sectors.includes(s))) return false;
   if (skip !== "programmes" && !any(f.programmes, (s) => c.programme === s)) return false;
@@ -977,6 +979,7 @@ const tagList = (ids, dict, cls, max) => { const s = ids.slice(0, max); const mo
 const isSoon = (c) => c.status === "forthcoming";
 const isNew = (c) => c.firstSeen && Date.now() - Date.parse(c.firstSeen) < 7 * DAY;
 const newBadge = (c) => (isNew(c) ? `<span class="badge new">${esc(t("newBadge"))}</span>` : "");
+const scopeBadge = (c) => (c.scope && c.scope !== "eu" ? `<span class="badge scope">${esc(t("sc_" + c.scope))}</span>` : "");
 const typeBadge = (c) => c.type === "cascade" ? `<span class="badge demo">${esc(t("tCascade"))}</span>` : c.type === "external" ? `<span class="badge s-opening">${esc(t("tExternal"))}</span>` : "";
 const progShort = (c) => (P[c.programme] && P[c.programme].short) || c.programmeName || c.programme;
 
@@ -999,7 +1002,7 @@ function card(c) {
   return `<article class="card">
     <div class="card-date${d != null && d <= 14 ? " urgent" : ""}">${n ? `<span class="cd-l">${esc(t("applyBy"))}</span><span class="cd-d">${dlDay(n)}</span><span class="cd-m">${esc(fmtDate(n, { day: undefined, month: "short" }))}</span><span class="cd-t">${esc(cardTime(n))}</span>${leftSpan(n, "cd-left")}${later ? `<span class="cd-more">${esc(t("moreCutoffs", later))}</span>` : ""}` : "–"}</div>
     <div class="card-main">
-      <div class="card-kicker"><a href="#p-${esc(c.programme)}">${esc(progShort(c))}</a><span class="sep" aria-hidden="true"></span><span class="mono">${c.cascade ? esc(t("organiser")) + ": " + esc(c.cascade.project || "") : esc(c.id)}</span>${typeBadge(c)}${newBadge(c)}</div>
+      <div class="card-kicker"><a href="#p-${esc(c.programme)}">${esc(progShort(c))}</a><span class="sep" aria-hidden="true"></span><span class="mono">${c.cascade ? esc(t("organiser")) + ": " + esc(c.cascade.project || "") : esc(c.id)}</span>${scopeBadge(c)}${typeBadge(c)}${newBadge(c)}</div>
       ${isSoon(c) ? `<div class="cc-soon">${esc(c.opens ? t("opensOn", fmtDate(c.opens, { year: undefined, month: "short" })) : t("stSoon"))}</div>` : ""}
       <h3><a href="#c-${c.key}">${esc(c.title)}</a></h3>
       ${(c.cascade ? c.cascade.projectName : c.callTitle) && (c.cascade ? c.cascade.projectName : c.callTitle) !== c.title ? `<div class="body">${esc(c.cascade ? c.cascade.projectName : c.callTitle)}</div>` : ""}
@@ -1148,6 +1151,8 @@ function facetDef() {
   const used = (list, key) => list.filter((x) => CALLS.some((c) => (Array.isArray(c[key]) ? c[key].includes(x.id) : c[key] === x.id)));
   return [
     ...(CALLS.some(isSoon) ? [{ key: "status", title: t("fStatus"), items: [{ id: "open", label: t("stOpenNow") }, { id: "forthcoming", label: t("stSoon") }], limit: 5, open: true }] : []),
+    // Where the call comes from (European programmes, Serbian national institutions): shown only when calls of more than one scope are listed.
+    ...(new Set(CALLS.map((c) => c.scope || "eu")).size > 1 ? [{ key: "scope", title: t("fScope"), items: ["eu", "rs", "wb"].filter((id) => CALLS.some((c) => (c.scope || "eu") === id)).map((id) => ({ id, label: t("sc_" + id) })), limit: 5, open: true }] : []),
     { key: "applicants", title: t("fApplicant"), items: used(TAX.applicants, "applicants").map((x) => ({ id: x.id, label: nm(x) })), limit: 9, open: true, note: t("derived") },
     { key: "sectors", title: t("fSector"), items: used(TAX.sectors, "sectors").map((x) => ({ id: x.id, label: nm(x) })), limit: 8, open: true, note: t("derived") },
     { key: "programmes", title: t("fProgramme"), items: PROGS.filter((p) => CALLS.some((c) => c.programme === p.id)).map((p) => ({ id: p.id, label: p.short })), limit: 30 },
@@ -1220,7 +1225,7 @@ function renderFilters() {
 }
 function refresh() { const f = document.getElementById("filters"); const sc = f ? f.scrollTop : 0; renderFilters(); if (f) document.getElementById("filters").scrollTop = sc; renderResults(); syncBuilder(); }
 function activeCount() { return FACETS.reduce((n, k) => n + F[k].length, 0) + (F.q ? 1 : 0) + (F.budget ? 1 : 0); }
-function labelFor(k, id) { if (k === "status") return t(id === "open" ? "stOpenNow" : "stSoon"); const m = { sectors: IDX.sectors, applicants: IDX.applicants, funding: IDX.fundingBands, deadline: IDX.deadlineBuckets, types: IDX.types, partnership: IDX.partnership }; return k === "programmes" ? (P[id] ? P[id].short : id) : nm(m[k][id]); }
+function labelFor(k, id) { if (k === "status") return t(id === "open" ? "stOpenNow" : "stSoon"); if (k === "scope") return t("sc_" + id); const m = { sectors: IDX.sectors, applicants: IDX.applicants, funding: IDX.fundingBands, deadline: IDX.deadlineBuckets, types: IDX.types, partnership: IDX.partnership }; return k === "programmes" ? (P[id] ? P[id].short : id) : nm(m[k][id]); }
 let resN = PAGE, resSig = "";
 function renderResults() {
   const col = document.getElementById("resultsCol"); if (!col) return;

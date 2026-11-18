@@ -322,6 +322,8 @@ def applicants_for(rec, fulltext):
     cid = rec["id"]; tl = rec["title"]
     if rec["type"] == "x" and rec.get("applicants"):
         return list(rec["applicants"]), "From the source's target groups; check the call page."
+    if rec.get("scope") == "rs":
+        return ["organisation"], "The call text does not name the applicant types in a form read automatically; check the call page."
     if rec["type"] in ("8", "x"):
         a = []
         if re.search(r"\bSMEs?\b|start-?ups?", fulltext, re.I): a += ["sme","startup"]
@@ -488,6 +490,8 @@ for r in RECS:
         "eligibility": emap, "reasons": reasons, "notes": notes,
         "ruleSource": ("call" if r["id"] in CALL_RULES else ("programme-list" if prog in PROGRAMMES and t == "1" else ("source" if t in ("8", "x") and (r.get("countries") or {}).get("eligible") is not None else "none"))),
         "source": r.get("sourceName") or "EU Funding & Tenders Portal (search API + topic details)", "sourceKey": r.get("source") or "portal",
+        # Where the call comes from: "eu" (European programmes), "rs" (Serbian national institutions), "wb" (Western Balkans).
+        "scope": r.get("scope") or "eu", **({"language": r["language"]} if r.get("language") else {}),
         "lastVerified": raw["fetchedAt"][:10],
     })
 
@@ -617,7 +621,7 @@ idx = [{"id": c["id"], "t": c["title"], "p": c["programme"], "dl": [d for d in c
         "ty": c["type"], "st": c["status"], "op": c["opens"], "s": c["sectors"], "a": c["applicants"], "pt": c["partnership"],
         "f": c["funding"]["maxPerGrant"] or c["funding"]["approxPerGrant"], "fb": c["funding"]["topicBudget"], "cur": c["funding"]["currency"],
         "e": "".join(c["eligibility"][cc][0] for cc in COUNTRIES), "r": [c["eligibility"][cc][1] for cc in COUNTRIES], "rs": c["reasons"],
-        "k": c["keywords"][:8], "x": excerpt(c["description"], 700), "n": c["notes"], "u": c["url"]} for c in calls]
+        "k": c["keywords"][:8], "x": excerpt(c["description"], 700), "n": c["notes"], "u": c["url"], **({"sc": c["scope"]} if c["scope"] != "eu" else {})} for c in calls]
 inv = {}  # term -> [call position, weight, call position, weight, ...]
 for i, e in enumerate(idx):
     e["dm"] = [int(deadline_instant(d).timestamp() * 1000) for d in e["dl"]]
@@ -646,9 +650,9 @@ for k,(fp,name,short) in NO_LIST.items():
 EXTRA_PROGS = {}
 for r in RECS:
     if r.get("prog") and r["prog"] not in PROGRAMMES and r["prog"] not in NO_LIST and r["prog"] not in EXTRA_PROGS:
-        EXTRA_PROGS[r["prog"]] = (r.get("progName") or r["prog"], r.get("progShort") or r.get("progName") or r["prog"], r.get("sourceName") or "")
-for k,(name,short,src) in EXTRA_PROGS.items():
-    progs_out.append({"id":k,"name":name,"short":short,"summary":"","list":None,"countries":None,"source":src,
+        EXTRA_PROGS[r["prog"]] = (r.get("progName") or r["prog"], r.get("progShort") or r.get("progName") or r["prog"], r.get("sourceName") or "", r.get("scope") or "eu")
+for k,(name,short,src,scope) in EXTRA_PROGS.items():
+    progs_out.append({"id":k,"name":name,"short":short,"summary":"","list":None,"countries":None,"source":src,"scope":scope,
                       "note":"Calls from " + src + ". Eligible countries are taken from the source where it states them; otherwise check each call.","openCalls":used.get(k,0)})
 json.dump({"programmes":progs_out}, open(os.path.join(OUT,"programmes.json"),"w",encoding="utf-8"), ensure_ascii=False, indent=1)
 

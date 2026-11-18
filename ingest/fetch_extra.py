@@ -11,7 +11,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from sources import common as C
 
-SOURCES = ["cascade", "interreg", "eeagrants", "eralearn", "ukri", "eit", "esa", "erasmus_na"]
+SOURCES = ["cascade", "interreg", "eeagrants", "eralearn", "ukri", "eit", "esa", "erasmus_na",
+           # Serbian national institutions (scope "rs"): see ingest/sources/rs_common.py
+           "rs_ifond", "rs_mto", "rs_minljmpdd", "rs_ras", "rs_fzn"]
 KEEP_HOURS = 72
 
 

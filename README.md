@@ -37,10 +37,17 @@ visitor ── eligiblecalls.pages.dev ──> Cloudflare Pages
 | ukri.org | UKRI funding opportunities | Funding Finder listing (HTML) + "Who can apply" on each page | ukri.org opportunity page | UK: eligible; others: not eligible where the page states UK eligibility |
 | eit.europa.eu | EIT and KIC opportunities | opportunities listing (HTML) | opportunity page on eit.europa.eu | "check the call" |
 | business.esa.int | ESA Business Applications funding | funding listing + pages (HTML) | funding page | countries listed on the page |
+| inovacionifond.rs (Innovation Fund of Serbia) | programme calls (vouchers, grants, academy) | programme pages (HTML): "Javni poziv: Zatvoren / Otvoren do ..." and the deadline sentence | programme page | Serbia: eligible; others: not eligible where the page says applicants are registered in Serbia, otherwise "check the call" |
+| mto.gov.rs (Ministry of Tourism and Youth) | calls for youth associations, local governments, tourism | "Konkursi" and "Javni pozivi" of the current and next year; call text from the page or the attached .docx/PDF | call page | as above |
+| minljmpdd.gov.rs (Ministry for Human and Minority Rights and Social Dialogue) | calls for civil society organisations | "Konkursi i javni pozivi" (the ministry's "Kalendar konkursa" site disallows robots and is not read) | call page | as above |
+| ras.gov.rs (Development Agency of Serbia) | grant programmes for companies (subsidised-loan schemes left out) | "Javni pozivi" | call page | as above |
+| fondzanauku.gov.rs (Science Fund of Serbia) | research programme calls | "Pozivi" | call page | as above |
 
 Deadline strings (ingest/deadlines.py, the site and the assistant read the same forms): `2026-11-30` = Portal grant topic, 17:00 Brussels; `2026-11-30T16:00|Europe/London` = time and zone stated by the source; `2026-11-30|~` = only a date is stated (kept open until 23:59 Brussels, labelled "time not stated").
 
 Each source runs on its own. If one fails, its last good records are kept for up to 3 days and the About page and audit say so. Link checks are cached in `ingest/extra_state.json` (24 h for a pass, 6 h for a failure). Calls found in two sources are shown once (Portal first, then EIT, Interreg, EEA, ERA-LEARN, ESA, UKRI, project calls).
+
+Serbian national sources (`ingest/sources/rs_*.py`, scope `rs`): the deadline is read from the call text in Latin or Cyrillic script (`ingest/sources/rs_dates.py`): only a date the text gives for submitting applications counts ("najkasnije do 15.06.2026. godine do 12.00 časova", "zaključno sa 26. novembrom", "od 5. do 20. maja"); a deadline given only as "N days from publication" is not used and the call is skipped. Job vacancies, results, decisions, working-group calls, procurement and loans are left out. Titles are shown in Latin script. Calls carry `scope: "rs"`; the site shows a "Where" filter and a "Serbia (national)" badge once such calls exist. Call pages are read at most once a day.
 
 To add a source: write `ingest/sources/<name>.py` with `KEY`, `NAME` and `run(cache, fp_names)` returning records built with `common.record(...)` (see the existing modules), add the name to `SOURCES` in `ingest/fetch_extra.py`, and if it states eligible countries, map them in `extra_eligibility()` in `build.py`.
 

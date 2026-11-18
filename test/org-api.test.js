@@ -927,4 +927,75 @@ await t("AI chain for organisation work: no retired Groq models; a per-minute li
   } finally { console.warn = warn; }
 });
 
+await t("answer cache: the same part of a document is read once per organisation; no AI action for a stored answer", async () => {
+  const dbEnv = { DB: mockD1(), GROQ_API_KEY: "test", ORG_AI_PER_USER: "2" };
+  const T0 = Date.parse("2026-11-18T10:00:00Z");
+  const msgs = [{ role: "system", content: "Extract." }, { role: "user", content: "Statut udruženja, član 1." }];
+  const ask = (extra = {}) => complete({ env: dbEnv, userId: "u1", messages: msgs, agent: "extract", maxOut: 300, now: T0, fetchImpl: mockFetch(), cacheOrg: "o1", ...extra });
+  const used = () => dbEnv.DB._db.prepare("SELECT count FROM ai_usage WHERE user_id = 'u1'").get().count;
+  const r1 = await ask(); assert.equal(r1.cached, undefined); assert.equal(used(), 1);
+  const r1b = await ask(); assert.equal(r1b.cached, undefined, "not kept until the caller calls keep()"); assert.equal(used(), 2);
+  await r1b.keep();
+  // the user has used both actions, but a stored answer still comes back
+  const r2 = await ask(); assert.equal(r2.cached, true); assert.equal(r2.text, "From Groq."); assert.equal(used(), 2);
+  assert.equal(dbEnv.DB._db.prepare("SELECT requests FROM usage WHERE provider = 'cache:extract'").get().requests, 1, "counted as a stored answer");
+  assert.equal(await ask({ cacheOrg: "o2" }).catch((e) => e.message), "ai_user_limit", "another organisation does not see the stored answer");
+  assert.equal(await ask({ fresh: true }).catch((e) => e.message), "ai_user_limit", "fresh asks the model again");
+  assert.equal(await complete({ env: dbEnv, userId: "u1", messages: msgs, agent: "extract", maxOut: 300, now: T0 + 31 * 864e5, fetchImpl: mockFetch(), cacheOrg: "o1" }).then((r) => r.cached, () => "miss"), undefined, "older than 30 days: asked again (new day, new actions)");
+  // without the table (migration 0008 not applied) the model is asked as before
+  const noTable = { DB: mockD1(), GROQ_API_KEY: "test" };
+  noTable.DB._db.exec("DROP TABLE ai_cache");
+  const r3 = await complete({ env: noTable, userId: "u1", messages: msgs, agent: "extract", maxOut: 300, now: T0, fetchImpl: mockFetch(), cacheOrg: "o1" });
+  await r3.keep(); assert.equal(r3.text, "From Groq.");
+});
+
+await t("Cerebras: used before Groq only when its key is set; reasoning hidden and low; a daily limit moves on to Groq", async () => {
+  const seen = [];
+  const cer = (status, body) => async (url, init) => {
+    seen.push({ url: String(url), body: JSON.parse(init.body) });
+    if (String(url).includes("cerebras.ai")) {
+      if (status !== 200) return new Response(JSON.stringify({ message: body }), { status });
+      return new Response(sseStream([{ choices: [{ delta: { reasoning: "thinking {not json}" } }] }, { choices: [{ delta: { content: '{"a":1}' } }] }, { choices: [], usage: { prompt_tokens: 900, completion_tokens: 50 } }]), { headers: { "content-type": "text/event-stream" } });
+    }
+    return mockFetch()(url, init);
+  };
+  const run = (env, f) => complete({ env, userId: "u1", messages: [{ role: "user", content: "x" }], maxOut: 300, now: Date.parse("2026-11-18T10:00:00Z"), fetchImpl: f });
+  const e1 = { DB: mockD1(), GROQ_API_KEY: "g" };
+  assert.equal((await run(e1, cer(200))).provider, "groq", "no key: Cerebras is not asked");
+  assert.ok(!seen.some((x) => x.url.includes("cerebras.ai")));
+  const e2 = { DB: mockD1(), GROQ_API_KEY: "g", CEREBRAS_API_KEY: "c" };
+  const r = await run(e2, cer(200));
+  assert.equal(r.provider, "cerebras"); assert.equal(r.text, '{"a":1}', "reasoning is not part of the answer");
+  const sent = seen.find((x) => x.url.includes("cerebras.ai")).body;
+  assert.equal(sent.model, "gpt-oss-120b"); assert.equal(sent.reasoning_effort, "low"); assert.equal(sent.reasoning_format, "hidden");
+  assert.equal(e2.DB._db.prepare("SELECT tokens FROM usage WHERE provider = 'cerebras:gpt-oss-120b'").get().tokens, 950);
+  const e3 = { DB: mockD1(), GROQ_API_KEY: "g", CEREBRAS_API_KEY: "c" };
+  const warn = console.warn; console.warn = () => {};
+  try { assert.equal((await run(e3, cer(429, "Tokens per day limit exceeded"))).provider, "groq"); } finally { console.warn = warn; }
+  assert.ok(e3.DB._db.prepare("SELECT tokens FROM usage WHERE provider = 'cerebras:gpt-oss-120b'").get().tokens >= 900000, "the day's Cerebras budget is marked as used");
+});
+
+await t("AI actions left: /api/me and /api/me/ai; a document part read again is free; stored answers go with the organisation", async () => {
+  const ip = { "cf-connecting-ip": "203.0.113.77" };   // sign-in links are limited per address; earlier tests used the default one
+  const link = await call("POST", "/api/auth/request", { body: { email: "dana-cache@example.org", accept: true }, headers: ip });
+  const dana = (await call("POST", "/api/auth/verify", { body: { token: link.j.devLink.split("#signin=")[1] }, headers: ip })).setCookie.split(";")[0];
+  const o = (await call("POST", "/api/orgs", { cookie: dana, body: { name: "Dana org" } })).j.id;
+  const me0 = await call("GET", "/api/me", { cookie: dana });
+  assert.deepEqual([me0.j.ai.left, me0.j.ai.limit], [20, 20]);
+  assert.ok(me0.j.ai.resetAt > NOW);
+  assert.equal((await call("GET", "/api/me/ai")).status, 401);
+  aiAnswer = "{}";
+  const part = { sourceName: "Statut.pdf", text: "Udruženje građana Dana, osnovano radi razvoja omladinskog rada u lokalnoj zajednici. ".repeat(3), part: 1, parts: 2 };
+  const a = await call("POST", `/api/orgs/${o}/extract`, { cookie: dana, body: part });
+  assert.equal(a.status, 200); assert.equal(a.j.cached, false);
+  assert.equal((await call("GET", "/api/me/ai", { cookie: dana })).j.left, 19);
+  const b = await call("POST", `/api/orgs/${o}/extract`, { cookie: dana, body: part });
+  assert.equal(b.j.cached, true);
+  assert.equal((await call("GET", "/api/me/ai", { cookie: dana })).j.left, 19, "the stored answer used no action");
+  assert.equal((await call("POST", `/api/orgs/${o}/extract`, { cookie: dana, body: { ...part, fresh: true } })).j.cached, false);
+  assert.equal(env.DB._db.prepare("SELECT COUNT(*) n FROM ai_cache WHERE org_id = ?").get(o).n, 1);
+  assert.equal((await call("DELETE", `/api/orgs/${o}`, { cookie: dana })).status, 200);
+  assert.equal(env.DB._db.prepare("SELECT COUNT(*) n FROM ai_cache WHERE org_id = ?").get(o).n, 0, "deleted with the organisation");
+});
+
 console.log(`\n${pass} passed`);

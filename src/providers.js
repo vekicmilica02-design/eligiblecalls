@@ -98,22 +98,22 @@ export async function workersAI(env, messages, maxTokens) {
   return { provider: "workers-ai", model, stream: gen(), usage: () => usage };
 }
 
-export async function groq(env, messages, maxTokens, fetchImpl = fetch, model = "openai/gpt-oss-120b") {
-  if (!env.GROQ_API_KEY) throw new ProviderError("not_configured");
+// One OpenAI-compatible chat endpoint (Groq, Cerebras). `extra` are provider options that are dropped if the API
+// rejects them with 400. A 429 names the limit hit: per day (TPD, RPD, "daily") ends the provider for the day ("quota"),
+// per minute or per hour is "busy" (the request can be repeated shortly). 413: the request alone is larger than a
+// per-minute limit.
+async function openaiCompatible({ provider, url, key, model, messages, maxTokens, extra, fetchImpl }) {
   const base = { model, messages, stream: true, max_tokens: maxTokens, temperature: 0.3 };
-  const extra = /gpt-oss/.test(model) ? { reasoning_effort: "low", include_reasoning: false } : {};
-  const call = (payload) => fetchImpl("https://api.groq.com/openai/v1/chat/completions", {
+  const call = (payload) => fetchImpl(url, {
     method: "POST",
-    headers: { "content-type": "application/json", authorization: "Bearer " + env.GROQ_API_KEY },
+    headers: { "content-type": "application/json", authorization: "Bearer " + key },
     body: JSON.stringify(payload),
   });
   let r = await call({ ...base, ...extra });
   if (r.status === 400 && Object.keys(extra).length) r = await call(base); // older API without the reasoning options
   if (!r.ok) {
     const detail = (await r.text().catch(() => "")).slice(0, 300);
-    // 429 names the limit hit: tokens/requests per day (TPD, RPD) or per minute (TPM, RPM).
-    // 413: the request alone is larger than the model's per-minute limit.
-    const code = r.status === 429 ? (/per day|\bTPD\b|\bRPD\b/i.test(detail) ? "quota" : "busy") : r.status === 413 ? "busy" : "provider_error";
+    const code = r.status === 429 ? (/per day|\bTPD\b|\bRPD\b|daily/i.test(detail) ? "quota" : "busy") : r.status === 413 ? "busy" : "provider_error";
     throw new ProviderError(code, r.status, detail);
   }
   let usage = null;
@@ -123,7 +123,29 @@ export async function groq(env, messages, maxTokens, fetchImpl = fetch, model = 
       const t = deltaText(j); if (t) yield t;
     }
   }
-  return { provider: "groq", model, stream: gen(), usage: () => usage };
+  return { provider, model, stream: gen(), usage: () => usage };
+}
+
+export async function groq(env, messages, maxTokens, fetchImpl = fetch, model = "openai/gpt-oss-120b") {
+  if (!env.GROQ_API_KEY) throw new ProviderError("not_configured");
+  const extra = /gpt-oss/.test(model) ? { reasoning_effort: "low", include_reasoning: false } : {};
+  return openaiCompatible({ provider: "groq", url: "https://api.groq.com/openai/v1/chat/completions", key: env.GROQ_API_KEY, model, messages, maxTokens, extra, fetchImpl });
+}
+
+// Cerebras, an optional extra provider for the workspace (src/org/ai.js), used only when CEREBRAS_API_KEY is set.
+// Limits of its Free Trial tier for gpt-oss-120b (inference-docs.cerebras.ai/support/rate-limits, read 18 Nov 2026):
+// 5 requests and 30,000 uncached tokens a minute, 1,000,000 tokens an hour and a day. CEREBRAS_DAILY_TOKENS and
+// CEREBRAS_TPM change them. reasoning_format "hidden" leaves the reasoning out of the answer (it is still counted).
+export const CEREBRAS_FREE = { model: "gpt-oss-120b", tpd: 1000000, tpm: 30000 };
+export function cerebrasModel(env) {
+  if (!env.CEREBRAS_API_KEY) return null;
+  const model = env.CEREBRAS_MODEL || CEREBRAS_FREE.model;
+  return { model, budget: Math.floor(0.95 * (+env.CEREBRAS_DAILY_TOKENS || CEREBRAS_FREE.tpd)), tpm: +env.CEREBRAS_TPM || CEREBRAS_FREE.tpm };
+}
+export async function cerebras(env, messages, maxTokens, fetchImpl = fetch, model = CEREBRAS_FREE.model) {
+  if (!env.CEREBRAS_API_KEY) throw new ProviderError("not_configured");
+  const extra = /gpt-oss/.test(model) ? { reasoning_effort: "low", reasoning_format: "hidden" } : {};
+  return openaiCompatible({ provider: "cerebras", url: "https://api.cerebras.ai/v1/chat/completions", key: env.CEREBRAS_API_KEY, model, messages, maxTokens, extra, fetchImpl });
 }
 
 export function neurons(model, tokIn, tokOut) {

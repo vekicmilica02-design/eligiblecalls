@@ -1,6 +1,8 @@
 // Organization Intelligence API. One router for /api/auth/*, /api/me, /api/orgs/*, /api/admin/*.
 // Every organisation route checks membership and role first; another organisation's data is never read.
 
+import { nextReset } from "../budget.js";
+import { userAllowance } from "./ai.js";
 import { json, fail, HttpError, readJson, checkCsrf, randomId, taxonomy } from "./http.js";
 import { requestLink, verifyLink, currentUser, logout, cleanEmail, googleStart, googleCallback } from "./auth.js";
 import { sendEmail, mailText } from "./email.js";
@@ -52,9 +54,16 @@ async function saveProfile(db, org, user, profile, baseVersion, note, now) {
   return { version: v, changed };
 }
 
+async function aiLeft(env, user, now) {
+  const a = await userAllowance(env, user.id, now);
+  return { used: a.used, limit: a.limit, left: Math.max(0, a.limit - a.used), resetAt: nextReset(now) };
+}
+
 async function deleteOrg(db, orgId) {
   await db.batch(["profile_versions", "extractions", "project_ideas", "reports", "official_checks", "profile_translations", "org_invites", "org_members"].map((t) => db.prepare(`DELETE FROM ${t} WHERE org_id = ?`).bind(orgId))
     .concat([db.prepare("DELETE FROM organizations WHERE id = ?").bind(orgId)]));
+  // Stored AI answers (migration 0008); separate, so a database without the table still deletes the organisation.
+  await db.prepare("DELETE FROM ai_cache WHERE org_id = ?").bind(orgId).run().catch(() => {});
 }
 
 const orgSummary = async (db, m) => {
@@ -86,13 +95,18 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
     const user = await currentUser(request, env, now);
 
     // ----- account -----
+    // AI actions left today for the signed-in user (shown in the workspace and refreshed after AI work).
+    if (parts[0] === "me" && parts[1] === "ai" && parts.length === 2 && M === "GET") {
+      if (!user) throw new HttpError(401, "signin");
+      return json(await aiLeft(env, user, now));
+    }
     if (parts[0] === "me" && parts.length === 1) {
       if (M === "GET") {
         if (!user) return json({ user: null, signin: { google: !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET), email: env.EMAIL_LOGIN === "1" } });
         const rows = (await db.prepare("SELECT o.id, o.name, o.profile_version, m.role FROM org_members m JOIN organizations o ON o.id = m.org_id WHERE m.user_id = ? ORDER BY o.name").bind(user.id).all()).results || [];
         const orgs = []; for (const r of rows) orgs.push(await orgSummary(db, r));
         const access = await accessOf(db, user.id, now);
-        return json({ user: { id: user.id, email: user.email, name: user.name || "", lang: user.lang, news: user.news, createdAt: user.createdAt, admin: isAdmin(env, user) }, orgs, access });
+        return json({ user: { id: user.id, email: user.email, name: user.name || "", lang: user.lang, news: user.news, createdAt: user.createdAt, admin: isAdmin(env, user) }, orgs, access, ai: await aiLeft(env, user, now) });
       }
       if (!user) throw new HttpError(401, "signin");
       if (M === "PATCH") {

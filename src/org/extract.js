@@ -166,13 +166,16 @@ export async function extractFromText({ env, db, org, user, body, now, fetchImpl
   const tax = await taxonomy(env, url);
   const ctx = contextFrom(tax, new Date(now).getUTCFullYear());
   const label = `uploaded document "${sourceName}"${parts > 1 ? `, part ${part} of ${parts}` : ""}`;
-  const r = await complete({ env, userId: user.id, messages: extractionMessages(tax, label, text), agent: "extract", maxOut: 1500, now, fetchImpl, waitUntil });
+  // The same part of the same document read before for this organisation: the stored answer, no AI action
+  // (body.fresh asks the model again).
+  const r = await complete({ env, userId: user.id, messages: extractionMessages(tax, label, text), agent: "extract", maxOut: 1500, now, fetchImpl, waitUntil, cacheOrg: org.id, fresh: body.fresh === true });
   const answer = parseJsonObject(r.text);
   if (!answer) throw new HttpError(502, "ai_bad_answer");
   const v = verifyFields(answer, text, ctx);
+  await r.keep();   // kept only when the answer could be read
   const runId = typeof body.runId === "string" && /^[0-9a-f]{24}$/.test(body.runId) ? body.runId : null;
   const stored = await storeRun({ db, org, user, kind: "document", sourceName, fields: v.fields, runId, now });
-  return json({ id: stored.id, fields: stored.fields, dropped: v.dropped, part, parts, model: r.model });
+  return json({ id: stored.id, fields: stored.fields, dropped: v.dropped, part, parts, model: r.model, cached: !!r.cached });
 }
 
 // ---------- web pages named by the user ----------
@@ -280,12 +283,13 @@ export async function researchUrl({ env, db, org, user, body, now, fetchImpl, wa
   const text = sources.map((p) => `### PAGE ${p.url}\n${p.text}`).join("\n\n");
   const tax = await taxonomy(env, url);
   const ctx = contextFrom(tax, new Date(now).getUTCFullYear());
-  const r = await complete({ env, userId: user.id, messages: extractionMessages(tax, `public web pages of the organisation (${sources.map((s) => s.url).join(", ")})`, text), agent: "research", maxOut: 1500, now, fetchImpl, waitUntil });
+  const r = await complete({ env, userId: user.id, messages: extractionMessages(tax, `public web pages of the organisation (${sources.map((s) => s.url).join(", ")})`, text), agent: "research", maxOut: 1500, now, fetchImpl, waitUntil, cacheOrg: org.id, fresh: body.fresh === true });
   const answer = parseJsonObject(r.text);
   if (!answer) throw new HttpError(502, "ai_bad_answer");
   const v = verifyFields(answer, text, ctx, sources);
+  await r.keep();
   for (const e of Object.values(v.fields)) if (!e.sourceUrl) e.sourceUrl = sources[0].url;
   const title = (first.html.match(/<title[^>]*>([^<]{1,160})/i) || [])[1];
   const stored = await storeRun({ db, org, user, kind: "web", sourceName: (title || start.hostname).trim().slice(0, 160), sourceUrl: start.href, fields: v.fields, now });
-  return json({ id: stored.id, fields: stored.fields, dropped: v.dropped, pages: sources.map((s) => s.url), model: r.model });
+  return json({ id: stored.id, fields: stored.fields, dropped: v.dropped, pages: sources.map((s) => s.url), model: r.model, cached: !!r.cached });
 }

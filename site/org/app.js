@@ -37,6 +37,10 @@ const S = {
     docsTitle: "Documents and sources", docsLede: "Upload a statute, registration certificate, annual report or project document (also scanned, in Cyrillic or Latin script), or name your website. The text is read in your browser, with OCR for scans, and sent once to the AI model; the file itself is not stored. Values found with clear evidence fill empty profile fields automatically, each marked with its source. Values that differ from the profile are shown for you to decide.",
     upload: "Choose a document or scan", reading: "Reading the document…", sending: (i, n) => `Analysing part ${i} of ${n}…`, jobOpen: "Review the values found", jobDocs: "Documents and sources", jobClose: "Close", jobBusy: "A document is still being read. Wait until it is finished, then upload the next one.", aiWait: (i, n, s) => `Part ${i} of ${n}: the AI service's per-minute limit is reached, trying again in ${s} s…`, scanned: "No text could be read from this file. Type the facts in the profile, or try another copy of the document.",
     tooLong: (n, max) => `The document is long: only the first ${max} parts (${n} characters) are analysed.`,
+    aiLeft: (l, n, t) => `AI actions left today: ${l} of ${n} (renewed at ${t})`, partCached: (i, n) => `Part ${i} of ${n} was read before: no AI action used.`,
+    docNeeds: (n, l) => `This document has ${n} parts and needs up to ${n} AI actions; you have ${l} left today. Parts read before need none.`,
+    docCached: (c, n) => `${c} of ${n} parts came from an earlier reading of the same text (no AI actions used).`,
+    docResume: "The parts read so far are kept: upload the same file again after the renewal and they will not use AI actions.",
     webTitle: "Read from your website", webLede: "We read the page you name and up to two linked pages about the organisation (\"About us\", \"Mission\", \"Projects\"), on the same site, respecting robots.txt. Only facts that are quoted from those pages are proposed.", url: "Website or page address", readSite: "Read website",
     review: "Review proposed fields", reviewLede: "Each value comes with the sentence it was taken from. Values that are not clearly supported by their quote, or that the profile already has, start unticked; check them yourself. Lists are added to what the profile already has.",
     field: "Field", proposed: "Proposed value", current: "Current value", evidence: "Source quote", conf: "Confidence", found: "Quote found in source", notFound: "Quote NOT found in source", valueNotInQuote: "Quote found, but the value is not written in it", weakQuote: "Quote found, but it does not clearly state this value", adds: (v) => `Adds: ${v}`, alreadyHas: "Already in the profile", same: "Same as the profile",
@@ -177,7 +181,7 @@ const S = {
     adminTitle: "Administration", auAgents: "Use by function today", auAgentsNote: "Workers AI neurons count only for the Workers AI share; tokens count for every provider. Each row is the sum of the model requests made for that function.", auFn: "Function", auAg: { extract: "Reading documents", research: "Reading websites", ideas: "Project idea generation", fit: "Fit explanation", proposal: "Detailed proposal", evaluate: "Evaluation against call criteria", official: "Official eligibility check", translate: "Translations", improve: "Revising ideas below the threshold", other: "Other" }, auTitle: "AI usage today", auRefresh: "Refresh", auProvider: "Provider and model", auUsed: "Used", auBudget: "Daily budget", auOfBudget: "Of budget", auReq: "Requests",
     auLede: (d, r, s) => `UTC day ${d}. Allowances reset at ${r} (Belgrade time). The site stops each provider at its budget and moves to the next one; the workspace may use at most ${s}% of each budget, so the public assistant keeps working.`,
     auMsgs: (v, l) => `assistant messages from ${v} visitors (limit ${l} per visitor)`, auActions: (u, l) => `workspace AI actions by ${u} users (limit ${l} per user)`, auRequests: "AI requests in total",
-    auNeurons: "neurons", auTokens: "tokens", auFree: (f) => `free tier ${f}`, auOff: "not configured", auUsers: "Workspace AI actions per user", auWeek: "Last 7 days", auDay: "Day (UTC)", admLede: "Premium access requests, users and subscription settings. Changes take effect immediately.",
+    auNeurons: "neurons", auTokens: "tokens", auFree: (f) => `free tier ${f}`, auCached: (n, t) => `${n} answer${n === 1 ? "" : "s"} came from stored results today (${t} tokens the providers did not have to serve).`, auCacheCol: "From stored results", auOff: "not configured", auUsers: "Workspace AI actions per user", auWeek: "Last 7 days", auDay: "Day (UTC)", admLede: "Premium access requests, users and subscription settings. Changes take effect immediately.",
     admSt: { none: "No request", pending_payment: "Pending payment", payment_submitted: "Payment submitted", active: "Active", rejected: "Rejected", revoked: "Revoked", expired: "Expired" },
     admFilter: "Filter requests", admOpen: "Waiting", admAll: "All, with history", admRequests: "Access requests", admUsers: "Users",
     admWhen: "Requested", admUser: "User", admPlanCol: "Plan", admStatus: "Status", admJoined: "Joined", admRuns: "Idea runs",
@@ -216,6 +220,10 @@ const S = {
     docsTitle: "Dokumenti i izvori", docsLede: "Otpremite statut, rešenje o registraciji, godišnji izveštaj ili projektni dokument (i skeniran, na ćirilici ili latinici), ili navedite svoj sajt. Tekst se čita u vašem pregledaču, sa OCR-om za skenirane dokumente, i jednom šalje AI modelu; sama datoteka se ne čuva. Vrednosti sa jasnim dokazom automatski popunjavaju prazna polja profila, svaka označena izvorom. Vrednosti koje se razlikuju od profila prikazuju se da vi odlučite.",
     upload: "Izaberite dokument ili sken", reading: "Čitanje dokumenta…", sending: (i, n) => `Analiza dela ${i} od ${n}…`, jobOpen: "Pregledajte pronađene podatke", jobDocs: "Dokumenti i izvori", jobClose: "Zatvori", jobBusy: "Dokument se još čita. Sačekajte da se završi, pa otpremite sledeći.", aiWait: (i, n, s) => `Deo ${i} od ${n}: dostignuto je ograničenje AI servisa po minutu, novi pokušaj za ${s} s…`, scanned: "Iz ove datoteke nije moguće pročitati tekst. Unesite podatke u profil ili pokušajte sa drugom kopijom dokumenta.",
     tooLong: (n, max) => `Dokument je dugačak: analizira se samo prvih ${max} delova (${n} znakova).`,
+    aiLeft: (l, n, t) => `Preostale AI akcije danas: ${l} od ${n} (obnavljaju se u ${t})`, partCached: (i, n) => `Deo ${i} od ${n} je već pročitan: AI akcija nije potrošena.`,
+    docNeeds: (n, l) => `Dokument ima ${n} delova i treba mu najviše ${n} AI akcija; danas vam je ostalo ${l}. Delovi koji su već pročitani ne troše akcije.`,
+    docCached: (c, n) => `${c} od ${n} delova preuzeto je iz ranijeg čitanja istog teksta (bez AI akcija).`,
+    docResume: "Do sada pročitani delovi su sačuvani: otpremite isti dokument ponovo posle obnavljanja i oni neće trošiti AI akcije.",
     webTitle: "Čitanje sa vašeg sajta", webLede: "Čitamo stranicu koju navedete i najviše dve povezane stranice o organizaciji („O nama“, „Misija“, „Projekti“) na istom sajtu, uz poštovanje robots.txt. Predlažu se samo podaci citirani sa tih stranica.", url: "Adresa sajta ili stranice", readSite: "Pročitaj sajt",
     review: "Pregled predloženih polja", reviewLede: "Uz svaku vrednost stoji rečenica iz koje je preuzeta. Vrednosti koje citat ne potvrđuje jasno, ili koje profil već ima, nisu označene; proverite ih sami. Liste se dodaju na ono što profil već ima.",
     field: "Polje", proposed: "Predložena vrednost", current: "Trenutna vrednost", evidence: "Citat iz izvora", conf: "Pouzdanost", found: "Citat pronađen u izvoru", notFound: "Citat NIJE pronađen u izvoru", valueNotInQuote: "Citat je pronađen, ali vrednost u njemu nije napisana", weakQuote: "Citat je pronađen, ali ne navodi jasno ovu vrednost", adds: (v) => `Dodaje: ${v}`, alreadyHas: "Već postoji u profilu", same: "Isto kao u profilu",
@@ -356,7 +364,7 @@ const S = {
     adminTitle: "Administracija", auAgents: "Potrošnja po funkcijama danas", auAgentsNote: "Neuroni se računaju samo za Workers AI; tokeni za svakog dobavljača. Svaki red je zbir zahteva modelu poslatih za tu funkciju.", auFn: "Funkcija", auAg: { extract: "Čitanje dokumenata", research: "Čitanje veb-sajtova", ideas: "Generisanje projektnih ideja", fit: "Obrazloženje podudarnosti", proposal: "Detaljan predlog projekta", evaluate: "Ocena prema kriterijumima poziva", official: "Provera zvaničnih uslova podobnosti", translate: "Prevodi", improve: "Dorada ideja ispod praga", other: "Ostalo" }, auTitle: "Potrošnja AI danas", auRefresh: "Osveži", auProvider: "Dobavljač i model", auUsed: "Potrošeno", auBudget: "Dnevni budžet", auOfBudget: "Od budžeta", auReq: "Zahtevi",
     auLede: (d, r, s) => `UTC dan ${d}. Dozvoljena potrošnja se obnavlja u ${r} (po beogradskom vremenu). Sajt zaustavlja svakog dobavljača na njegovom budžetu i prelazi na sledećeg; radni prostor organizacija sme da potroši najviše ${s}% svakog budžeta, da bi javni asistent nastavio da radi.`,
     auMsgs: (v, l) => `poruka asistentu od ${v} posetilaca (ograničenje ${l} po posetiocu)`, auActions: (u, l) => `AI radnji u radnom prostoru, ${u} korisnika (ograničenje ${l} po korisniku)`, auRequests: "AI zahteva ukupno",
-    auNeurons: "neurona", auTokens: "tokena", auFree: (f) => `besplatno ${f}`, auOff: "nije podešeno", auUsers: "AI radnje po korisniku", auWeek: "Poslednjih 7 dana", auDay: "Dan (UTC)", admLede: "Zahtevi za premium pristup, korisnici i podešavanja pretplate. Izmene važe odmah.",
+    auNeurons: "neurona", auTokens: "tokena", auFree: (f) => `besplatno ${f}`, auCached: (n, t) => `Iz sačuvanih odgovora danas: ${n} (${t} tokena koje dobavljači nisu morali da obrade).`, auCacheCol: "Iz sačuvanih odgovora", auOff: "nije podešeno", auUsers: "AI radnje po korisniku", auWeek: "Poslednjih 7 dana", auDay: "Dan (UTC)", admLede: "Zahtevi za premium pristup, korisnici i podešavanja pretplate. Izmene važe odmah.",
     admSt: { none: "Bez zahteva", pending_payment: "Čeka uplatu", payment_submitted: "Uplata prijavljena", active: "Aktivno", rejected: "Odbijeno", revoked: "Opozvano", expired: "Isteklo" },
     admFilter: "Filter zahteva", admOpen: "Na čekanju", admAll: "Svi, sa istorijom", admRequests: "Zahtevi za pristup", admUsers: "Korisnici",
     admWhen: "Zatraženo", admUser: "Korisnik", admPlanCol: "Paket", admStatus: "Status", admJoined: "Registrovan", admRuns: "Generisanja",
@@ -495,9 +503,26 @@ async function api(method, path, body) {
   try { r = await fetch("/api" + path, { method, credentials: "same-origin", headers: { "content-type": "application/json", "x-requested-with": "eligiblecalls" }, body: body ? JSON.stringify(body) : undefined }); }
   catch { throw Object.assign(new Error("network"), { status: 0 }); }
   let j = null; try { j = await r.json(); } catch { /* not JSON */ }
+  if (method !== "GET" && /^\/orgs\//.test(path) && AI_PATH.test(path)) aiRefresh();
   if (!r.ok) throw Object.assign(new Error((j && j.error) || "server_error"), { status: r.status, data: j });
   return j;
 }
+// Requests that can use AI actions; after each one the "AI actions left" line is read again (one small request).
+const AI_PATH = /\/(extract|research|ideas|evaluate|evaluation|official-checks|fit-explanation|proposal|translation|translate|improve)(\/|$)/;
+let aiTimer = null;
+function aiRefresh() {
+  clearTimeout(aiTimer);
+  aiTimer = setTimeout(async () => {
+    try { const a = await api("GET", "/me/ai"); if (ST.me && ST.me.user) ST.me.ai = a; aiLeftDraw(); } catch { /* keeps the last value */ }
+  }, 400);
+}
+const aiLeftText = () => {
+  const a = ST.me && ST.me.ai;
+  if (!a) return "";
+  const t = new Intl.DateTimeFormat(L() === "sr" ? "sr-Latn-RS" : "en-GB", { hour: "2-digit", minute: "2-digit" }).format(new Date(a.resetAt));
+  return T("aiLeft", a.left, a.limit, t);
+};
+function aiLeftDraw() { const el = document.getElementById("oiAiLeft"); if (el) { el.textContent = aiLeftText(); el.classList.toggle("bad", !!(ST.me && ST.me.ai && ST.me.ai.left === 0)); } }
 
 /* ---------- state ---------- */
 const ST = { me: undefined, org: null, results: null, resultsKey: "", stats: null, statsGen: "", filters: { status: "", prog: "", dl: "", high: false, sort: "score", shown: 30 }, review: null, guide: null, evalSel: {}, compare: new Set() };
@@ -590,7 +615,8 @@ function shell(id, sec, body) {
     <aside class="oi-side">
       <div class="oi-org"><span class="eyebrow">${esc(T("title"))}</span><span class="n">${esc(org ? org.name : "")}</span>
         ${me.orgs.length > 1 ? `<select id="oiSwitch" aria-label="Organisation">${me.orgs.map((o) => `<option value="${o.id}"${o.id === id ? " selected" : ""}>${esc(o.name)}</option>`).join("")}</select>` : ""}
-        <span class="fine">${esc(me.user.email)}${org ? " · " + esc(T("roles." + org.role)) : ""}</span></div>
+        <span class="fine">${esc(me.user.email)}${org ? " · " + esc(T("roles." + org.role)) : ""}</span>
+        <span class="fine${me.ai && me.ai.left === 0 ? " bad" : ""}" id="oiAiLeft">${esc(aiLeftText())}</span></div>
       <nav class="oi-nav" aria-label="${esc(T("title"))}">${items.map((s) => `<a href="#org/${id}/${s}"${s === sec ? ' aria-current="page"' : ""}>${esc(T("nav." + s))}${soon.has(s) ? `<span class="soon">${esc(T("soon"))}</span>` : ""}</a>`).join("")}</nav>
       <div class="fine"><a href="#org/new">${esc(T("newOrg"))}</a>${me.user.admin ? ` · <a href="#org/admin">${esc(T("adminTitle"))}</a>` : ""} · <button type="button" class="linkbtn" id="oiOut">${esc(T("signOut"))}</button></div>
     </aside>
@@ -692,12 +718,13 @@ function usageHTML(u) {
       <div><b>${n(u.workspace.actions)}</b><span class="fine">${esc(T("auActions", u.workspace.users.length, u.perUserLimit))}</span></div>
       <div><b>${n(u.providers.reduce((s, p) => s + p.requests, 0))}</b><span class="fine">${esc(T("auRequests"))}</span></div></div>
     <div class="tscroll"><table class="oi-t au-t"><thead><tr><th>${esc(T("auProvider"))}</th><th class="num">${esc(T("auUsed"))}</th><th class="num">${esc(T("auBudget"))}</th><th>${esc(T("auOfBudget"))}</th><th class="num">${esc(T("auReq"))}</th></tr></thead><tbody>
-      ${u.providers.map((p) => `<tr><td>${esc(p.key === "workers-ai" ? "Workers AI" : "Groq")}<div class="fine">${esc(p.name)}${p.configured ? "" : " · " + esc(T("auOff"))}</div></td><td class="num">${n(p.used)} <span class="fine">${esc(p.unit === "neurons" ? T("auNeurons") : T("auTokens"))}</span></td><td class="num">${n(p.budget)}${p.free ? `<div class="fine">${esc(T("auFree", n(p.free)))}</div>` : ""}</td><td><div class="au-p">${bar(p.used, p.budget)}</div></td><td class="num">${n(p.requests)}</td></tr>`).join("")}
+      ${u.providers.map((p) => `<tr><td>${esc(p.key === "workers-ai" ? "Workers AI" : p.key.startsWith("cerebras:") ? "Cerebras" : "Groq")}<div class="fine">${esc(p.name)}${p.configured ? "" : " · " + esc(T("auOff"))}</div></td><td class="num">${n(p.used)} <span class="fine">${esc(p.unit === "neurons" ? T("auNeurons") : T("auTokens"))}</span></td><td class="num">${n(p.budget)}${p.free ? `<div class="fine">${esc(T("auFree", n(p.free)))}</div>` : ""}</td><td><div class="au-p">${bar(p.used, p.budget)}</div></td><td class="num">${n(p.requests)}</td></tr>`).join("")}
     </tbody></table></div>
+    ${(u.cached || []).length ? `<p class="fine">${esc(T("auCached", u.cached.reduce((s, c) => s + c.requests, 0), n(u.cached.reduce((s, c) => s + c.tokens, 0))))}</p>` : ""}
     ${(u.agents || []).length ? `<details open><summary>${esc(T("auAgents"))}</summary><p class="fine">${esc(T("auAgentsNote"))}</p><div class="tscroll"><table class="oi-t"><thead><tr><th>${esc(T("auFn"))}</th><th class="num">${esc(T("auNeurons"))}</th><th class="num">${esc(T("auTokens"))}</th><th class="num">${esc(T("auReq"))}</th></tr></thead><tbody>${u.agents.map((a) => `<tr><td>${esc(T("auAg." + a.key) || a.key)}</td><td class="num">${n(a.neurons)}</td><td class="num">${n(a.tokens)}</td><td class="num">${n(a.requests)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
     ${u.workspace.users.length ? `<details><summary>${esc(T("auUsers"))}</summary><table class="oi-t"><tbody>${u.workspace.users.map((x) => `<tr><td>${esc(x.email)}</td><td class="num">${x.count} / ${u.perUserLimit}</td></tr>`).join("")}</tbody></table></details>` : ""}
-    <details><summary>${esc(T("auWeek"))}</summary><div class="tscroll"><table class="oi-t"><thead><tr><th>${esc(T("auDay"))}</th><th class="num">${esc(T("auReq"))}</th><th class="num">Workers AI (${esc(T("auNeurons"))})</th><th class="num">Groq (${esc(T("auTokens"))})</th></tr></thead><tbody>
-      ${u.days.map((x) => `<tr><td>${esc(x.day)}</td><td class="num">${n(x.requests)}</td><td class="num">${n(x.neurons)}</td><td class="num">${n(x.groqTokens)}</td></tr>`).join("")}</tbody></table></div></details></section>`;
+    <details><summary>${esc(T("auWeek"))}</summary><div class="tscroll"><table class="oi-t"><thead><tr><th>${esc(T("auDay"))}</th><th class="num">${esc(T("auReq"))}</th><th class="num">Workers AI (${esc(T("auNeurons"))})</th><th class="num">Groq (${esc(T("auTokens"))})</th><th class="num">${esc(T("auCacheCol"))}</th></tr></thead><tbody>
+      ${u.days.map((x) => `<tr><td>${esc(x.day)}</td><td class="num">${n(x.requests)}</td><td class="num">${n(x.neurons)}</td><td class="num">${n(x.groqTokens)}</td><td class="num">${n(x.cached)}</td></tr>`).join("")}</tbody></table></div></details></section>`;
 }
 
 /* ---------- sign-in ---------- */
@@ -1128,9 +1155,11 @@ async function runDocJob(f) {
     const text = doc.text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
     if (text.replace(/\s/g, "").length < 80) { j.err = true; say(T(doc.ocrPages ? "ocrEmpty" : "scanned"), "failed"); return; }
     const parts = splitText(text);
-    let last = null, runId = null;
+    let last = null, runId = null, cached = 0;
+    const left = ST.me && ST.me.ai ? ST.me.ai.left : null;
+    const warn = left !== null && left < parts.length ? " " + T("docNeeds", parts.length, left) : "";
     for (let i = 0; i < parts.length; i++) {
-      say(T("sending", i + 1, parts.length), "analysing", (100 * i) / parts.length);
+      say(T("sending", i + 1, parts.length) + warn, "analysing", (100 * i) / parts.length);
       // The AI providers' per-minute limits are shared by every request: when all of them are reached
       // (ai_busy), wait and send the same part again, at most three times.
       for (let k = 0; ; k++) {
@@ -1142,11 +1171,12 @@ async function runDocJob(f) {
         }
       }
       runId = last.id;
+      if (last.cached) { cached++; say(T("partCached", i + 1, parts.length), "analysing", (100 * (i + 1)) / parts.length); }
     }
     say(T("filling"), "saving");
     await api("POST", `/orgs/${orgId}/extractions/${runId}/apply`, {});
     j.done = true; j.runId = runId;
-    say([f.name, doc.ocrPages ? T("ocrDone", doc.ocrPages) : "", doc.lowConf ? T("ocrLow", doc.lowConf) : "", parts.covered < text.length ? T("tooLong", parts.covered, MAX_PARTS) : ""].filter(Boolean).join(" "), "completed");
+    say([f.name, doc.ocrPages ? T("ocrDone", doc.ocrPages) : "", doc.lowConf ? T("ocrLow", doc.lowConf) : "", parts.covered < text.length ? T("tooLong", parts.covered, MAX_PARTS) : "", cached ? T("docCached", cached, parts.length) : ""].filter(Boolean).join(" "), "completed");
     // The organisation on screen is the one the document was for: load the filled profile. Only the Documents page
     // is drawn again (it shows the values found); other pages keep what the member is doing.
     if (ST.org && ST.org.id === orgId) {
@@ -1156,7 +1186,7 @@ async function runDocJob(f) {
     }
   } catch (e) {
     j.err = true;
-    say(e.message === "type" ? T("badType") : e.message === "ocr_unavailable" ? T("ocrUnavailable") : errText(e), "failed");
+    say(e.message === "type" ? T("badType") : e.message === "ocr_unavailable" ? T("ocrUnavailable") : errText(e) + (e && e.message === "ai_user_limit" ? " " + T("docResume") : ""), "failed");
   } finally {
     window.removeEventListener("beforeunload", jobGuard);
     jobDraw();

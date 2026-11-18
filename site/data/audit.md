@@ -1,22 +1,22 @@
-# Import audit — 2026-11-17T22:17:29.000Z
+# Import audit — 2026-11-18T00:17:28.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1177 rows, 1089 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-17 23:17 Brussels, deadlines counted at 17:00 Brussels): 389, of which forthcoming: 237
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-18 01:17 Brussels, deadlines counted at 17:00 Brussels): 389, of which forthcoming: 237
 - Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
 - EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 178, noFutureDeadline 69, noOrganiserLink 8, linkNotVerified 49, published 52
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 27, noFutureDeadline 2, linkNotVerified 1, published 24
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
-- ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 13, linkNotVerified 0, published 2, countriesFromCallPage 1
+- ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 14, linkNotVerified 0, published 1
 - UKRI Funding Finder (ukri.org): OK · listed 138, inviteOnly 3, noFutureDeadline 59, published 76
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 15, noFutureDeadline 0, linkNotVerified 0, published 10
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 - Erasmus+ Programme Guide (actions managed by the national agencies): OK · guideYear 2026, rounds 4, noFutureDeadline 4, pageUnavailable 0, published 0
 
 - Dropped at build: 2
-- Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 550
+- Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16981; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
+- Published: 549
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
 - Changes since the previous import: 1 new, 0 changed, 2 closed
 
@@ -33,21 +33,21 @@
 - OTHER: 7
 - EUBA: 4
 - EURATOM: 4
-- PARTNERSHIPS: 2
 - PPPA: 2
 - ISF: 2
 - I3: 2
 - ERASMUS: 2
 - JTM: 2
 - CEF: 1
+- PARTNERSHIPS: 1
 - JUST: 1
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- P: 203
-- N: 4360
 - C: 4554
+- N: 4341
 - Y: 15083
+- P: 178
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

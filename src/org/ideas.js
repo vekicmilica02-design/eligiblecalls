@@ -14,8 +14,8 @@ import { FIELD } from "../../site/org/schema.js";
 import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
 import { loadCriteria, loadGuide } from "./evaluate.js";
 import { countryInList } from "../../site/org/rules.js";
-import { ideaTexts, applyIdeaTexts, evalTexts } from "../../site/org/content.js";
-import { translateTexts, textLang } from "./translate.js";
+import { ideaTexts, applyIdeaTexts, evalTexts, applyEvalTexts } from "../../site/org/content.js";
+import { translateTexts, textLang, needsSerbianFix } from "./translate.js";
 
 // The idea as the model may read it again (evaluation, proposal, revision): without stored translations and history.
 export const ideaForModel = (idea) => { const { tr, previous, revisions, ...rest } = idea || {}; return rest; };
@@ -23,9 +23,10 @@ export const ideaForModel = (idea) => { const { tr, previous, revisions, ...rest
 // The model sometimes answers in English when Serbian was asked for (or the other way round). Such an idea is
 // translated once before it is stored, so the page never mixes languages.
 export async function inLanguage({ env, user, idea, lang, now, fetchImpl, waitUntil }) {
-  const texts = ideaTexts(idea);
-  const got = textLang(Object.values(texts).flat());
-  if (!got || got === lang) return idea;
+  const texts = ideaTexts(idea), flat = Object.values(texts).flat();
+  const got = textLang(flat);
+  // Also rewritten: Serbian with Croatian words or ijekavian forms (the page language is standard Serbian, ekavian).
+  if ((!got || got === lang) && !(lang === "sr" && needsSerbianFix(flat))) return idea;
   return applyIdeaTexts(idea, await translateTexts({ env, user, texts, lang, now, fetchImpl, waitUntil }).catch(() => texts));
 }
 
@@ -222,13 +223,17 @@ export async function explainFit({ env, db, org, user, profile, ideaId, body, no
   const index = await loadIndex(env, url);
   const c = index._byId.get(row.call_id);
   const call = c ? callBlock(index, c, profile.country, now, { score: (JSON.parse(row.match || "{}").score) || 0, status: (JSON.parse(row.match || "{}").status) || "potential" }) : `Title: ${row.call_title || row.call_id}`;
-  const lang = body.lang === "sr" ? "sr" : body.lang === "en" ? "en" : row.lang;
+  // Written in the idea's own language, so the stored idea is in one language; the page shows its copy in the other.
+  const lang = row.lang === "en" ? "en" : "sr";
   const r = await complete({ env, userId: user.id, messages: explanationMessages({ idea: ideaForModel(idea), call, profile: profileBlock(profile), lang }), agent: "fit", maxOut: 900, now, fetchImpl, waitUntil });
   const ex = cleanExplanation(parseJsonObject(r.text), idea);
   if (!ex) throw new HttpError(502, "ai_bad_answer");
   idea.fit = { ...(idea.fit || {}), explanation: { ...ex, at: now } };
+  const fixed = await inLanguage({ env, user, idea, lang, now, fetchImpl, waitUntil }).catch(() => idea);
+  Object.assign(idea, fixed);
+  delete idea.tr;   // the copies in the other language do not have the new explanation; the page asks for a new one
   await db.prepare("UPDATE project_ideas SET idea = ?, updated_at = ? WHERE id = ? AND org_id = ?").bind(JSON.stringify(idea), now, ideaId, org.id).run();
-  return json({ explanation: idea.fit.explanation });
+  return json({ explanation: idea.fit.explanation, idea: rowOut(await db.prepare("SELECT * FROM project_ideas WHERE id = ?").bind(ideaId).first()) });
 }
 
 // Concept fit: the model's four ratings as a percentage. Ranking: half the rule-based compatibility of the
@@ -425,9 +430,15 @@ export async function translateIdea({ env, db, org, user, ideaId, body, now, fet
   const lang = body.lang === "en" ? "en" : "sr";
   const idea = JSON.parse(row.idea), evs = row.evaluations ? JSON.parse(row.evaluations) : {};
   const texts = {};
-  if (row.lang !== lang && !(idea.tr && idea.tr[lang])) for (const [k, v] of Object.entries(ideaTexts(idea))) texts["i|" + k] = v;
+  const fixSr = (t) => lang === "sr" && needsSerbianFix(Object.values(t).flat());
+  // In place: a Serbian original with Croatian words or ijekavian forms is rewritten in standard Serbian.
+  const ideaFix = row.lang === lang && fixSr(ideaTexts(idea));
+  if ((row.lang !== lang && !(idea.tr && idea.tr[lang] && !fixSr(idea.tr[lang]))) || ideaFix) for (const [k, v] of Object.entries(ideaTexts(idea))) texts["i|" + k] = v;
+  const evFix = new Set();
   for (const [key, ev] of Object.entries(evs)) {
-    if ((ev.lang || "en") === lang || (ev.tr && ev.tr[lang])) continue;
+    const own = (ev.lang || "en") === lang;
+    if (own && fixSr(evalTexts(ev))) evFix.add(key);
+    else if (own || (ev.tr && ev.tr[lang] && !fixSr(ev.tr[lang]))) continue;
     for (const [k, v] of Object.entries(evalTexts(ev))) texts["e|" + key + "|" + k] = v;
   }
   if (Object.keys(texts).length) {
@@ -438,8 +449,8 @@ export async function translateIdea({ env, db, org, user, ideaId, body, now, fet
       if (p[0] === "i") it[p[1]] = v;
       else if (p[0] === "e") (et[p[1]] = et[p[1]] || {})[p.slice(2).join("|")] = v;
     }
-    if (Object.keys(it).length) idea.tr = { ...(idea.tr || {}), [lang]: it };
-    for (const [key, t] of Object.entries(et)) evs[key].tr = { ...(evs[key].tr || {}), [lang]: t };
+    if (Object.keys(it).length) { if (ideaFix) Object.assign(idea, applyIdeaTexts(idea, it)); else idea.tr = { ...(idea.tr || {}), [lang]: it }; }
+    for (const [key, t] of Object.entries(et)) { if (evFix.has(key)) evs[key] = applyEvalTexts(evs[key], t); else evs[key].tr = { ...(evs[key].tr || {}), [lang]: t }; }
     await db.prepare("UPDATE project_ideas SET idea = ?, evaluations = ? WHERE id = ? AND org_id = ?").bind(JSON.stringify(idea), JSON.stringify(evs), ideaId, org.id).run();
   }
   return json({ idea: rowOut(await db.prepare("SELECT * FROM project_ideas WHERE id = ?").bind(ideaId).first()) });

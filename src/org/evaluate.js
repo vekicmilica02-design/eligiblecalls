@@ -12,7 +12,7 @@ import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json } from "./http.js";
 import { profileBlock, loadIndex, ideaForModel } from "./ideas.js";
 import { evalTexts, applyEvalTexts } from "../../site/org/content.js";
-import { translateTexts, textLang } from "./translate.js";
+import { translateTexts, textLang, needsSerbianFix } from "./translate.js";
 import { matchKey } from "./extract.js";
 import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
 import { textHash } from "../../site/org/lang.js";
@@ -165,7 +165,7 @@ export async function evaluateIdea({ env, db, org, user, profile, ideaId, body, 
   if (!ev) throw new HttpError(502, "ai_bad_answer");
   // Written in the other language despite the instruction: translated once, so the page does not mix languages.
   const texts = evalTexts(ev), got = textLang(Object.values(texts).flat());
-  if (got && got !== lang) ev = applyEvalTexts(ev, await translateTexts({ env, user, texts, lang, now, fetchImpl, waitUntil }).catch(() => texts));
+  if ((got && got !== lang) || (lang === "sr" && needsSerbianFix(Object.values(texts).flat()))) ev = applyEvalTexts(ev, await translateTexts({ env, user, texts, lang, now, fetchImpl, waitUntil }).catch(() => texts));
   const stored = { key: rubric.key, kind: rubric.kind, title: rubric.title, sourceTitle: rubric.sourceTitle, sourceUrl: rubric.url || "", half: rubric.half,
     notes: (rubric.notes || []).slice(0, 4), usedProposal: !!proposal, ...ev, at: now, model: r.model || null, lang, inputHash };
   all[rubric.key] = stored;

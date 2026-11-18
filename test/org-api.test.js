@@ -560,6 +560,10 @@ await t("idea evaluation uses the criteria of the idea's own call: Horizon annex
   assert.equal((await call("POST", `/api/admin/users/${uid}/access`, { cookie: adm, body: { action: "grant" } })).j.status, "active");
   let n = 0; const idea = (callId) => { const id = "idea-" + (++n) + "-" + callId.slice(0, 20); env.DB.prepare("INSERT INTO project_ideas (id, org_id, batch_id, call_id, rank, status, idea, match, lang, profile_version, call_title, created_by, created_at, updated_at) VALUES (?, ?, 'b', ?, 1, 'saved', ?, '{}', 'en', 2, ?, ?, ?, ?)").bind(id, o, callId, JSON.stringify({ callId, title: "Idea", concept: "c" }), "Call " + callId, uid, NOW, NOW).run(); return id; };
   const ev = async (callId, answer) => { aiAnswer = JSON.stringify(answer); return call("POST", `/api/orgs/${o}/ideas/${idea(callId)}/evaluate`, { cookie: u, body: { lang: "en" } }); };
+  { const fid = idea(he); env.DB.prepare("UPDATE project_ideas SET idea = ? WHERE id = ?").bind(JSON.stringify({ callId: he, title: "Idea", concept: "c", fit: { alignment: 5, reasons: "SELF-RATING-MARKER" } }), fid).run();
+    aiAnswer = JSON.stringify({ criteria: [{ id: "c1", score: 3 }, { id: "c2", score: 3 }, { id: "c3", score: 3 }] });
+    assert.equal((await call("POST", `/api/orgs/${o}/ideas/${fid}/evaluate`, { cookie: u, body: { lang: "en" } })).status, 200);
+    assert.ok(!aiSeen.at(-1).messages[1].content.includes("SELF-RATING-MARKER"), "the idea's own fit ratings are not sent to the evaluator"); n++; }
   // Horizon Europe: three criteria out of 5, half points, threshold 3 each and 10 in total
   let r = await ev(he, { criteria: [{ id: "c1", score: 4.3 }, { id: "c2", score: 2 }, { id: "c3", score: 9 }], summary: "s" });
   assert.equal(r.status, 200, JSON.stringify(r.j));
@@ -569,6 +573,10 @@ await t("idea evaluation uses the criteria of the idea's own call: Horizon annex
   assert.deepEqual([e.total, e.max, e.threshold, e.passesTotal, e.passesCriteria, e.passed], [11.5, 15, 10, true, false, false]);
   assert.match(aiSeen.at(-1).messages[0].content, /score 0 to 5, half points allowed; at least 3 needed/);
   assert.match(aiSeen.at(-1).messages[0].content, /General Annex|Annex D|General Annexes/);
+  // the Horizon Europe score descriptors and the concept rule are in the instructions; the idea's own fit ratings are not sent
+  assert.match(aiSeen.at(-1).messages[0].content, /3: good: the criterion is addressed well, but a number of shortcomings are present/);
+  assert.match(aiSeen.at(-1).messages[0].content, /This is a project concept, not a full application/);
+  assert.doesNotMatch(aiSeen.at(-1).messages[0].content, /an element the idea does not address earns nothing/);
   // a call document with its score table: maxima and minima from the table, scores clamped
   const drb = rubricFor({ id: doc }, CRIT, GUIDE);
   r = await ev(doc, { criteria: drb.criteria.map((c) => ({ id: c.id, score: c.max + 50 })) });
@@ -591,7 +599,7 @@ await t("idea evaluation uses the criteria of the idea's own call: Horizon annex
   r = await ev(ptr, {});
   assert.deepEqual([r.status, r.j.error], [409, "no_criteria"]);
   const listed = (await call("GET", `/api/orgs/${o}/ideas`, { cookie: u })).j.ideas;
-  assert.equal(listed.filter((x) => Object.keys(x.evaluations).length).length, 4, "four evaluated ideas");
+  assert.equal(listed.filter((x) => Object.keys(x.evaluations).length).length, 5, "five evaluated ideas");
   // unchanged inputs: the stored evaluation is returned without a model request; "force" asks the model again
   const heIdea = listed.find((x) => x.evaluations["HE-RIA_IA"]);
   const before = aiSeen.length, stored = heIdea.evaluations["HE-RIA_IA"];
@@ -996,6 +1004,20 @@ await t("AI actions left: /api/me and /api/me/ai; a document part read again is 
   assert.equal(env.DB._db.prepare("SELECT COUNT(*) n FROM ai_cache WHERE org_id = ?").get(o).n, 1);
   assert.equal((await call("DELETE", `/api/orgs/${o}`, { cookie: dana })).status, 200);
   assert.equal(env.DB._db.prepare("SELECT COUNT(*) n FROM ai_cache WHERE org_id = ?").get(o).n, 0, "deleted with the organisation");
+});
+
+await t("evaluations ask the fast providers first; other work keeps Workers AI first; the scale guide fits the criteria", async () => {
+  const { scaleGuide } = await import("../src/org/evaluate.js");
+  const mk = () => ({ DB: mockD1(), GROQ_API_KEY: "g", AI: { run: async () => sseStream([{ response: "From Workers AI." }, { response: "", usage: { prompt_tokens: 100, completion_tokens: 10 } }]) } });
+  const ask = (env, prefer) => complete({ env, userId: "u1", messages: [{ role: "user", content: "x" }], maxOut: 300, now: Date.parse("2026-11-18T10:00:00Z"), fetchImpl: mockFetch(), prefer });
+  assert.equal((await ask(mk())).provider, "workers-ai");
+  assert.equal((await ask(mk(), "fast")).provider, "groq");
+  const warn = console.warn; console.warn = () => {};
+  try { assert.equal((await complete({ env: mk(), userId: "u1", messages: [{ role: "user", content: "x" }], maxOut: 300, now: Date.parse("2026-11-18T10:00:00Z"), fetchImpl: mockFetch([], { groqStatus: 429 }), prefer: "fast" })).provider, "workers-ai", "Groq busy: Workers AI answers"); }
+  finally { console.warn = warn; }
+  assert.match(scaleGuide([5, 5, 5])[2], /^2: fair/);
+  assert.match(scaleGuide([30, 30, 20, 20])[3], /^60% of the maximum: good/);
+  assert.match(scaleGuide([40])[3], /^24: good/);
 });
 
 console.log(`\n${pass} passed`);

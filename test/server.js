@@ -154,7 +154,7 @@ const server = http.createServer(async (req, res) => {
       let r;
       if (url.pathname === "/api/chat" && req.method === "POST") r = await handleChat({ request, env, now: nowFn(), fetchImpl: mockFetch() });
       else if (url.pathname === "/api/health") r = await handleHealth({ env, now: nowFn() });
-      else if (/^\/api\/(auth|orgs|admin|access)(\/|$)|^\/api\/me$/.test(url.pathname)) r = await handleApi({ request, env, now: nowFn(), fetchImpl: googleStub });
+      else if (/^\/api\/(auth|orgs|admin|access)(\/|$)|^\/api\/me(\/|$)/.test(url.pathname)) r = await handleApi({ request, env, now: nowFn(), fetchImpl: googleStub });
       else r = new Response("not found", { status: 404 });
       const hs = Object.fromEntries([...r.headers].filter(([k]) => k !== "set-cookie"));
       const sc = r.headers.getSetCookie(); if (sc.length) hs["set-cookie"] = sc;

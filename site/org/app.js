@@ -1784,21 +1784,27 @@ async function autoEvaluate(ids) {
   const all = ids.map((id) => (ST.ideas || []).find((x) => x.id === id)).filter((x) => { const rb = x && ideaRubric(x); return rb && !(x.evaluations || {})[rb.key]; });
   const todo = all.slice(0, AUTO_EVAL_MAX), left = all.length - todo.length;
   if (!todo.length) { if (box && ids.length) { box.className = "note"; box.textContent = T("evAutoNone"); } return; }
-  let done = 0, below = 0, stop = null, revised = 0, lifted = 0;
-  for (let i = 0; i < todo.length && !stop; i++) {
-    const x = todo[i], card = document.querySelector(`article.idea[data-idea="${CSS.escape(x.id)}"]`);
-    const cm = card && card.querySelector("[data-evmsg]"), cb = card && card.querySelector('[data-act="evaluate"]');
-    opState(box, "analysing", `${T("evBusy")} (${T("evAuto", i + 1, todo.length)})`, (100 * i) / todo.length);
-    if (cb) cb.disabled = true; opState(cm, "analysing", T("evBusy"));
-    try {
-      let e = await runEvaluation(x);
-      // Below the threshold: revised once with that evaluation and evaluated again. Two more AI actions, only for ideas
-      // that would otherwise not be worth offering.
-      if (e.passed === false && !(x.idea.revisions > 0)) { e = await improveIdea(x, cm); revised++; if (e.passed !== false) lifted++; }
-      done++; if (e.passed === false) below++; opState(cm, "completed", T("evDone"));
+  let done = 0, below = 0, stop = null, revised = 0, lifted = 0, next = 0, finished = 0;
+  const progress = () => opState(box, "analysing", `${T("evBusy")} (${T("evAuto", Math.min(finished + 1, todo.length), todo.length)})`, (100 * finished) / todo.length);
+  progress();
+  // Two ideas at a time: each evaluation is one model request, and the two Groq models have separate per-minute limits.
+  const worker = async () => {
+    while (!stop && next < todo.length) {
+      const x = todo[next++], card = document.querySelector(`article.idea[data-idea="${CSS.escape(x.id)}"]`);
+      const cm = card && card.querySelector("[data-evmsg]"), cb = card && card.querySelector('[data-act="evaluate"]');
+      if (cb) cb.disabled = true; opState(cm, "analysing", T("evBusy"));
+      try {
+        let e = await runEvaluation(x);
+        // Below the threshold: revised once with that evaluation and evaluated again. Two more AI actions, only for ideas
+        // that would otherwise not be worth offering.
+        if (e.passed === false && !(x.idea.revisions > 0)) { e = await improveIdea(x, cm); revised++; if (e.passed !== false) lifted++; }
+        done++; if (e.passed === false) below++; opState(cm, "completed", T("evDone"));
+      }
+      catch (err) { opState(cm, "failed", errText(err)); if (cb) cb.disabled = false; if (AUTO_EVAL_STOP.has(err && err.status)) stop = err; }
+      finished++; if (!stop) progress();
     }
-    catch (err) { opState(cm, "failed", errText(err)); if (cb) cb.disabled = false; if (AUTO_EVAL_STOP.has(err && err.status)) stop = err; }
-  }
+  };
+  await Promise.all([worker(), worker()]);
   ST.evalNote = { ok: !stop, text: (done ? T("evAutoDone", done, below) : "") + (revised ? " " + T("evAutoRevised", revised, lifted) : "") + (stop ? (done ? " " : "") + T("evAutoStop") + " " + errText(stop) : "") + (left && !stop ? (done ? " " : "") + T("evAutoMore", left) : "") };
   if (location.hash === route) { ST.ideaNote = ST.lastIdeaNote || null; EC.route(); }   // regroup the ideas: below-threshold concepts move to their own section
 }

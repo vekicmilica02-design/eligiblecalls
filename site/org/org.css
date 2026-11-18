@@ -127,9 +127,13 @@ table.oi-t td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--line);
 .skel-card .sk { display: block; height: 11px; border-radius: 6px; background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 50%, var(--sunk) 75%); background-size: 300% 100%; animation: sk-shimmer 1.6s ease-in-out infinite; }
 .skel-card .sk.w40 { width: 40%; height: 15px; } .skel-card .sk.w90 { width: 90%; } .skel-card .sk.w75 { width: 75%; } .skel-card .sk.w60 { width: 60%; }
 @keyframes sk-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+/* Reduced motion (for example Windows with "Animation effects" off): nothing slides or sweeps, but work in progress
+   still shows as a slow fade, so a running AI request never looks frozen. The loader mark plays slower (index.html). */
+@keyframes calm-pulse { 50% { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) {
-  .op.busy, .op.busy .op-t b, .op.busy .op-bar > i, .skel-card, .skel-card .sk { animation: none; }
-  .op.sweep::after { animation: none; width: 100%; opacity: .35; }
+  .op.busy, .op.busy .op-t b, .op.busy .op-bar > i, .skel-card { animation: none; }
+  .op.sweep::after { animation: calm-pulse 2.4s ease-in-out infinite; width: 100%; opacity: .5; transform: none; }
+  .skel-card .sk { animation: calm-pulse 2.4s ease-in-out infinite; background: var(--line); }
 }
 .loading.op { padding: 48px 0; gap: 14px; font-size: 15px; }
 /* switching sections: no animation; "Loading…" appears only if the page takes longer than half a second */

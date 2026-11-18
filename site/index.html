@@ -1036,8 +1036,9 @@ const Loader = (() => {
       if (!lib || !el.isConnected || live.get(el)) return;
       const a = lib.loadAnimation({ container: el, renderer: "svg", loop: true, autoplay: false, animationData: JSON.parse(data), rendererSettings: { preserveAspectRatio: "xMidYMid meet" } });
       live.set(el, a);
-      if (matchMedia("(prefers-reduced-motion: reduce)").matches) a.goToAndStop(12, true);
-      else a.goToAndPlay(((performance.now() % PERIOD) / PERIOD) * FRAMES, true);
+      // Reduced motion: the mark still plays, at half speed, so work in progress never looks frozen.
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) a.setSpeed(0.5);
+      a.goToAndPlay(((performance.now() % PERIOD) / PERIOD) * FRAMES, true);
     });
   }
   function sweep() { for (const [el, a] of live) if (!el.isConnected) { if (a) a.destroy(); live.delete(el); } }

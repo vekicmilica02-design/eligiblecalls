@@ -31,10 +31,34 @@ export function _resetGuide() { GUIDE = null; CRIT = null; }
 const clip = (s, n) => { s = String(s ?? "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
 const list = (v, n, len) => (Array.isArray(v) ? v : typeof v === "string" && v ? [v] : []).map((x) => clip(x, len)).filter(Boolean).slice(0, n);
 const pts = (n) => String(n).replace(/\.0$/, "");
+export const EVAL_MAX_OUT = 2200;
 
 const RULES_COMMON = (language, n) => [
   `${n}. Do not claim the project will be funded. Do not state facts about the organisation that are not in the profile.`,
-  `${n + 1}. Write all text in ${language}. Each text at most 700 characters, each list item at most 240 characters.${language.startsWith("Serbian") ? " " + SR_STYLE : ""}`,
+  `${n + 1}. Write all text in ${language}. Be brief: justification at most 450 characters; at most 3 items in each list, each at most 200 characters.${language.startsWith("Serbian") ? " " + SR_STYLE : ""}`,
+];
+
+// What each score means. For criteria scored 0 to 5 these are the descriptors of the Horizon Europe evaluation forms
+// (General Annex D and the expert briefing); for other maxima the same bands apply as shares of the maximum.
+export function scaleGuide(maxes) {
+  const ms = [...new Set((Array.isArray(maxes) ? maxes : [maxes]).map((x) => +x || 5))];
+  const m = ms.length === 1 ? ms[0] : null;   // criteria with different maxima: the bands as shares of each maximum
+  const at = (k) => (m === null ? `${k * 20}% of the maximum` : m === 5 ? String(k) : pts(Math.round((m * k) / 5 * 2) / 2));
+  return [
+    `${at(0)}: fails to address the criterion, or it cannot be judged because the information is missing.`,
+    `${at(1)}: poor: the criterion is inadequately addressed, or there are serious inherent weaknesses.`,
+    `${at(2)}: fair: the criterion is broadly addressed, but there are significant weaknesses.`,
+    `${at(3)}: good: the criterion is addressed well, but a number of shortcomings are present.`,
+    `${at(4)}: very good: the criterion is addressed very well, with a small number of shortcomings.`,
+    `${at(5)}: excellent: all relevant aspects are addressed; any shortcomings are minor.`,
+  ];
+}
+// The idea is a concept, not a full application. Without this the model gave no points for detail only a full
+// application contains (named partners, KPI tables, a risk register), and every concept fell below the threshold.
+const CONCEPT_RULE = [
+  "This is a project concept, not a full application. Judge whether the concept addresses each documented element and how convincingly: its objectives, methodology, work plan, impact pathway, dissemination and management sections are its answer to the criteria.",
+  "An element the concept does not address at all lowers the score. Detail that only a full application can contain (named partners and their CVs, complete indicator tables, a full risk register, budget tables, a Gantt chart) goes under \"missing\" as work for the full application; it does not by itself lower the score of an element the concept already addresses in outline.",
+  "The score must match the comments: a criterion with only a small number of shortcomings is not scored as fair or poor.",
 ];
 const ITEM = '"score": 0, "justification": "...", "strengths": ["..."], "weaknesses": ["..."], "missing": ["..."], "recommendations": ["..."]';
 
@@ -51,7 +75,8 @@ export function evaluationMessages({ rubric, call, idea, proposal, profile, lang
     body = [
       `Use only the award criteria below, taken from: ${rubric.sourceTitle}. Do not add criteria.`,
       "Rules:",
-      `1. Score each criterion from 0 to its maximum (${step}). Judge what the idea actually shows: an element the idea does not address earns nothing, however plausible it would be.`,
+      `1. Score each criterion from 0 to its maximum (${step}) on this scale:`, ...scaleGuide(rubric.criteria.map((c) => c.max)).map((x) => "   " + x),
+      ...CONCEPT_RULE.map((x) => "   " + x),
       "2. For each criterion explain the score against the documented elements, name strengths, weaknesses and missing elements, and give concrete recommendations that would raise the score.",
       ...RULES_COMMON(language, 3),
       `5. Answer with one JSON object and nothing else: {"criteria": [{"id": "c1", ${ITEM}}], "summary": "...", "priorityActions": ["..."]}`,
@@ -65,7 +90,8 @@ export function evaluationMessages({ rubric, call, idea, proposal, profile, lang
       "Rules:",
       "1. Find the assessment criteria the text states (at most 6). Use only criteria the text names; do not add general criteria of your own.",
       '2. For each criterion give its name and "quote": the words of the text that name or define it, copied exactly. A criterion whose quote is not in the text is discarded.',
-      "3. Score each criterion as a whole number from 0 to 5 (0 not addressed, 1 poor, 2 fair, 3 good, 4 very good, 5 excellent) for what the idea actually shows, explain the score, and name strengths, weaknesses, missing elements and recommendations.",
+      "3. Score each criterion as a whole number from 0 to 5 on this scale, explain the score, and name strengths, weaknesses, missing elements and recommendations:", ...scaleGuide(5).map((x) => "   " + x),
+      ...CONCEPT_RULE.map((x) => "   " + x),
       ...RULES_COMMON(language, 4),
       `6. Answer with one JSON object and nothing else: {"criteria": [{"name": "...", "quote": "...", ${ITEM}}], "summary": "...", "priorityActions": ["..."]}`,
       "", "ASSESSMENT TEXT", "<documentation>", rubric.sourceText, "</documentation>",
@@ -123,13 +149,18 @@ export async function evaluateIdea({ env, db, org, user, profile, ideaId, body, 
   const lang = body.lang === "sr" ? "sr" : body.lang === "en" ? "en" : row.lang;
   let proposal = null; try { proposal = row.proposal ? JSON.parse(row.proposal) : null; } catch { proposal = null; }
   if (proposal) { delete proposal.at; delete proposal.model; }
-  const messages = evaluationMessages({ rubric, call, idea: ideaForModel(JSON.parse(row.idea)), proposal, profile: profileBlock(profile), lang });
+  // The idea without its own fit ratings: the evaluator scores the concept, not the generator's opinion of it (and the
+  // ratings and their explanation cost about 400 tokens of Groq's per-minute limit).
+  const { fit: _fit, ...forEval } = ideaForModel(JSON.parse(row.idea));
+  const messages = evaluationMessages({ rubric, call, idea: forEval, proposal, profile: profileBlock(profile), lang });
   // The same idea, proposal, profile, call criteria and language as the stored evaluation: the model would only give a
   // slightly different number for the same text, so the stored result is returned and no AI action is used.
   const inputHash = textHash(messages.map((m) => m.content).join("\n"));
   const all = row.evaluations ? JSON.parse(row.evaluations) : {};
   if (!body.force && all[rubric.key] && all[rubric.key].inputHash === inputHash) return json({ evaluation: all[rubric.key], cached: true });
-  const r = await complete({ env, userId: user.id, messages, agent: "evaluate", maxOut: 2600, now, fetchImpl, waitUntil });
+  // prefer: "fast": Groq (and Cerebras when configured) first. Llama 4 Scout on Workers AI took about 100 s per evaluation;
+  // the shorter answer (EVAL_MAX_OUT) keeps a typical evaluation under Groq's 8,000 tokens a minute.
+  const r = await complete({ env, userId: user.id, messages, agent: "evaluate", maxOut: EVAL_MAX_OUT, now, fetchImpl, waitUntil, prefer: "fast" });
   let ev = scoreEvaluation(rubric, parseJsonObject(r.text));
   if (!ev) throw new HttpError(502, "ai_bad_answer");
   // Written in the other language despite the instruction: translated once, so the page does not mix languages.

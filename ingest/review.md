@@ -61,6 +61,10 @@ After checking the call document, either add a rule to CALL_RULES in build.py or
 ## HORIZON-CL4-2027-05-DIGITAL-EMERGING-03
 - For this reason, participation is limited to legal entities established in Member States, Iceland and Norway, associated countries, OECD countries and MERCOSUR countries
 
+## HORIZON-EIC-2027-STEP
+- Eligible countries
+ In accordance with Article 48(2) of the Horizon Europe Regulation ,participation is limited to SMEs, including start-ups, and small mid-caps 196 established in the Union, in Ukraine, or in an EEA member associated to Horizon Europe
+
 ## HORIZON-EIE-2027-02-CONNECT-01
 - For Member States and Associated Countries with an overall population exceeding 35 million, the participation is limited to two hubs in the given consortium
 - For Member States and Associated Countries with an overall population not exceeding 35 million[[ The most recent available data from Eurostat at the time of opening of the call will be used as reference ( Population on 1 January by age and sex )]], participation is limited to a single hub in the given consortium
@@ -119,10 +123,6 @@ After checking the call document, either add a rule to CALL_RULES in build.py or
 - Eligible countries
  Eligible countries of establishment and restricted participation 
  In accordance with Article 48(2) of the Horizon Europe Regulation, participation is limited to SMEs, including start-ups, and small mid-caps 199 established in the Union, in Ukraine, or in an EEA member associated to Horizon Europe
-
-## HORIZON-EIC-2027-STEP
-- Eligible countries
- In accordance with Article 48(2) of the Horizon Europe Regulation ,participation is limited to SMEs, including start-ups, and small mid-caps 196 established in the Union, in Ukraine, or in an EEA member associated to Horizon Europe
 
 ## HORIZON-EURATOM-2027-02-01
 - ]], participation is limited to legal entities established in Member States and in countries associated to the Euratom Research and Training Programme (Ukraine and Switzerland)

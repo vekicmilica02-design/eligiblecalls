@@ -904,6 +904,9 @@ await t("standard Serbian: Croatian words and ijekavian forms are found; ekavian
   assert.ok(nonStandardSerbian("Projekt ima za cilj razvoj vrijednosti u energetskom sektoru. Suradnja s istraživačkim ustanovama."));
   assert.equal(nonStandardSerbian("Projekat razvija vrednosti kroz saradnju; projekti, mere, delovanje dece, mesto, ocena, cena, svet, uslov, tokom, opština, preduzeće, hiljada, nauka, univerzitet, učesnik."), null);
   assert.equal(nonStandardSerbian("The project develops circular value chains with research institutes and municipalities."), null);
+  const { serbianLexFix } = await import("../site/org/lang.js");
+  assert.equal(serbianLexFix("Projekt ima za cilj razvoj vrijednosti; Suradnja tijekom projekta, uvjeti i mjere, prioriteti call-a."), "Projekat ima za cilj razvoj vrednosti; Saradnja tokom projekta, uslovi i mere, prioriteti poziva.");
+  assert.equal(serbianLexFix("Projekti, mere i vrednosti ostaju isti."), "Projekti, mere i vrednosti ostaju isti.");
   const { contentTranslationMessages } = await import("../src/org/translate.js");
   assert.match(contentTranslationMessages({ a: "x" }, "sr")[0].content, /never ijekavian, and never Croatian or Bosnian[\s\S]*rewritten in standard Serbian ekavian/);
 });

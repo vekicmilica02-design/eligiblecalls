@@ -331,13 +331,15 @@ t("the same profile in English, Serbian Latin and Serbian Cyrillic lands within 
   // without a copy (translation failed): normalisation and the glossary only; Latin and Cyrillic are identical and
   // the best English matches stay within a few points on average
   const L2 = byId(assessAll(ngoSr, CALLS, { now: NOW, stats })), C2 = byId(assessAll(ngoCyr, CALLS, { now: NOW, stats }));
-  for (const id of Object.keys(E)) assert.equal(L2[id], C2[id]);
+  for (const id of Object.keys(E)) assert.equal(L2[id], C2[id], id);
   const mean = top.reduce((a, id) => a + Math.abs(E[id] - L2[id]), 0) / top.length;
   assert.ok(mean <= 8, "top-20 mean difference " + mean.toFixed(1));
-  // and an English profile scores exactly as without the glossary
+  // and an English profile scores as without the glossary on calls written in English (on calls from Serbian
+  // sources, "RS-…", the glossary is what lets an English profile meet the Serbian text, so the score is meant to differ)
   setGlossary(null);
   const E0 = byId(assessAll(ngo, CALLS, { now: NOW, stats: buildDF(CALLS) }));
-  for (const id of Object.keys(E)) assert.equal(E0[id], E[id]);
+  // (Serbian call texts expanded by the glossary shift the term statistics a little, so English calls may move by 1.)
+  for (const id of Object.keys(E)) if (!id.startsWith("RS-")) assert.ok(Math.abs(E0[id] - E[id]) <= 1, `${id}: ${E0[id]} / ${E[id]}`);
 });
 
 t("Serbian call texts (national sources): Serbian and English profiles both meet them", () => {

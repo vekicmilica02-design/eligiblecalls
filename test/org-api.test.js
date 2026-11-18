@@ -899,6 +899,15 @@ await t("AI text as flat objects: an idea and an evaluation round-trip; the read
   assert.equal(ideaIn({ lang: "sr", idea }, "sr"), idea); assert.equal(ideaIn({ lang: "en", idea }, "sr"), null);
 });
 
+await t("standard Serbian: Croatian words and ijekavian forms are found; ekavian Serbian and English are left alone", async () => {
+  const { nonStandardSerbian } = await import("../site/org/lang.js");
+  assert.ok(nonStandardSerbian("Projekt ima za cilj razvoj vrijednosti u energetskom sektoru. Suradnja s istraživačkim ustanovama."));
+  assert.equal(nonStandardSerbian("Projekat razvija vrednosti kroz saradnju; projekti, mere, delovanje dece, mesto, ocena, cena, svet, uslov, tokom, opština, preduzeće, hiljada, nauka, univerzitet, učesnik."), null);
+  assert.equal(nonStandardSerbian("The project develops circular value chains with research institutes and municipalities."), null);
+  const { contentTranslationMessages } = await import("../src/org/translate.js");
+  assert.match(contentTranslationMessages({ a: "x" }, "sr")[0].content, /never ijekavian, and never Croatian or Bosnian[\s\S]*rewritten in standard Serbian ekavian/);
+});
+
 await t("idea generation: a call whose document closes the country list to the organisation is refused", async () => {
   const elig = { calls: { A: { status: "verified", conditions: [{ type: "countries", eu: true, named: [], excluded: [], open: false }] }, B: { status: "verified", conditions: [{ type: "countries", eu: true, named: [], open: true }] }, C: { status: "not_researched", conditions: [{ type: "countries", eu: true, named: [], open: false }] } } };
   assert.deepEqual(["A", "B", "C", "D"].map((id) => officialCountryOk(elig, id, "RS")), [false, null, null, null]);

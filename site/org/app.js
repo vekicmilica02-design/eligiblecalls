@@ -2,9 +2,9 @@
 // Uses the page's loaded data through window.EC (index.html) and the API under /api/.
 import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completeness } from "./schema.js";
 import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS, HIGH, mandatorySummary, setGlossary, glossaryVersion } from "./rules.js";
-import { TEXT_FIELDS, textHash, estTokens, nonStandardSerbian } from "./lang.js";
+import { TEXT_FIELDS, textHash, estTokens, nonStandardSerbian, serbianLexFix } from "./lang.js";
 import { rubricFor, erasmusAction } from "./rubric.js";
-import { ideaIn, evalIn, ideaTexts, evalTexts } from "./content.js";
+import { ideaIn as ideaInRaw, evalIn as evalInRaw, ideaTexts, evalTexts, applyIdeaTexts, applyEvalTexts } from "./content.js";
 
 const EC = window.EC;
 const esc = EC.esc;
@@ -1587,6 +1587,11 @@ const ideaEval = (x) => {
 // Below a documented threshold (an individual minimum or the overall threshold): not offered as a recommendation.
 const belowThreshold = (x) => { const e = ideaEval(x); return !!e && e.passed === false; };
 // Text in another language than the page and no stored translation yet (the idea or one of its evaluations).
+// On the Serbian page the most frequent ijekavian forms and Croatian words left in model text are corrected word by word
+// before it is shown (no AI action); what that cannot fix is rewritten by the AI (autoTranslate).
+const lexAll = (t) => Object.fromEntries(Object.entries(t).map(([k, v]) => [k, Array.isArray(v) ? v.map(serbianLexFix) : serbianLexFix(v)]));
+const ideaIn = (x, lang) => { const it = ideaInRaw(x, lang); return it && lang === "sr" ? applyIdeaTexts(it, lexAll(ideaTexts(it))) : it; };
+const evalIn = (e, lang) => { const v = evalInRaw(e, lang); return v && lang === "sr" ? applyEvalTexts(v, lexAll(evalTexts(v))) : v; };
 const flatText = (t) => Object.values(t).flat().join(" ");
 const srFix = (t) => L() === "sr" && !!nonStandardSerbian(flatText(t));   // Serbian with Croatian words or ijekavian forms
 const otherLang = (x) => !ideaIn(x, L()) || Object.values(x.evaluations || {}).some((e) => !evalIn(e, L()))

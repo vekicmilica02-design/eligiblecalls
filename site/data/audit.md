@@ -1,7 +1,7 @@
-# Import audit — 2026-11-18T08:17:36.000Z
+# Import audit — 2026-11-18T10:17:26.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1177 rows, 1089 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-18 09:17 Brussels, deadlines counted at 17:00 Brussels): 389, of which forthcoming: 237
+- Search results (types grant/cfp/cascade, status Open): 1182 rows, 1094 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-18 11:17 Brussels, deadlines counted at 17:00 Brussels): 394, of which forthcoming: 242
 - Not published by design: EU external action calls 18 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -16,9 +16,9 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 550
+- Published: 555
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 0 new, 0 changed, 0 closed
+- Changes since the previous import: 5 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 343
@@ -31,12 +31,12 @@
 - CERV: 7
 - ESA: 7
 - OTHER: 7
+- ERASMUS: 7
 - EUBA: 4
 - EURATOM: 4
 - PPPA: 2
 - ISF: 2
 - I3: 2
-- ERASMUS: 2
 - JTM: 2
 - CEF: 1
 - PARTNERSHIPS: 1
@@ -46,8 +46,8 @@
 ## Eligibility answers (calls × countries)
 - C: 4598
 - N: 4341
-- Y: 15083
-- P: 178
+- Y: 15248
+- P: 233
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

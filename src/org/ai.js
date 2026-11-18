@@ -4,7 +4,8 @@
 // number of AI actions (ORG_AI_PER_USER, default 20). `agent` names the function that asks (extract, research, ideas,
 // fit, proposal, evaluate, official, translate) and is only used for the usage counters.
 //
-// Provider order: Workers AI, then Cerebras (only when CEREBRAS_API_KEY is set), then the Groq chain.
+// Provider order: Workers AI, then Cerebras (only when CEREBRAS_API_KEY is set), then the Groq chain. With
+// prefer: "fast" (evaluations) Cerebras and Groq come first and Workers AI last.
 //
 // Answer cache (table ai_cache, migration 0008): a caller that passes `cacheOrg` gets the stored answer for exactly the
 // same prompt (agent, output limit and every message, as a SHA-256 key) made for the same organisation in the last
@@ -53,7 +54,7 @@ async function reserveUser(env, userId, now, limit) {
 const provKey = (o) => (o.provider === "groq" ? groqKey(o.model) : o.provider === "cerebras" ? "cerebras:" + o.model : "workers-ai");
 const releaseUser = (env, userId, now) => env.DB.prepare("UPDATE ai_usage SET count = MAX(0, count - 1) WHERE day = ? AND user_id = ?").bind(utcDay(now), userId).run();
 
-export async function complete({ env, userId, messages, agent = "other", maxOut = 1500, now = Date.now(), fetchImpl = fetch, waitUntil = (p) => p, cacheOrg = null, fresh = false }) {
+export async function complete({ env, userId, messages, agent = "other", maxOut = 1500, now = Date.now(), fetchImpl = fetch, waitUntil = (p) => p, cacheOrg = null, fresh = false, prefer = null }) {
   const db = env.DB;
   const day = utcDay(now);
   const tokIn = estTokens(messages.map((m) => m.content).join("\n"));
@@ -73,7 +74,7 @@ export async function complete({ env, userId, messages, agent = "other", maxOut 
   const share = num(env.ORG_BUDGET_SHARE, 0.6);
   const usage = await getUsage(db, day);
   const wModel = env.AI_MODEL || "@cf/meta/llama-4-scout-17b-16e-instruct";
-  const order = [];
+  let order = [];
   if (env.AI && usage["workers-ai"].neurons + neurons(wModel, tokIn, maxOut) <= share * num(env.DAILY_NEURON_BUDGET, 9000)) order.push({ provider: "workers-ai" });
   const cb = cerebrasModel(env);
   if (cb && tokIn + maxOut <= 0.9 * cb.tpm && ((usage["cerebras:" + cb.model] || {}).tokens || 0) + tokIn + maxOut <= share * cb.budget) order.push({ provider: "cerebras", model: cb.model, budget: cb.budget });
@@ -81,6 +82,8 @@ export async function complete({ env, userId, messages, agent = "other", maxOut 
     if (tokIn + maxOut > 0.9 * g.tpm) continue; // larger than the model's per-minute limit
     if (groqTokens(usage, g.model) + tokIn + maxOut <= share * g.budget) order.push({ provider: "groq", model: g.model, budget: g.budget });
   }
+  // prefer "fast": the hosted providers (Cerebras, Groq) before Workers AI, for long answers a user waits for.
+  if (prefer === "fast") order = [...order.filter((o) => o.provider !== "workers-ai"), ...order.filter((o) => o.provider === "workers-ai")];
   if (!order.length) throw new HttpError(503, "ai_resting");
   if (!(await reserve())) throw new HttpError(429, "ai_user_limit", { limit: a.limit });
 

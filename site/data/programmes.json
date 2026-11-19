@@ -189,7 +189,7 @@
     ]
    },
    "note": "",
-   "openCalls": 344
+   "openCalls": 343
   },
   {
    "id": "EURATOM",
@@ -571,7 +571,7 @@
     ]
    },
    "note": "",
-   "openCalls": 27
+   "openCalls": 23
   },
   {
    "id": "CREA",
@@ -2221,18 +2221,6 @@
    "scope": "eu",
    "note": "Calls from ESA Business Applications funding (business.esa.int). Eligible countries are taken from the source where it states them; otherwise check each call.",
    "openCalls": 7
-  },
-  {
-   "id": "RS-IFOND",
-   "name": "Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost)",
-   "short": "Innovation Fund (RS)",
-   "summary": "",
-   "list": null,
-   "countries": null,
-   "source": "Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost)",
-   "scope": "rs",
-   "note": "Calls from Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 2
   },
   {
    "id": "RS-MTO",

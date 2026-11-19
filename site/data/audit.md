@@ -1,11 +1,11 @@
-# Import audit — 2026-11-19T04:17:35.000Z
+# Import audit — 2026-11-19T06:17:33.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1184 rows, 1099 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-19 05:17 Brussels, deadlines counted at 17:00 Brussels): 396, of which forthcoming: 242
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-19 07:17 Brussels, deadlines counted at 17:00 Brussels): 396, of which forthcoming: 242
 - Not published by design: EU external action calls 20 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 176, noFutureDeadline 69, noOrganiserLink 7, linkNotVerified 53, published 47
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 176, noFutureDeadline 69, noOrganiserLink 7, linkNotVerified 50, published 50
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 27, noFutureDeadline 2, linkNotVerified 0, published 25
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 14, linkNotVerified 0, published 1
@@ -21,15 +21,15 @@
 
 - Dropped at build: 0
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 557
+- Published: 560
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 2 new, 0 changed, 0 closed
+- Changes since the previous import: 3 new, 0 changed, 0 closed
 
 ## Calls by programme
-- HORIZON: 343
+- HORIZON: 344
 - UKRI: 75
 - INTERREG: 25
-- DIGITAL: 23
+- DIGITAL: 25
 - CREA: 19
 - EIT: 9
 - EDF: 9
@@ -52,7 +52,7 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4507
+- C: 4639
 - N: 4426
 - Y: 15318
 - P: 257

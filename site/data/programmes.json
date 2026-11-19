@@ -2150,7 +2150,7 @@
    "list": null,
    "countries": null,
    "note": "No list of participating countries was available on the Funding & Tenders Portal on 30.09.2026. Eligible countries are set in each call document.",
-   "openCalls": 2
+   "openCalls": 1
   },
   {
    "id": "EUBA",
@@ -2196,7 +2196,7 @@
    "source": "UKRI Funding Finder (ukri.org)",
    "scope": "eu",
    "note": "Calls from UKRI Funding Finder (ukri.org). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 77
+   "openCalls": 75
   },
   {
    "id": "EIT",

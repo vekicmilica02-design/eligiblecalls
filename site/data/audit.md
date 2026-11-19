@@ -1,12 +1,12 @@
-# Import audit — 2026-11-19T18:17:29.000Z
+# Import audit — 2026-11-19T20:17:26.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1184 rows, 1098 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-19 19:17 Brussels, deadlines counted at 17:00 Brussels): 395, of which forthcoming: 241
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-19 21:17 Brussels, deadlines counted at 17:00 Brussels): 395, of which forthcoming: 241
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
 - EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 178, noFutureDeadline 69, noOrganiserLink 7, linkNotVerified 47, published 55
-- interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 28, noFutureDeadline 2, linkNotVerified 1, published 25
+- interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 28, noFutureDeadline 2, linkNotVerified 0, published 26
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 14, linkNotVerified 0, published 1
 - UKRI Funding Finder (ukri.org): OK · listed 137, inviteOnly 3, noFutureDeadline 59, published 75
@@ -21,7 +21,7 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 562
+- Published: 563
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
 - Changes since the previous import: 1 new, 0 changed, 0 closed
 
@@ -29,7 +29,7 @@
 - HORIZON: 345
 - UKRI: 75
 - DIGITAL: 27
-- INTERREG: 25
+- INTERREG: 26
 - CREA: 19
 - EIT: 9
 - EDF: 9
@@ -54,8 +54,8 @@
 ## Eligibility answers (calls × countries)
 - C: 4785
 - Y: 15317
-- N: 4368
-- P: 258
+- N: 4410
+- P: 260
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

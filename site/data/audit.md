@@ -1,33 +1,33 @@
-# Import audit — 2026-11-19T08:17:45.000Z
+# Import audit — 2026-11-19T10:17:29.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1184 rows, 1099 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-19 09:17 Brussels, deadlines counted at 17:00 Brussels): 396, of which forthcoming: 242
+- Search results (types grant/cfp/cascade, status Open): 1185 rows, 1100 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-19 11:17 Brussels, deadlines counted at 17:00 Brussels): 396, of which forthcoming: 242
 - Not published by design: EU external action calls 20 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 176, noFutureDeadline 69, noOrganiserLink 7, linkNotVerified 50, published 50
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 177, noFutureDeadline 69, noOrganiserLink 7, linkNotVerified 50, published 51
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 27, noFutureDeadline 2, linkNotVerified 0, published 25
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 14, linkNotVerified 0, published 1
-- UKRI Funding Finder (ukri.org): OK · listed 137, inviteOnly 3, noFutureDeadline 59, published 75
+- UKRI Funding Finder (ukri.org): OK · listed 139, inviteOnly 3, noFutureDeadline 59, published 77
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 15, noFutureDeadline 0, linkNotVerified 0, published 10
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 - Erasmus+ Programme Guide (actions managed by the national agencies): OK · guideYear 2026, rounds 4, noFutureDeadline 4, pageUnavailable 0, published 0
 - Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost): OK · listed 13, notFundingCall 0, read 13, pageUnavailable 0, closed 9, noDeadline 2, pastDeadline 0, published 2
-- Ministry of Tourism and Youth of the Republic of Serbia (Ministarstvo turizma i omladine): OK · listed 70, notFundingCall 60, read 10, pageUnavailable 0, closed 0, noDeadline 5, pastDeadline 4, published 1
+- Ministry of Tourism and Youth of the Republic of Serbia (Ministarstvo turizma i omladine): OK · listed 71, notFundingCall 61, read 10, pageUnavailable 0, closed 0, noDeadline 5, pastDeadline 4, published 1
 - Ministry for Human and Minority Rights and Social Dialogue of the Republic of Serbia: OK · listed 20, notFundingCall 15, read 5, pageUnavailable 0, closed 0, noDeadline 1, pastDeadline 4, published 0
 - Development Agency of Serbia (Razvojna agencija Srbije): OK · listed 3, notFundingCall 1, read 2, pageUnavailable 0, closed 0, noDeadline 1, pastDeadline 0, published 1
 - Science Fund of the Republic of Serbia (Fond za nauku): OK · listed 6, notFundingCall 0, read 6, pageUnavailable 0, closed 0, noDeadline 0, pastDeadline 6, published 0
 
 - Dropped at build: 0
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 560
+- Published: 563
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 0 new, 0 changed, 0 closed
+- Changes since the previous import: 3 new, 4 changed, 0 closed
 
 ## Calls by programme
-- HORIZON: 344
-- UKRI: 75
+- HORIZON: 345
+- UKRI: 77
 - INTERREG: 25
 - DIGITAL: 25
 - CREA: 19
@@ -52,9 +52,9 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4639
-- N: 4426
-- Y: 15318
+- C: 4727
+- N: 4469
+- Y: 15319
 - P: 257
 
 ## Calls with call-specific country rules

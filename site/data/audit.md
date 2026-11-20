@@ -1,11 +1,11 @@
-# Import audit — 2026-11-20T13:40:47.000Z
+# Import audit — 2026-11-20T14:17:26.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1193 rows, 1107 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-20 14:40 Brussels, deadlines counted at 17:00 Brussels): 404, of which forthcoming: 243
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-20 15:17 Brussels, deadlines counted at 17:00 Brussels): 404, of which forthcoming: 243
 - Not published by design: EU external action calls 20 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 177, noFutureDeadline 69, noOrganiserLink 7, linkNotVerified 47, published 54
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 177, noFutureDeadline 69, noOrganiserLink 7, linkNotVerified 51, published 50
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 28, noFutureDeadline 2, linkNotVerified 0, published 26
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 21, horizonTopic 6, noFutureDeadline 14, linkNotVerified 0, published 1
@@ -19,17 +19,17 @@
 - Development Agency of Serbia (Razvojna agencija Srbije): OK · listed 3, notFundingCall 1, read 2, pageUnavailable 0, closed 0, noDeadline 1, pastDeadline 0, published 1
 - Science Fund of the Republic of Serbia (Fond za nauku): OK · listed 6, notFundingCall 0, read 6, pageUnavailable 0, closed 0, noDeadline 0, pastDeadline 6, published 0
 
-- Dropped at build: 2
+- Dropped at build: 0
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 571
+- Published: 569
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 0 new, 0 changed, 0 closed
+- Changes since the previous import: 0 new, 0 changed, 2 closed
 
 ## Calls by programme
 - HORIZON: 344
 - UKRI: 75
-- DIGITAL: 27
 - INTERREG: 26
+- DIGITAL: 25
 - CREA: 19
 - ERASMUS: 18
 - EIT: 9
@@ -52,7 +52,7 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4741
+- C: 4653
 - Y: 15614
 - N: 4410
 - P: 359
@@ -71,5 +71,3 @@
 - EUBA-EFSA-2026-PLANTS-01
 
 ## Dropped
-- FSTP-12447: ['URL is not call-specific']
-- FSTP-12621: ['URL is not call-specific']

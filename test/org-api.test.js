@@ -1177,6 +1177,15 @@ await t("full application: plan, then one unit at a time; tables and amounts by 
     assert.ok(estTok(aiSeen.at(-1).messages) <= 7000, "each request fits Groq's per-minute room");
   }
   assert.equal((await call("GET", "/api/me/ai", { cookie: u })).j.left, left0 - 1, "sections use no action");
+  { const saved = env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal, d0 = JSON.parse(saved);
+    assert.ok(d0.callText && d0.callText.head.includes("Title:") && d0.callText.x.length <= 2400, "the call text is kept with the draft");
+    // a draft made before that reads the call index once and keeps the text
+    delete d0.callText; delete d0.sections.s32; env.DB._db.prepare("UPDATE project_ideas SET proposal = ? WHERE id = 'ih'").run(JSON.stringify(d0));
+    r = await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: "s32" } });
+    assert.equal(r.status, 200, JSON.stringify(r.j));
+    assert.ok(JSON.parse(env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal).callText.head.includes("Title:"), "backfilled");
+    env.DB._db.prepare("UPDATE project_ideas SET proposal = ? WHERE id = 'ih'").run(saved);
+  }
   assert.equal((await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: "nope" } })).status, 400);
   assert.equal((await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: "s11" } })).j.cached, true);
   r = await call("PATCH", `/api/orgs/${o}/ideas/ih/proposal`, { cookie: u, body: { key: "s11", text: "My own objectives text." } });

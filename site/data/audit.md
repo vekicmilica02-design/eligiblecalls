@@ -1,7 +1,7 @@
-# Import audit — 2026-11-21T09:42:00.000Z
+# Import audit — 2026-11-21T10:17:39.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1192 rows, 1106 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-21 10:42 Brussels, deadlines counted at 17:00 Brussels): 404, of which forthcoming: 243
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-21 11:17 Brussels, deadlines counted at 17:00 Brussels): 404, of which forthcoming: 243
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources

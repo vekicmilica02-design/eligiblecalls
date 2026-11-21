@@ -731,6 +731,24 @@ await t("application details suggested from the call, the idea and the profile; 
   assert.equal(k.why.durationMonths, "rules"); assert.ok(k.values.durationMonths >= rules.durationMonths[0] && k.values.durationMonths <= rules.durationMonths[1]);
   assert.equal(k.values.amount, undefined, "the Erasmus+ lump sum is the applicant's choice");
   assert.deepEqual(factWarnings({ durationMonths: 99 }, { tpl: ka, call: {}, rules }).map((w) => w.key), ["durRange"]);
+  // places marked "to be confirmed": listed in order with context from the same line, filled one at a time
+  const { tbcPlaces, fillPlace, tbcSplit } = await import("../site/org/templates.js");
+  const text = "### Team\nWe train 40 staff (to be confirmed) in Novi Sad. Budget is (to be confirmed).\n- Partner (partner to be confirmed)";
+  const places = tbcPlaces({ sections: { s11: { text }, rel1: { answers: { a: "Reach (potrebno potvrditi) mladih." } } } }, [{ key: "s11" }, { key: "rel1", questions: [{ id: "a" }, { id: "b" }] }]);
+  assert.deepEqual(places.map((p) => [p.key, p.q, p.i, p.partner]), [["s11", null, 0, false], ["s11", null, 1, false], ["s11", null, 2, true], ["rel1", "a", 0, false]]);
+  assert.deepEqual([places[0].before, places[2].before, places[2].after], ["We train 40 staff ", "Partner ", ""]);
+  assert.equal(fillPlace(text, 1, "EUR 1.2 million"), text.replace("Budget is (to be confirmed)", "Budget is EUR 1.2 million"));
+  assert.deepEqual(tbcSplit("a (to be confirmed) b").map((x) => x.tbc), [false, true, false]);
+  // model text cleaned for the page and the files: special spaces, Cyrillic, markdown, the repeated heading, pipe tables
+  const { tidyText, blocksOf, toLatin, cleanTitle } = await import("../site/org/templates.js");
+  const messy = "### Objectives and ambition\nCut 20\u202F% by month\u202F12, CO\u2082\u202FkWh\u207B\u00B9, non\u2011stop, by НИС а.д. Нови Сад (to be confirmed).\nModels: * Co-creation – x * Iterative – y\n#### Key results\n- *Outcome*: **better** air\n| Need | Result | | --- | --- | | A | B | | C | D |";
+  const clean = tidyText(messy, { title: "Objectives and ambition" });
+  assert.equal(clean.split("\n")[0], "Cut 20\u00A0% by month\u00A012, CO\u2082\u00A0kWh^-1, non-stop, by NIS a.d. Novi Sad (to be confirmed).", "spaces, hyphen, superscript and Cyrillic");
+  assert.match(clean, /^Models:\n- Co-creation – x\n- Iterative – y\n### Key results\n- Outcome: better air$/m);
+  assert.deepEqual(blocksOf(clean).map((b) => (b.h ? "h" : b.table ? "t" + b.table.rows.length : "p")), ["p", "h", "p", "t2"]);
+  assert.deepEqual(blocksOf(clean).at(-1).table.head, ["Need", "Result"]);
+  assert.equal(toLatin("ЉУБИЦА Џон Ђорђе"), "LJUBICA Džon Đorđe");
+  assert.equal(cleanTitle("Summary (OPTIONAL – Please remove this section if not used)"), "Summary");
 });
 
 await t("official eligibility check: quotes verified against the official text, consortium never fails, stored per profile version", async () => {

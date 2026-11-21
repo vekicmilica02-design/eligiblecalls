@@ -410,3 +410,17 @@ table.off-t th { text-align: left; font-weight: 600; color: var(--muted); width:
 .app-f .sugg { color: var(--muted, inherit); font-style: italic; font-weight: 400; }
 .app-f .fine.warn:empty { display: none; }
 .ev-improve { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 6px; }
+/* places to fill in: list under the checks, markers in the text */
+.app-tbc { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; display: grid; gap: 6px; }
+.app-tbc > summary { cursor: pointer; font-size: 15px; }
+.app-tbc ol { margin: 0; padding-left: 20px; display: grid; gap: 10px; }
+.app-tbc li { display: grid; gap: 4px; min-width: 0; }
+.app-tbc li .linkbtn { justify-self: start; text-align: left; }
+.app-tbc .ctx { font-size: 13.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.tbc-fill { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tbc-fill input { flex: 1 1 220px; min-width: 0; font: inherit; font-size: 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); color: var(--ink); padding: 6px 8px; }
+mark.tbc { background: #ffe066; color: #1a1a1a; border-radius: 3px; padding: 0 2px; font-weight: 600; }
+mark.tbc[data-tbcmark] { cursor: pointer; }
+mark.tbc.flash { animation: tbcflash 1.6s ease-out 1; }
+@keyframes tbcflash { 0%, 40% { box-shadow: 0 0 0 4px #ff9f1c; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { mark.tbc.flash { animation: none; outline: 3px solid #ff9f1c; } }

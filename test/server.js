@@ -123,7 +123,15 @@ function demoAI(seen) {
         weaknesses: [`${a} has no measurable target`], improve: ["Name a partner with experience in the target group"] };
       return sseStream([{ response: JSON.stringify(ex) }, { response: "", usage: { prompt_tokens: 2000, completion_tokens: 300 } }]);
     }
-    if (sys.startsWith("You are an experienced evaluator")) {
+    if (sys.startsWith("You are an experienced expert evaluator") && /\nCRITERION: /.test(sys)) {
+      // One award criterion of a full application: about 60% of its maximum, and one change for the first part it reads.
+      const max = +(sys.match(/\nCRITERION: .*?\(score 0 to (\d+(?:\.\d+)?)/) || [, 5])[1];
+      const part = (input.messages[1].content.match(/^\[([\w]+)\] /m) || [, ""])[1];
+      const a = { score: Math.round(max * 0.6 * 2) / 2, justification: "Test justification of this criterion.", strengths: ["Clear objectives with targets"], weaknesses: ["No key performance indicators per outcome"],
+        missing: ["Named partners"], recommendations: ["Add a KPI for each objective"], headline: "Addressed well, with a number of shortcomings.", fixes: part ? [{ part, change: "Add a KPI with a target month for each objective" }] : [] };
+      return sseStream([{ response: JSON.stringify(a) }, { response: "", usage: { prompt_tokens: 4000, completion_tokens: 600 } }]);
+    }
+    if (sys.startsWith("You are an experienced evaluator") || sys.startsWith("You are an experienced expert evaluator")) {
       // Scores at about 70% of each criterion's maximum; with only the funder's text, quote its first lines as criteria.
       const ids = [...sys.matchAll(/^### (c\d+): .*\(score 0 to (\d+(?:\.\d+)?)/gm)].map((m) => [m[1], +m[2]]);
       const why = { justification: "Test justification.", strengths: ["Clear target group"], weaknesses: ["Partners not named"], missing: ["Budget detail"], recommendations: ["Name the partners"] };

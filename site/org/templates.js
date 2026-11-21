@@ -481,21 +481,20 @@ export function documentModel(draft, L) {
   const tpl = tplOf(draft), p = draft.plan || {}, f = draft.facts || {}, ps = draft.participants || [];
   const S = draft.sections || {}, out = [];
   const txt = (k) => (S[k] && S[k].text) || "";
-  const paras = (t) => {
-    const blocks = [];
-    for (const raw of String(t || "").split(/\n{2,}|\n(?=### )/)) {
-      const s = raw.trim(); if (!s) continue;
-      if (s.startsWith("### ")) blocks.push({ h: 3, text: s.slice(4).trim() });
-      else blocks.push({ p: s });
-    }
-    return blocks.length ? blocks : [{ p: L.tbc, missing: true }];
-  };
-  const name = (c) => { const x = ps.find((y) => y.code === c); return x ? (x.name || c) : c; };
-  out.push({ h: 1, text: p.title || draft.title || "" });
-  if (p.acronym) out.push({ p: `${L.acronym}: ${p.acronym}` });
-  out.push({ meta: [draft.call && draft.call.id ? `${L.call}: ${draft.call.id}${draft.call.title ? " · " + draft.call.title : ""}` : "", `${L.template}: ${tpl.source.title}${tpl.source.version ? ", " + tpl.source.version : ""}${tpl.source.date ? " (" + tpl.source.date + ")" : ""}`, p.durationMonths ? `${L.duration}: ${p.durationMonths} ${L.months}` : "", f.amount ? `${tpl.programme === "erasmus" ? L.lumpSum : L.requested}: ${L.money(f.amount)} EUR` : ""].filter(Boolean) });
-  out.push({ note: L.disclaimer });
-  const partTable = { table: { head: [L.no, L.participant, L.country, L.orgType], rows: ps.map((x) => [x.code, x.name + (x.applicant ? ` (${f.role === "partner" ? L.partner : L.coordinator})` : ""), x.country || L.tbcShort, x.type || ""]), widths: ["8%", "*", "18%", "26%"] } };
+  // A part's text as blocks: cleaned (tidyText), its repeated heading dropped, tables as tables.
+  const paras = (t, u) => { const b = blocksOf(tidyText(t, { title: u && cleanTitle(u.title), part: u && u.part })); return b.length ? b : [{ p: L.tbc, missing: true }]; };
+  const name = (c) => { const x = ps.find((y) => y.code === c); return toLatin(x ? (x.name || c) : c); };
+  const cap = (s) => String(s || "").charAt(0).toUpperCase() + String(s || "").slice(1);
+  const coord = ps.find((x) => x.applicant);
+  out.push({ cover: {
+    kicker: tpl.kind === "partb" ? tpl.source.title : tpl.name, title: toLatin(p.title || draft.title || ""), acronym: p.acronym || "",
+    rows: [draft.call && draft.call.id ? [L.call, `${draft.call.id}${draft.call.title ? "\n" + toLatin(draft.call.title) : ""}`] : null,
+      coord ? [cap(f.role === "partner" ? L.partner : L.coordinator), `${toLatin(coord.name)}${coord.country ? ", " + coord.country : ""}`] : null,
+      p.durationMonths ? [L.duration, `${p.durationMonths} ${L.months}`] : null,
+      f.amount ? [tpl.programme === "erasmus" ? L.lumpSum : L.requested, `${L.money(f.amount)} EUR`] : null,
+      [L.template, `${tpl.source.title}${tpl.source.version ? ", " + tpl.source.version : ""}${tpl.source.date ? " (" + tpl.source.date + ")" : ""}`]].filter(Boolean),
+    note: L.disclaimer } });
+  const partTable = { table: { head: [L.no, L.participant, L.country, L.orgType], rows: ps.map((x) => [x.code, toLatin(x.name) + (x.applicant ? ` (${f.role === "partner" ? L.partner : L.coordinator})` : ""), x.country || L.tbcShort, x.type || ""]), widths: ["8%", "*", "18%", "26%"] } };
   if (tpl.kind === "partb") {
     out.push({ h: 2, text: L.participants }, partTable);
     let group = null;
@@ -503,22 +502,22 @@ export function documentModel(draft, L) {
       const g = u.g || (tpl.groups && tpl.groups[u.id]);
       if (u.wp) continue;   // drawn with the work plan tables
       if (!String(u.n).includes(".")) {
-        const head = `${u.n === "0" ? "" : u.n + ". "}${u.title}`;
+        const head = `${u.n === "0" ? "" : u.n + ". "}${cleanTitle(u.title)}`;
         if (!out.some((b) => b.h === 2 && b.text === head)) out.push({ h: 2, text: head });
         group = g;
       } else {
         if (g !== group) { group = g; if (tpl.groupTitles && tpl.groupTitles[g]) out.push({ h: 2, text: `${g}. ${tpl.groupTitles[g]}` }); }
-        const head = `${u.n} ${u.title}`;
+        const head = `${u.n} ${cleanTitle(u.title)}`;
         if (!out.some((b) => b.h === 3 && b.text === head)) out.push({ h: 3, text: head });
       }
-      out.push(...paras(txt(u.key)).map((b) => ({ ...b, unit: u })));
+      out.push(...paras(txt(u.key), u).map((b) => ({ ...b, unit: u })));
       if ((u.id === "s31" || u.tablesAfter) && tpl.tables) out.push(...workPlanTables(draft, L, name, String(tpl.key).startsWith("HE-") ? "he" : "plain"));
     }
   } else {
     const sec = (t) => out.push({ h: 2, text: t });
     const qa = (u) => {
       const parsed = (S[u.key] && S[u.key].answers) || {};
-      for (const q of u.questions) out.push({ qa: q.q, text: parsed[q.id] || "", count: true });
+      for (const q of u.questions) out.push({ qa: q.q, text: parsed[q.id] ? tidyText(parsed[q.id]) : "", count: true });
     };
     const units = unitsOf(tpl, p, f.lang);
     const ctx = [
@@ -563,16 +562,18 @@ function workPlanTables(draft, L, name, style = "he") {
   out.push(T("3.1a", L.t31a), { table: { head: [L.wpNo, L.wpTitle, L.leadNo, L.leadName, L.pm, L.startM, L.endM], rows: (p.workPackages || []).map((w) => [w.id, w.title, w.lead, name(w.lead), fmt1(pmOf(w)), "M" + w.start, "M" + w.end]), widths: ["8%", "*", "8%", "20%", "9%", "9%", "9%"] } });
   out.push(T("3.1b", L.t31b));
   for (const w of p.workPackages || []) {
-    out.push({ table: { head: [L.wpNo, w.id, L.leadName, name(w.lead)], rows: [[L.wpTitle, { colSpan: 3, text: w.title }, "", ""], [L.startEnd, { colSpan: 3, text: `M${w.start}–M${w.end}` }, "", ""], [L.objectives, { colSpan: 3, text: (w.objectives || []).join("\n") }, "", ""]], widths: ["18%", "*", "18%", "*"] } });
+    out.push({ table: { head: [L.wpNo, w.id, L.leadName, name(w.lead)], rows: [[L.wpTitle, { colSpan: 3, text: toLatin(w.title) }, "", ""], [L.startEnd, { colSpan: 3, text: `M${w.start}–M${w.end}` }, "", ""], [L.objectives, { colSpan: 3, text: (w.objectives || []).join("\n") }, "", ""]], widths: ["18%", "*", "18%", "*"] } });
     const t = S["wp_" + w.id] && S["wp_" + w.id].text;
-    out.push({ p: L.descWork, bold: true });
-    for (const b of String(t || L.tbc).split(/\n{2,}/)) if (b.trim()) out.push(b.trim().startsWith("### ") ? { h: 4, text: b.trim().slice(4) } : { p: b.trim() });
+    out.push({ h: 4, text: L.descWork });
+    const bl = t ? blocksOf(tidyText(t, { title: "Work package description", part: w.title })) : [];
+    if (!bl.length) out.push({ p: L.tbc, missing: true });
+    for (const b of bl) out.push(b.h ? { h: 5, text: b.text } : b);
   }
   out.push(T("3.1c", L.t31c), { table: { head: [L.no, L.delName, L.shortDesc, L.wpNo, L.leadName, L.type, L.dissem, L.month], rows: (p.deliverables || []).map((d) => [d.id, d.name, d.description || "", d.wp, name(d.lead), d.type, d.dissemination, String(d.month)]), widths: ["7%", "17%", "*", "7%", "14%", "8%", "8%", "7%"] } });
   out.push(T("3.1d", L.t31d), { table: { head: [L.no, L.msName, L.relWp, L.dueMonth, L.verification], rows: (p.milestones || []).map((m) => [m.id, m.name, m.wps.join(", "), String(m.month), m.verification || ""]), widths: ["8%", "26%", "12%", "10%", "*"] } });
   out.push(T("3.1e", L.t31e), { table: { head: [L.riskDesc, L.wpsInvolved, L.mitigation], rows: (p.risks || []).map((r) => [`${r.risk} (${L.likelihood}: ${L.lv[r.likelihood]}; ${L.severity}: ${L.lv[r.severity]})`, r.wps.join(", "), r.mitigation || ""]), widths: ["38%", "14%", "*"] } });
   const wps = p.workPackages || [];
-  const effRows = ps.map((x) => [`${x.code} ${x.name}`, ...wps.map((w) => fmt1(w.pm[x.code] || 0)), fmt1(wps.reduce((t, w) => t + (w.pm[x.code] || 0), 0))]);
+  const effRows = ps.map((x) => [`${x.code} ${toLatin(x.name)}`, ...wps.map((w) => fmt1(w.pm[x.code] || 0)), fmt1(wps.reduce((t, w) => t + (w.pm[x.code] || 0), 0))]);
   effRows.push([L.totalPm, ...wps.map((w) => fmt1(pmOf(w))), fmt1(wps.reduce((t, w) => t + pmOf(w), 0))]);
   out.push(T("3.1f", L.t31f), { table: { head: [L.participant, ...wps.map((w) => w.id), L.totalPm], rows: effRows, widths: ["*", ...wps.map(() => "8%"), "12%"] } });
   if (style === "he") { out.push(T("3.1g", L.t31g), { note: L.t31gNote }); out.push(T("3.1h", L.t31h), { note: L.t31hNote }); }
@@ -741,4 +742,112 @@ export function factWarnings(facts, { tpl, call, rules }) {
     else if (!r && tpl.programme === "horizon" && m < 12) out.push({ field: "durationMonths", key: "durShort", args: [USUAL_MONTHS[tpl.key] || 36] });
   }
   return out;
+}
+
+// ---------- places the applicant has to fill in ----------
+// Every "(to be confirmed)" marker in the written parts, in reading order, with a little text on each side, so the page
+// can list them, open each one and replace it with the fact the applicant types.
+export const TBC_SRC = "\\((?:to be confirmed|potrebno potvrditi|partner to be confirmed)\\)";
+const flat = (t) => plainChars(t).replace(/^\s*(?:###|-)\s+/gm, "").replace(/\s+/g, " ");
+export function tbcPlaces(draft, units) {
+  const out = [], S = (draft && draft.sections) || {};
+  for (const u of units) {
+    const s = S[u.key];
+    if (!s) continue;
+    const fields = s.answers && u.questions ? u.questions.filter((q) => s.answers[q.id]).map((q) => [q.id, s.answers[q.id]]) : [[null, s.text || ""]];
+    for (const [q, t] of fields) {
+      const re = new RegExp(TBC_SRC, "gi");
+      let m, i = 0;
+      while ((m = re.exec(t))) {
+        // context from the same line only (a paragraph or a list item)
+        const ls = t.lastIndexOf("\n", m.index - 1) + 1, le = t.indexOf("\n", m.index); const end = le < 0 ? t.length : le;
+        const b = flat(t.slice(Math.max(ls, m.index - 120), m.index)), a = flat(t.slice(m.index + m[0].length, Math.min(end, m.index + m[0].length + 80)));
+        out.push({ key: u.key, q, i: i++, marker: m[0], partner: /partner/i.test(m[0]),
+          before: (b.length > 90 ? "…" + b.slice(b.length - 90).replace(/^\S*\s/, "") : b).trimStart(), after: (a.length > 60 ? a.slice(0, 60).replace(/\s\S*$/, "") + "…" : a).trimEnd() });
+      }
+    }
+  }
+  return out;
+}
+// The text with its i-th marker replaced by value (the other markers stay).
+export function fillPlace(text, i, value) {
+  let n = -1;
+  return String(text || "").replace(new RegExp(TBC_SRC, "gi"), (m) => (++n === i ? value : m));
+}
+// Text split into plain and marker pieces, for highlighting the markers in the PDF and Word files.
+export const tbcSplit = (t) => String(t || "").split(new RegExp("(" + TBC_SRC + ")", "gi")).filter((x) => x !== "").map((x) => ({ text: x, tbc: new RegExp("^" + TBC_SRC + "$", "i").test(x) }));
+
+// ---------- clean text for the page and the files ----------
+// Model output often carries characters the PDF font cannot draw (narrow and thin spaces, non-breaking hyphens,
+// superscript minus), Cyrillic names copied from the profile, and markdown the prompt asks it not to use (#### headings,
+// *italics*, **bold**, "* " bullets run into one line, pipe tables). tidyText turns all of that into the plain form the
+// page and the PDF and Word files draw; the "(to be confirmed)" markers are left exactly as they are.
+const CYR = { А: "A", Б: "B", В: "V", Г: "G", Д: "D", Ђ: "Đ", Е: "E", Ж: "Ž", З: "Z", И: "I", Ј: "J", К: "K", Л: "L", Љ: "Lj", М: "M", Н: "N", Њ: "Nj", О: "O", П: "P", Р: "R", С: "S", Т: "T", Ћ: "Ć", У: "U", Ф: "F", Х: "H", Ц: "C", Ч: "Č", Џ: "Dž", Ш: "Š" };
+for (const [k, v] of Object.entries({ ...CYR })) CYR[k.toLowerCase()] = v.toLowerCase();
+export const toLatin = (t) => String(t ?? "").replace(/[Ѐ-ӿ]+/g, (w) => {
+  const caps = w.length > 1 && w === w.toUpperCase();
+  return [...w].map((ch) => { const v = CYR[ch]; return v === undefined ? ch : caps ? v.toUpperCase() : v; }).join("");
+});
+const SUP = { "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9", "⁺": "+", "⁻": "-", "⁼": "=" };
+export function plainChars(t) {
+  return toLatin(t)
+    .replace(/[​-‍⁠﻿]/g, "")
+    .replace(/[ -   　]/g, " ")
+    .replace(/[‐-‒−]/g, "-")
+    .replace(/[⁰¹²³⁴-⁹⁺⁻⁼]+/g, (s) => (/^[¹²³]+$/.test(s) ? s : "^" + [...s].map((c) => SUP[c] || c).join("")));
+}
+const normTitle = (s) => String(s || "").toLowerCase().replace(/\(optional[^)]*\)/g, "").replace(/[^a-zÀ-ɏ]+/g, " ").trim();
+export const cleanTitle = (s) => String(s || "").replace(/\s*\((?:optional|OPTIONAL)[^)]*\)/g, "").trim();
+export function tidyText(text, { title, part } = {}) {
+  let t = plainChars(String(text || "").replace(/\r/g, ""));
+  // pipe tables run into one line: one row per line
+  t = t.replace(/^(\|.*\|)\s*$/gm, (line) => line.replace(/\|\s+\|(?=\s*[-:\w(])/g, "|\n|"));
+  const out = [];
+  for (let line of t.split("\n")) {
+    const h = line.match(/^\s*#{1,6}\s+(.*?)\s*#*\s*$/);
+    if (h) { out.push("### " + h[1].replace(/\*\*|__/g, "").replace(/^\*(.*)\*$/, "$1").trim()); continue; }
+    line = line.replace(/^(\s*)[*•]\s+/, "$1- ");
+    // "intro: * first item * second item" in one line: one list item per line
+    if (!/^\s*\|/.test(line) && (line.match(/\s\*\s+(?=\S)/g) || []).length >= 2) {
+      const [head, ...items] = line.split(/\s\*\s+(?=\S)/);
+      if (head.trim()) out.push(head.trim());
+      for (const it of items) out.push("- " + it.trim());
+      continue;
+    }
+    line = line.replace(/\*\*(.+?)\*\*/g, "$1").replace(/__(.+?)__/g, "$1").replace(/(^|[\s(])\*(?=\S)([^*\n]+?)(?<=\S)\*(?=[\s).,:;!?]|$)/g, "$1$2");
+    out.push(line);
+  }
+  t = out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  // a first line that repeats the part's own heading
+  const first = t.match(/^(?:###\s+)?([^\n]{1,140})\n/);
+  if (first && (title || part)) {
+    const f = normTitle(first[1].replace(/^\d+(?:\.\d+)*\s*/, ""));
+    if (f && (f === normTitle(title) || f === normTitle(part) || (normTitle(title) && f === normTitle(title + " " + (part || ""))))) t = t.slice(first[0].length).trimStart();
+  }
+  return t;
+}
+// Blocks of a cleaned text: sub-headings, paragraphs (lists inside) and pipe tables.
+export function blocksOf(text) {
+  const blocks = [];
+  let para = [], table = [];
+  const flushP = () => { const s = para.join("\n").trim(); if (s) blocks.push({ p: s }); para = []; };
+  const flushT = () => {
+    const rows = table.filter((l) => !/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l)).map((l) => l.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim()));
+    if (rows.length >= 2) {
+      const n = Math.max(...rows.map((r) => r.length));
+      const fix = (r) => [...r, ...Array(n - r.length).fill("")].slice(0, n);
+      blocks.push({ table: { head: fix(rows[0]), rows: rows.slice(1).map(fix), widths: Array(n).fill("*") } });
+    } else if (rows.length) blocks.push({ p: rows[0].join(" · ") });
+    table = [];
+  };
+  for (const line of String(text || "").split("\n")) {
+    if (/^\s*\|.*\|\s*$/.test(line)) { flushP(); table.push(line.trim()); continue; }
+    if (table.length) flushT();
+    if (/^###\s+/.test(line)) { flushP(); blocks.push({ h: 3, text: line.replace(/^###\s+/, "").trim() }); continue; }
+    if (!line.trim()) { flushP(); continue; }
+    para.push(line);
+  }
+  if (table.length) flushT();
+  flushP();
+  return blocks;
 }

@@ -4,7 +4,7 @@ import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completene
 import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS, HIGH, mandatorySummary, setGlossary, glossaryVersion } from "./rules.js";
 import { TEXT_FIELDS, textHash, estTokens, nonStandardSerbian, serbianLexFix } from "./lang.js";
 import { rubricFor, erasmusAction } from "./rubric.js";
-import { templateFor, tplOf, unitsOf, checkDraft, documentModel, factsText, ERASMUS_FIELDS, suggestFacts, factWarnings, draftHash, tbcCount } from "./templates.js";
+import { templateFor, tplOf, unitsOf, checkDraft, documentModel, factsText, ERASMUS_FIELDS, suggestFacts, factWarnings, draftHash, tbcCount, tbcPlaces, fillPlace, tbcSplit, TBC_SRC, tidyText, blocksOf, cleanTitle, toLatin } from "./templates.js";
 import { ideaIn as ideaInRaw, evalIn as evalInRaw, ideaTexts, evalTexts, applyIdeaTexts, applyEvalTexts } from "./content.js";
 
 const EC = window.EC;
@@ -183,7 +183,9 @@ const S = {
       fLang: "Language of the application", fLangHe: "Horizon Europe proposals are normally written in English.", fLangEp: "The Erasmus+ form also asks for the project summary in English; it is written as well.",
       fDur: "Duration (months)", fAmount: "Requested EU contribution (EUR)", fAmountMax: (m) => `The call states up to ${m} EUR per project.`, fLump: "Lump sum (EUR)", fLumpPick: "Choose…",
       fLumpTopic: "This topic uses lump sum funding (page limit is higher)", fField: "Field", fRole: "Our role", fCoord: "Coordinator", fPartner: "Partner",
-      fTrl: "Technology readiness level (optional)", fTrlStart: "at the start", fTrlEnd: "at the end", improved: "improved after the evaluation", serverRetry: (s) => `The server did not finish the request. Trying again in ${s} s…`,
+      fTrl: "Technology readiness level (optional)", fTrlStart: "at the start", fTrlEnd: "at the end", improved: "improved after the evaluation",
+      tbcTitle: (n) => `Places to fill in (${n})`, tbcLede: "Facts the platform did not have are marked in the text. Type each fact and press Fill in, or open the place in the text to rewrite the sentence around it. The PDF and Word files highlight the places still open.",
+      tbcPartner: "To name a partner everywhere, including the tables, use \"Write again with new details\" and add the partner there.", tbcFill: "Fill in", tbcPh: "Type the missing fact", tbcShow: "Show in the text", tbcDone: "All places are filled in.", tbcEmpty: "Type the fact first.", serverRetry: (s) => `The server did not finish the request. Trying again in ${s} s…`,
       suggNote: "The values below are suggested from the call, the idea and your organisation profile. Check them and change what does not fit before writing.",
       sugg: { call: "from the call", rules: "programme rule", usual: "usual for this type of action; the call states none", callMax: "the call's amount per project", callRange: "the top of the call's range",
         idea: "partner types from the idea: replace them with your real partners", profile: "from your organisation profile" },
@@ -420,7 +422,9 @@ const S = {
       fLang: "Jezik prijave", fLangHe: "Predlozi za Horizont Evropa se po pravilu pišu na engleskom.", fLangEp: "Erasmus+ obrazac traži i rezime projekta na engleskom; i on se piše.",
       fDur: "Trajanje (meseci)", fAmount: "Traženi doprinos EU (EUR)", fAmountMax: (m) => `Poziv navodi najviše ${m} EUR po projektu.`, fLump: "Paušalni iznos (EUR)", fLumpPick: "Izaberite…",
       fLumpTopic: "Ova tema se finansira paušalnim iznosom (ograničenje broja strana je veće)", fField: "Oblast", fRole: "Naša uloga", fCoord: "Koordinator", fPartner: "Partner",
-      fTrl: "Nivo tehnološke spremnosti (TRL, nije obavezno)", fTrlStart: "na početku", fTrlEnd: "na kraju", improved: "dorađeno posle ocene", serverRetry: (s) => `Server nije završio zahtev. Novi pokušaj za ${s} s…`,
+      fTrl: "Nivo tehnološke spremnosti (TRL, nije obavezno)", fTrlStart: "na početku", fTrlEnd: "na kraju", improved: "dorađeno posle ocene",
+      tbcTitle: (n) => `Mesta za popunjavanje (${n})`, tbcLede: "Podaci koje platforma nije imala označeni su u tekstu. Upišite svaki podatak i pritisnite Popuni, ili otvorite mesto u tekstu da biste preradili rečenicu oko njega. PDF i Word fajlovi ističu mesta koja su još otvorena.",
+      tbcPartner: "Da biste partnera naveli svuda, uključujući tabele, koristite „Napiši ponovo sa novim podacima“ i tamo dodajte partnera.", tbcFill: "Popuni", tbcPh: "Upišite podatak koji nedostaje", tbcShow: "Prikaži u tekstu", tbcDone: "Sva mesta su popunjena.", tbcEmpty: "Prvo upišite podatak.", serverRetry: (s) => `Server nije završio zahtev. Novi pokušaj za ${s} s…`,
       suggNote: "Vrednosti ispod su predložene na osnovu poziva, ideje i profila vaše organizacije. Proverite ih i izmenite ono što ne odgovara pre pisanja.",
       sugg: { call: "iz poziva", rules: "pravilo programa", usual: "uobičajeno za ovu vrstu akcije; poziv ga ne navodi", callMax: "iznos po projektu iz poziva", callRange: "gornja granica raspona iz poziva",
         idea: "vrste partnera iz ideje: zamenite ih svojim stvarnim partnerima", profile: "iz profila vaše organizacije" },
@@ -1883,7 +1887,7 @@ if (!ST.appOpen) ST.appOpen = new Set();
 const unitTitle = (u, d) => {
   if (u.n) {
     if (u.ref) { const w = (d.plan.workPackages || []).find((x) => x.id === u.ref); return `${u.n} ${u.ref}: ${w ? w.title : ""}`; }
-    return `${u.n === "0" ? "" : u.n + " "}${u.title}${u.part ? " · " + u.part : ""}`;
+    return `${u.n === "0" ? "" : u.n + " "}${cleanTitle(u.title)}${u.part ? " · " + u.part : ""}`;
   }
   let t = u.section + (u.sub ? " · " + u.sub : "") + (u.part ? " (" + u.part + ")" : "");
   if (u.ref) { const w = (d.plan.workPackages || []).find((x) => x.id === u.ref), a = (d.plan.activities || []).find((x) => x.id === u.ref); t += " · " + (w ? `${w.id}: ${w.title}` : a ? a.title : u.ref); }
@@ -1948,15 +1952,32 @@ function readFacts(form) {
   return { lang: v("lang"), durationMonths: v("durationMonths"), amount: v("amount"), field: v("field") || undefined, role: v("role"), lumpSumFunding: !!v("lumpSumFunding"),
     trl: { start: v("trlStart"), end: v("trlEnd") }, partners: v("partners"), team: v("team"), track: v("track"), extra: v("extra") };
 }
-const viewText = (t) => textParts(String(t || "").replace(/^### (.*)$/gm, "\u0000$1\u0000")).map((x) => x.ul ? `<ul>${x.ul.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>` : x.p.split("\u0000").map((seg, i) => (i % 2 ? `<strong class="sub">${esc(seg)}</strong>` : seg.trim() ? `<p>${esc(seg.trim())}</p>` : "")).join("")).join("");
+const markTbc = (html, key, q) => { let i = 0; return html.replace(new RegExp(TBC_SRC, "gi"), (m) => `<mark class="tbc" id="tbc-${esc(key)}-${esc(q || "t")}-${i++}" data-tbcmark="${esc(key)}|${esc(q || "")}|${i - 1}" tabindex="0">${m}</mark>`); };
+const viewText = (t, key, q, u) => markTbc(viewTextRaw(tidyText(t, u ? { title: cleanTitle(u.title), part: u.part } : {})), key, q);
+const paraHTML = (t) => textParts(t).map((x) => (x.ul ? `<ul>${x.ul.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>` : `<p>${esc(x.p)}</p>`)).join("");
+const viewTextRaw = (t) => blocksOf(t).map((b) => (b.h ? `<strong class="sub">${esc(b.text)}</strong>` : b.table
+  ? `<div class="tw"><table class="oi-t app-tt"><thead><tr>${b.table.head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${b.table.rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`
+  : paraHTML(b.p))).join("");
 function unitHTML(u, d, tpl, can) {
   const s = d.sections[u.key], chars = (t) => esc(T("app.chars", String(t || "").length));
   const body = tpl.kind === "form"
-    ? u.questions.map((q) => { const a = (s && s.answers && s.answers[q.id]) || ""; return `<div class="app-q"><p class="q">${esc(q.q)}</p><div class="a" data-q="${esc(q.id)}">${a ? viewText(a) : `<span class="fine">${esc(T("app.unitMissing"))}</span>`}</div><div class="oi-row"><span class="fine num">${chars(a)}</span>${a ? `<button type="button" class="linkbtn" data-copy="${esc(q.id)}">${esc(T("app.copy"))}</button>` : ""}</div></div>`; }).join("")
-    : `<div class="a">${s && s.text ? viewText(s.text) : `<span class="fine">${esc(T("app.unitMissing"))}</span>`}</div>`;
+    ? u.questions.map((q) => { const a = (s && s.answers && s.answers[q.id]) || ""; return `<div class="app-q"><p class="q">${esc(q.q)}</p><div class="a" data-q="${esc(q.id)}">${a ? viewText(a, u.key, q.id, null) : `<span class="fine">${esc(T("app.unitMissing"))}</span>`}</div><div class="oi-row"><span class="fine num">${chars(a)}</span>${a ? `<button type="button" class="linkbtn" data-copy="${esc(q.id)}">${esc(T("app.copy"))}</button>` : ""}</div></div>`; }).join("")
+    : `<div class="a">${s && s.text ? viewText(s.text, u.key, null, u) : `<span class="fine">${esc(T("app.unitMissing"))}</span>`}</div>`;
   return `<details class="app-unit" data-unit="${esc(u.key)}"><summary><span class="t">${esc(unitTitle(u, d))}</span><span class="fine">${s && s.text ? chars(s.text) : esc(T("app.unitMissing"))}${s && s.edited ? " · " + esc(T("app.edited")) : s && s.improved ? " · " + esc(T("app.improved")) : ""}</span></summary>
     <div class="app-u-body">${body}<div class="oi-row">${can && s && s.text ? `<button type="button" class="btn quiet" data-uact="edit">${esc(T("app.edit"))}</button>` : ""}${can ? `<button type="button" class="linkbtn" data-uact="rewrite">${esc(T(s && s.text ? "app.rewrite" : "app.cont"))}</button>` : ""}${tpl.kind !== "form" && s && s.text ? `<button type="button" class="linkbtn" data-uact="copy">${esc(T("app.copy"))}</button>` : ""}<span class="fine" data-umsg role="status"></span></div></div></details>`;
 }
+// The places marked "to be confirmed": each opens its part at the marker, and can be filled in from here.
+function tbcListHTML(d, units, can) {
+  const ps = tbcPlaces(d, units);
+  if (!ps.length) return "";
+  const title = (p) => { const u = units.find((y) => y.key === p.key); return u ? unitTitle(u, d) + (p.q && u.questions ? " · " + clip(((u.questions.find((x) => x.id === p.q) || {}).q || ""), 70) : "") : p.key; };
+  const shut = ST.tbcShut && ST.tbcShut.has(d.at);
+  return `<details class="app-tbc" id="tbc-list"${shut ? "" : " open"}><summary><b>${esc(T("app.tbcTitle", ps.length))}</b></summary><p class="fine">${esc(T("app.tbcLede"))}${ps.some((p) => p.partner) ? " " + esc(T("app.tbcPartner")) : ""}</p>
+    <ol>${ps.map((p) => `<li data-place="${esc(p.key)}|${esc(p.q || "")}|${p.i}"><button type="button" class="linkbtn" data-tbcgo>${esc(title(p))}</button>
+      <span class="ctx">${esc(p.before)}<mark class="tbc">${esc(p.marker)}</mark>${esc(p.after)}</span>
+      ${can ? `<span class="tbc-fill"><input type="text" maxlength="400" placeholder="${esc(T("app.tbcPh"))}" aria-label="${esc(T("app.tbcPh"))}"><button type="button" class="btn quiet" data-tbcsave>${esc(T("app.tbcFill"))}</button><span class="fine" data-tbcmsg role="status"></span></span>` : ""}</li>`).join("")}</ol></details>`;
+}
+const clip = (t, n) => (String(t).length > n ? String(t).slice(0, n - 1) + "…" : String(t));
 const numArg = (a) => (Array.isArray(a) ? a.map(numArg) : typeof a === "number" && a >= 1000 ? fmtInt(a) : a);
 function viewerHTML(x, tpl, d) {
   const can = premium() && canEdit(), units = unitsOf(tpl, d.plan, d.facts.lang);
@@ -1966,6 +1987,7 @@ function viewerHTML(x, tpl, d) {
     <div class="oi-row"><button type="button" class="btn" data-act="apppdf"><span class="pdf-ic" aria-hidden="true">PDF</span> ${esc(T("app.pdf"))}</button><button type="button" class="btn quiet" data-act="appdocx">${esc(T("app.docx"))}</button>${missing && can ? `<button type="button" class="btn quiet" data-act="appcont">${esc(T("app.cont"))}</button>` : ""}</div>
     <p class="note">${esc(tpl.kind === "partb" ? T("app.heNote") : T("app.declaration") + " " + T("app.formLimits"))}</p>
     <h4>${esc(T("app.checks"))}</h4><ul class="app-checks">${checks.map((c) => `<li class="chk-${c.level}">${esc(T("app.chk." + c.key, ...c.args.map(numArg)))}</li>`).join("")}</ul>
+    ${tbcListHTML(d, units, can)}
     <div class="app-units">${units.map((u) => unitHTML(u, d, tpl, can)).join("")}</div>
   </div>`;
 }
@@ -2027,6 +2049,7 @@ function drawApp(card, x, tpl) {
   body.querySelector('[data-act="appdocx"]').addEventListener("click", () => dl("docx"));
   const cont = body.querySelector('[data-act="appcont"]');
   if (cont) cont.addEventListener("click", async () => { cont.disabled = true; await writeMissing(card, x, tpl, d); drawApp(card, x, tpl); redrawEval(card, x); });
+  bindTbc(card, x, tpl, d, body);
   body.querySelectorAll(".app-unit").forEach((det) => {
     const key = det.dataset.unit, u = unitsOf(tpl, d.plan, d.facts.lang).find((y) => y.key === key), um = det.querySelector("[data-umsg]");
     const redraw = () => { syncDraft(x, d); const n = document.createElement("div"); n.innerHTML = unitHTML(u, d, tpl, premium() && canEdit()); const fresh = n.firstElementChild; fresh.open = true; det.replaceWith(fresh); drawApp(card, x, tpl); redrawEval(card, x); const again = card.querySelector(`.app-unit[data-unit="${CSS.escape(key)}"]`); if (again) again.open = true; };
@@ -2055,6 +2078,48 @@ function drawApp(card, x, tpl) {
         catch (e) { row.querySelector("[data-umsg]").textContent = errText(e); ev.currentTarget.disabled = false; }
       });
     });
+  });
+}
+// The list of places to fill in: open a place in its part, fill it in, or jump from a marker in the text to the list.
+function bindTbc(card, x, tpl, d, body) {
+  const units = unitsOf(tpl, d.plan, d.facts.lang);
+  const list = body.querySelector("#tbc-list");
+  if (list) list.addEventListener("toggle", () => { ST.tbcShut = ST.tbcShut || new Set(); if (list.open) ST.tbcShut.delete(d.at); else ST.tbcShut.add(d.at); });
+  const open = (key, q, i) => {
+    const det = body.querySelector(`.app-unit[data-unit="${CSS.escape(key)}"]`); if (!det) return;
+    det.open = true;
+    const mk = det.querySelector(`#${CSS.escape(`tbc-${key}-${q || "t"}-${i}`)}`) || det;
+    mk.scrollIntoView({ behavior: "smooth", block: "center" });
+    mk.classList.remove("flash"); void mk.offsetWidth; mk.classList.add("flash");
+  };
+  body.querySelectorAll("#tbc-list li[data-place]").forEach((li) => {
+    const [key, q, i] = li.dataset.place.split("|");
+    li.querySelector("[data-tbcgo]").addEventListener("click", () => open(key, q, +i));
+    const inp = li.querySelector("input"), btn = li.querySelector("[data-tbcsave]"), m = li.querySelector("[data-tbcmsg]");
+    if (!btn) return;
+    const save = async () => {
+      const v = inp.value.trim();
+      if (!v) { m.textContent = T("app.tbcEmpty"); inp.focus(); return; }
+      const s = d.sections[key], u = units.find((y) => y.key === key);
+      const payload = q && u && u.questions ? { key, answers: { ...(s.answers || {}), [q]: fillPlace((s.answers || {})[q], +i, v) } } : { key, text: fillPlace(s.text, +i, v) };
+      btn.disabled = true; inp.disabled = true;
+      try {
+        d.sections[key] = (await api("PATCH", `/orgs/${ST.org.id}/ideas/${x.id}/proposal`, payload)).section;
+        syncDraft(x, d);
+        const keep = body.querySelector("#tbc-list") ? window.scrollY : null;
+        drawApp(card, x, tpl); redrawEval(card, x);
+        if (keep !== null) window.scrollTo({ top: keep });
+        const next = card.querySelector("#tbc-list li input"); if (next) next.focus({ preventScroll: true });
+        else { const msg = card.querySelector("[data-appmsg]"); if (msg) opState(msg, "completed", T("app.tbcDone")); }
+      } catch (e) { m.textContent = errText(e); btn.disabled = false; inp.disabled = false; }
+    };
+    btn.addEventListener("click", save);
+    inp.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); save(); } });
+  });
+  // a marker in the text leads back to its row in the list
+  body.querySelectorAll("mark[data-tbcmark]").forEach((mk) => {
+    const go = () => { const li = body.querySelector(`#tbc-list li[data-place="${CSS.escape(mk.dataset.tbcmark)}"]`); if (!li) return; if (list) list.open = true; li.scrollIntoView({ behavior: "smooth", block: "center" }); const inp = li.querySelector("input"); if (inp) inp.focus({ preventScroll: true }); };
+    mk.addEventListener("click", go); mk.addEventListener("keydown", (ev) => { if (ev.key === "Enter") go(); });
   });
 }
 function bindApp(card, x) {
@@ -2120,36 +2185,64 @@ function textParts(t) {
   return out;
 }
 const ganttCols = (months) => (months > 36 ? Array.from({ length: Math.ceil(months / 3) }, (_, i) => ({ label: "Q" + (i + 1), from: i * 3 + 1, to: i * 3 + 3 })) : Array.from({ length: months }, (_, i) => ({ label: String(i + 1), from: i + 1, to: i + 1 })));
+// Places still to fill in stand out in the files: yellow background in the PDF, yellow highlight in Word.
+const hlPdf = (t) => { const parts = tbcSplit(t); return parts.some((x) => x.tbc) ? parts.map((x) => (x.tbc ? { text: x.text, background: "#ffe066", bold: true } : x.text)) : t; };
+// Colours and type of the exported application: dark blue headings and table heads, light rows, generous spacing.
+const DOC = { blue: "#1f4e79", ink: "#1d2430", muted: "#5b6573", line: "#d5dce6", zebra: "#f3f6fa", note: "#f6f2e7" };
+const pdfTable = (b, small) => {
+  const cell = (c) => (c && typeof c === "object" ? { text: hlPdf(String(c.text ?? "")), colSpan: c.colSpan } : { text: hlPdf(String(c ?? "")) });
+  const rows = b.table.rows.map((r) => r.map((c, i) => (c === "" && i > 0 && r.slice(0, i).some((y) => y && y.colSpan && r.indexOf(y) + y.colSpan > i) ? {} : cell(c))));
+  return { table: { headerRows: 1, keepWithHeaderRows: 1, dontBreakRows: true, widths: b.table.widths, body: [b.table.head.map((h) => ({ text: h, style: "th" })), ...rows] },
+    layout: { fillColor: (ri) => (ri === 0 ? DOC.blue : ri % 2 === 0 ? DOC.zebra : null), hLineWidth: (i, node) => (i === 0 || i === node.table.body.length ? 0 : 0.5), vLineWidth: () => 0,
+      hLineColor: () => DOC.line, paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 4, paddingBottom: () => 4 },
+    fontSize: small ? 8 : 8.5, margin: [0, 4, 0, 12] };
+};
+const noteBox = (text, o = {}) => ({ table: { widths: ["*"], body: [[{ text, fontSize: o.size || 8.5, italics: !!o.italics, color: DOC.muted, margin: [8, 6, 8, 6] }]] },
+  layout: { fillColor: () => DOC.note, hLineWidth: () => 0, vLineWidth: (i) => (i === 0 ? 3 : 0), vLineColor: () => "#c9a227" }, margin: [0, 4, 0, 12] });
 function appPdfDoc(d) {
   const L2 = docL(d.facts.lang), model = documentModel(d, L2), content = [];
+  const acr = (d.plan && d.plan.acronym) || "", callId = (d.call && d.call.id) || "";
   for (const b of model) {
-    if (b.h === 1) content.push({ text: b.text, style: "h1" });
-    else if (b.h === 2) content.push({ text: b.text, style: "h2" });
-    else if (b.h === 3) content.push({ text: b.text, style: "h3" });
-    else if (b.h === 4) content.push({ text: b.text, bold: true, margin: [0, 4, 0, 2] });
+    if (b.cover) {
+      const c = b.cover;
+      content.push({ canvas: [{ type: "rect", x: 0, y: 0, w: 505, h: 6, color: DOC.blue }], margin: [0, 0, 0, 30] });
+      content.push({ text: c.kicker, fontSize: 10, color: DOC.blue, bold: true, characterSpacing: 0.3, margin: [0, 0, 0, 14] });
+      content.push({ text: c.title, fontSize: 24, bold: true, color: DOC.ink, lineHeight: 1.15, margin: [0, 0, 0, 10] });
+      if (c.acronym) content.push({ table: { body: [[{ text: c.acronym, color: "#fff", bold: true, fontSize: 11, margin: [8, 3, 8, 3] }]] }, layout: { fillColor: () => DOC.blue, hLineWidth: () => 0, vLineWidth: () => 0 }, margin: [0, 0, 0, 28] });
+      content.push({ table: { widths: [130, "*"], body: c.rows.map(([k, v]) => [{ text: k, bold: true, color: DOC.muted, fontSize: 9.5 }, { text: v, fontSize: 10, color: DOC.ink }]) },
+        layout: { hLineWidth: (i, node) => (i === 0 || i === node.table.body.length ? 0 : 0.5), vLineWidth: () => 0, hLineColor: () => DOC.line, paddingTop: () => 7, paddingBottom: () => 7, paddingLeft: () => 0 }, margin: [0, 0, 0, 30] });
+      content.push(noteBox(c.note, { italics: true }));
+      content.push({ text: "", pageBreak: "after" });
+    } else if (b.h === 1) content.push({ text: b.text, style: "h1" });
+    // headlineLevel: a heading never stays alone at the bottom of a page (pageBreakBefore below)
+    else if (b.h === 2) content.push({ stack: [{ text: b.text, style: "h2" }, { canvas: [{ type: "line", x1: 0, y1: 0, x2: 505, y2: 0, lineWidth: 1, lineColor: DOC.blue }], margin: [0, 2, 0, 8] }], headlineLevel: 2 });
+    else if (b.h === 3) content.push({ text: b.text, style: "h3", headlineLevel: 3 });
+    else if (b.h === 4) content.push({ text: b.text, style: "h4", headlineLevel: 4 });
+    else if (b.h === 5) content.push({ text: b.text, style: "h5", headlineLevel: 5 });
     else if (b.meta) content.push({ text: b.meta.join("\n"), style: "meta" });
-    else if (b.note) content.push({ text: b.note, style: "note" });
-    else if (b.p !== undefined) for (const x of textParts(b.p)) content.push(x.ul ? { ul: x.ul, margin: [0, 0, 0, 6] } : { text: x.p, margin: [0, 0, 0, 6], bold: !!b.bold, italics: !!b.missing, color: b.missing ? "#777" : undefined });
+    else if (b.note) content.push(noteBox(b.note));
+    else if (b.p !== undefined) for (const x of textParts(b.p)) content.push(x.ul ? { ul: x.ul.map((li) => ({ text: hlPdf(li) })), margin: [0, 0, 0, 7] } : { text: hlPdf(x.p), margin: [0, 0, 0, 7], italics: !!b.missing, color: b.missing ? "#777" : undefined });
     else if (b.qa !== undefined) {
       content.push({ text: b.qa, style: "q" });
-      if (b.text) for (const x of textParts(b.text)) content.push(x.ul ? { ul: x.ul, margin: [0, 0, 0, 4] } : { text: x.p, margin: [0, 0, 0, 4] });
+      if (b.text) for (const x of textParts(b.text)) content.push(x.ul ? { ul: x.ul.map((li) => ({ text: hlPdf(li) })), margin: [0, 0, 0, 5] } : { text: hlPdf(x.p), margin: [0, 0, 0, 5] });
       else content.push({ text: L2.tbc, italics: true, color: "#777" });
-      content.push({ text: `${fmtInt(String(b.text || "").length, d.facts.lang)} ${L2.characters}`, style: "small", margin: [0, 0, 0, 8] });
-    } else if (b.table) {
-      const cell = (c) => (c && typeof c === "object" ? { text: String(c.text ?? ""), colSpan: c.colSpan } : String(c ?? ""));
-      const rows = b.table.rows.map((r) => r.map((c, i) => (c === "" && i > 0 && r.slice(0, i).some((y) => y && y.colSpan && r.indexOf(y) + y.colSpan > i) ? {} : cell(c))));
-      content.push({ table: { headerRows: 1, widths: b.table.widths, body: [b.table.head.map((h) => ({ text: h, style: "th" })), ...rows] }, layout: "lightHorizontalLines", fontSize: 8, margin: [0, 2, 0, 8] });
-    } else if (b.gantt) {
+      content.push({ text: `${fmtInt(String(b.text || "").length, d.facts.lang)} ${L2.characters}`, style: "small", margin: [0, 0, 0, 10] });
+    } else if (b.table) content.push(pdfTable(b, b.table.head.length > 6));
+    else if (b.gantt) {
       const cols = ganttCols(b.gantt.months);
-      content.push({ table: { headerRows: 1, widths: [34, ...cols.map(() => "*")], body: [[{ text: "", style: "th" }, ...cols.map((c) => ({ text: c.label, fontSize: 5, alignment: "center" }))],
-        ...b.gantt.rows.map((r) => [{ text: r.label, fontSize: 7, bold: true }, ...cols.map((c) => (c.to >= r.start && c.from <= r.end ? { text: "", fillColor: "#1f4e79" } : { text: "" }))])] }, layout: { hLineWidth: () => 0.3, vLineWidth: () => 0.3, hLineColor: () => "#ccc", vLineColor: () => "#ccc" }, margin: [0, 2, 0, 8] });
+      content.push({ table: { headerRows: 1, widths: [34, ...cols.map(() => "*")], body: [[{ text: "", style: "th" }, ...cols.map((c) => ({ text: c.label, fontSize: 5.5, color: DOC.muted, alignment: "center" }))],
+        ...b.gantt.rows.map((r) => [{ text: r.label, fontSize: 7.5, bold: true, color: DOC.ink }, ...cols.map((c) => (c.to >= r.start && c.from <= r.end ? { text: "", fillColor: DOC.blue } : { text: "" }))])] },
+        layout: { hLineWidth: () => 0.4, vLineWidth: () => 0.4, hLineColor: () => DOC.line, vLineColor: () => DOC.line }, margin: [0, 4, 0, 12] });
     }
   }
-  return { info: { title: (d.plan && d.plan.title) || "Application", creator: "Eligible Calls" }, pageSize: "A4", pageMargins: [45, 50, 45, 50], content,
-    footer: (cur, tot) => ({ columns: [{ text: "Eligible Calls · " + L2.footer, fontSize: 7, color: "#888" }, { text: `${cur} / ${tot}`, alignment: "right", fontSize: 7, color: "#888" }], margin: [45, 18, 45, 0] }),
-    defaultStyle: { font: "Roboto", fontSize: 10, lineHeight: 1.2 },
-    styles: { h1: { fontSize: 17, bold: true, margin: [0, 0, 0, 6] }, h2: { fontSize: 13, bold: true, color: "#1f4e79", margin: [0, 12, 0, 5] }, h3: { fontSize: 11, bold: true, margin: [0, 8, 0, 3] },
-      meta: { fontSize: 9, color: "#444", margin: [0, 0, 0, 6] }, note: { fontSize: 8, italics: true, color: "#555", margin: [0, 2, 0, 8] }, q: { fontSize: 9, bold: true, color: "#333", margin: [0, 6, 0, 2] }, small: { fontSize: 7.5, color: "#777" }, th: { bold: true, fontSize: 8 } } };
+  return { info: { title: (d.plan && toLatin(d.plan.title)) || "Application", creator: "Eligible Calls" }, pageSize: "A4", pageMargins: [45, 62, 45, 52], content,
+    pageBreakBefore: (cur) => !!cur.headlineLevel && !!cur.startPosition && cur.startPosition.verticalRatio > 0.84,
+    header: (cur) => (cur === 1 ? null : { columns: [{ text: acr || toLatin((d.plan && d.plan.title) || ""), bold: true, color: DOC.blue, fontSize: 8 }, { text: callId, alignment: "right", color: DOC.muted, fontSize: 8 }], margin: [45, 26, 45, 0] }),
+    footer: (cur, tot) => ({ columns: [{ text: "Eligible Calls · " + L2.footer, fontSize: 7.5, color: "#8a929d" }, { text: `${cur} / ${tot}`, alignment: "right", fontSize: 7.5, color: "#8a929d" }], margin: [45, 20, 45, 0] }),
+    defaultStyle: { font: "Roboto", fontSize: 10, lineHeight: 1.3, color: DOC.ink },
+    styles: { h1: { fontSize: 18, bold: true, margin: [0, 0, 0, 8] }, h2: { fontSize: 14, bold: true, color: DOC.blue, margin: [0, 16, 0, 0] }, h3: { fontSize: 11.5, bold: true, color: DOC.ink, margin: [0, 10, 0, 4] },
+      h4: { fontSize: 10.5, bold: true, color: DOC.blue, margin: [0, 8, 0, 3] }, h5: { fontSize: 10, bold: true, color: DOC.ink, margin: [0, 6, 0, 2] },
+      meta: { fontSize: 9, color: DOC.muted, margin: [0, 0, 0, 6] }, q: { fontSize: 9.5, bold: true, color: DOC.blue, margin: [0, 8, 0, 3] }, small: { fontSize: 7.5, color: "#8a929d" }, th: { bold: true, fontSize: 8, color: "#ffffff" } } };
 }
 const appFile = (d, ext) => fileSafe((d.plan && (d.plan.acronym || d.plan.title)) || "application") + "-" + (d.template || "app") + "." + ext;
 async function downloadAppPdf(d) {
@@ -2159,29 +2252,54 @@ async function downloadAppPdf(d) {
 async function downloadDocx(d) {
   if (!window.docx) await EC.loadScript(DOCXJS);
   const X = window.docx, L2 = docL(d.facts.lang), model = documentModel(d, L2), kids = [];
-  const P = (text, o = {}) => new X.Paragraph({ children: [new X.TextRun({ text: String(text ?? ""), bold: o.bold, italics: o.italics, size: o.size, color: o.color })], spacing: { after: o.after ?? 120 }, heading: o.heading });
-  const pushText = (t) => { for (const x of textParts(t)) { if (x.ul) x.ul.forEach((li) => kids.push(new X.Paragraph({ text: li, bullet: { level: 0 } }))); else kids.push(P(x.p)); } };
-  const tCell = (c, o = {}) => new X.TableCell({ children: [P(c && typeof c === "object" ? c.text : c, { size: 18, bold: o.bold, after: 40 })], columnSpan: c && typeof c === "object" && c.colSpan ? c.colSpan : undefined, shading: o.fill ? { fill: o.fill } : undefined });
+  const BLUE = "1F4E79", MUTED = "5B6573";
+  const runs = (text, o = {}) => tbcSplit(String(text ?? "")).map((x) => new X.TextRun({ text: x.text, bold: o.bold || x.tbc, italics: o.italics, size: o.size, color: o.color, ...(x.tbc ? { highlight: "yellow" } : {}) }));
+  const P = (text, o = {}) => new X.Paragraph({ children: runs(text, o), spacing: { after: o.after ?? 120, before: o.before }, heading: o.heading, ...(o.pageBreak ? { pageBreakBefore: true } : {}) });
+  const pushText = (t) => { for (const x of textParts(t)) { if (x.ul) x.ul.forEach((li) => kids.push(new X.Paragraph({ children: runs(li), bullet: { level: 0 }, spacing: { after: 60 } }))); else kids.push(P(x.p)); } };
+  const none = { style: X.BorderStyle.NONE, size: 0, color: "FFFFFF" }, thin = { style: X.BorderStyle.SINGLE, size: 4, color: "D5DCE6" };
+  const tCell = (c, o = {}) => new X.TableCell({ children: [P(c && typeof c === "object" ? c.text : c, { size: o.size || 18, bold: o.bold, color: o.color, after: 40 })], columnSpan: c && typeof c === "object" && c.colSpan ? c.colSpan : undefined,
+    shading: o.fill ? { fill: o.fill, type: X.ShadingType.CLEAR, color: "auto" } : undefined, margins: { top: 60, bottom: 60, left: 90, right: 90 } });
+  const table = (b) => {
+    const rows = [new X.TableRow({ tableHeader: true, children: b.table.head.map((h) => tCell(h, { bold: true, fill: BLUE, color: "FFFFFF" })) })];
+    b.table.rows.forEach((r, ri) => { const cells = []; let skip = 0; for (const c of r) { if (skip) { skip--; continue; } if (c && typeof c === "object" && c.colSpan) skip = c.colSpan - 1; cells.push(tCell(c, ri % 2 ? { fill: "F3F6FA" } : {})); } rows.push(new X.TableRow({ children: cells, cantSplit: true })); });
+    return new X.Table({ rows, width: { size: 100, type: X.WidthType.PERCENTAGE }, borders: { top: none, bottom: thin, left: none, right: none, insideHorizontal: thin, insideVertical: none } });
+  };
   for (const b of model) {
-    if (b.h) kids.push(P(b.text, { heading: [null, X.HeadingLevel.TITLE, X.HeadingLevel.HEADING_1, X.HeadingLevel.HEADING_2, X.HeadingLevel.HEADING_3][b.h], after: 120 }));
-    else if (b.meta) b.meta.forEach((m) => kids.push(P(m, { size: 18, color: "444444", after: 40 })));
-    else if (b.note) kids.push(P(b.note, { italics: true, size: 18, color: "555555" }));
-    else if (b.p !== undefined) { if (b.missing) kids.push(P(b.p, { italics: true, color: "777777" })); else if (b.bold) kids.push(P(b.p, { bold: true })); else pushText(b.p); }
+    if (b.cover) {
+      const c = b.cover;
+      kids.push(P(c.kicker, { bold: true, color: BLUE, size: 20, after: 240 }));
+      kids.push(new X.Paragraph({ children: [new X.TextRun({ text: c.title, bold: true, size: 48, color: "1D2430" })], spacing: { after: 200 } }));
+      if (c.acronym) kids.push(new X.Paragraph({ children: [new X.TextRun({ text: " " + c.acronym + " ", bold: true, size: 24, color: "FFFFFF", shading: { fill: BLUE, type: X.ShadingType.CLEAR, color: "auto" } })], spacing: { after: 400 } }));
+      kids.push(new X.Table({ rows: c.rows.map(([k, v]) => new X.TableRow({ children: [tCell(k, { bold: true, color: MUTED, size: 19 }), tCell(v, { size: 20 })] })), width: { size: 100, type: X.WidthType.PERCENTAGE },
+        columnWidths: [2600, 6400], borders: { top: none, bottom: thin, left: none, right: none, insideHorizontal: thin, insideVertical: none } }));
+      kids.push(P("", { after: 400 }), P(c.note, { italics: true, size: 18, color: MUTED }));
+      kids.push(new X.Paragraph({ children: [new X.PageBreak()] }));
+    } else if (b.h) {
+      const lvl = [null, X.HeadingLevel.TITLE, X.HeadingLevel.HEADING_1, X.HeadingLevel.HEADING_2, X.HeadingLevel.HEADING_3, X.HeadingLevel.HEADING_4][b.h];
+      kids.push(new X.Paragraph({ children: [new X.TextRun({ text: b.text })], heading: lvl, spacing: { before: b.h === 2 ? 360 : 200, after: 120 }, ...(b.h === 2 ? { border: { bottom: { style: X.BorderStyle.SINGLE, size: 8, color: BLUE, space: 4 } } } : {}) }));
+    } else if (b.meta) b.meta.forEach((m) => kids.push(P(m, { size: 18, color: MUTED, after: 40 })));
+    else if (b.note) kids.push(new X.Paragraph({ children: runs(b.note, { italics: true, size: 18, color: MUTED }), shading: { fill: "F6F2E7", type: X.ShadingType.CLEAR, color: "auto" }, border: { left: { style: X.BorderStyle.SINGLE, size: 18, color: "C9A227", space: 6 } }, spacing: { after: 160 } }));
+    else if (b.p !== undefined) { if (b.missing) kids.push(P(b.p, { italics: true, color: "777777" })); else pushText(b.p); }
     else if (b.qa !== undefined) {
-      kids.push(P(b.qa, { bold: true, size: 20, color: "333333", after: 60 }));
+      kids.push(P(b.qa, { bold: true, size: 20, color: BLUE, after: 60, before: 120 }));
       if (b.text) pushText(b.text); else kids.push(P(L2.tbc, { italics: true, color: "777777" }));
-      kids.push(P(`${fmtInt(String(b.text || "").length, d.facts.lang)} ${L2.characters}`, { size: 16, color: "777777", after: 200 }));
-    } else if (b.table) {
-      const rows = [new X.TableRow({ tableHeader: true, children: b.table.head.map((h) => tCell(h, { bold: true, fill: "E8EEF5" })) })];
-      for (const r of b.table.rows) { const cells = []; let skip = 0; for (const c of r) { if (skip) { skip--; continue; } if (c && typeof c === "object" && c.colSpan) skip = c.colSpan - 1; cells.push(tCell(c)); } rows.push(new X.TableRow({ children: cells })); }
-      kids.push(new X.Table({ rows, width: { size: 100, type: X.WidthType.PERCENTAGE } }), P(""));
-    } else if (b.gantt) {
+      kids.push(P(`${fmtInt(String(b.text || "").length, d.facts.lang)} ${L2.characters}`, { size: 16, color: "8A929D", after: 200 }));
+    } else if (b.table) kids.push(table(b), P(""));
+    else if (b.gantt) {
       const cols = ganttCols(b.gantt.months);
-      const rows = [new X.TableRow({ children: [tCell(""), ...cols.map((c) => tCell(c.label, { bold: true }))] }), ...b.gantt.rows.map((r) => new X.TableRow({ children: [tCell(r.label, { bold: true }), ...cols.map((c) => tCell("", c.to >= r.start && c.from <= r.end ? { fill: "1F4E79" } : {}))] }))];
+      const rows = [new X.TableRow({ children: [tCell(""), ...cols.map((c) => tCell(c.label, { size: 12, color: MUTED }))] }), ...b.gantt.rows.map((r) => new X.TableRow({ children: [tCell(r.label, { bold: true, size: 16 }), ...cols.map((c) => tCell("", c.to >= r.start && c.from <= r.end ? { fill: BLUE } : {}))] }))];
       kids.push(new X.Table({ rows, width: { size: 100, type: X.WidthType.PERCENTAGE } }), P(""));
     }
   }
-  const doc = new X.Document({ creator: "Eligible Calls", title: (d.plan && d.plan.title) || "Application", styles: { default: { document: { run: { font: "Calibri", size: 22 } } } }, sections: [{ children: kids }] });
+  const acr = (d.plan && d.plan.acronym) || "", callId = (d.call && d.call.id) || "";
+  const doc = new X.Document({ creator: "Eligible Calls", title: toLatin((d.plan && d.plan.title) || "Application"),
+    styles: { default: { document: { run: { font: "Calibri", size: 22, color: "1D2430" }, paragraph: { spacing: { line: 288 } } } },
+      paragraphStyles: [1, 2, 3, 4].map((n) => ({ id: "Heading" + n, name: "Heading " + n, basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { font: "Calibri", bold: true, size: [0, 30, 24, 21, 20][n], color: n === 2 ? "1D2430" : BLUE } })) },
+    sections: [{ properties: { titlePage: true },
+      headers: { default: new X.Header({ children: [new X.Paragraph({ children: [new X.TextRun({ text: acr || toLatin((d.plan && d.plan.title) || ""), bold: true, color: BLUE, size: 16 }), new X.TextRun({ text: "\t" + callId, color: MUTED, size: 16 })], tabStops: [{ type: X.TabStopType.RIGHT, position: 9000 }] })] }), first: new X.Header({ children: [] }) },
+      footers: { default: new X.Footer({ children: [new X.Paragraph({ children: [new X.TextRun({ text: "Eligible Calls · " + L2.footer, color: "8A929D", size: 15 }), new X.TextRun({ children: ["\t", X.PageNumber.CURRENT, " / ", X.PageNumber.TOTAL_PAGES], color: "8A929D", size: 15 })], tabStops: [{ type: X.TabStopType.RIGHT, position: 9000 }] })] }) },
+      children: kids }] });
   const blob = await X.Packer.toBlob(doc);
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = appFile(d, "docx"); document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);

@@ -183,7 +183,7 @@ const S = {
       fLang: "Language of the application", fLangHe: "Horizon Europe proposals are normally written in English.", fLangEp: "The Erasmus+ form also asks for the project summary in English; it is written as well.",
       fDur: "Duration (months)", fAmount: "Requested EU contribution (EUR)", fAmountMax: (m) => `The call states up to ${m} EUR per project.`, fLump: "Lump sum (EUR)", fLumpPick: "Choose…",
       fLumpTopic: "This topic uses lump sum funding (page limit is higher)", fField: "Field", fRole: "Our role", fCoord: "Coordinator", fPartner: "Partner",
-      fTrl: "Technology readiness level (optional)", fTrlStart: "at the start", fTrlEnd: "at the end", improved: "improved after the evaluation",
+      fTrl: "Technology readiness level (optional)", fTrlStart: "at the start", fTrlEnd: "at the end", improved: "improved after the evaluation", serverRetry: (s) => `The server did not finish the request. Trying again in ${s} s…`,
       suggNote: "The values below are suggested from the call, the idea and your organisation profile. Check them and change what does not fit before writing.",
       sugg: { call: "from the call", rules: "programme rule", usual: "usual for this type of action; the call states none", callMax: "the call's amount per project", callRange: "the top of the call's range",
         idea: "partner types from the idea: replace them with your real partners", profile: "from your organisation profile" },
@@ -420,7 +420,7 @@ const S = {
       fLang: "Jezik prijave", fLangHe: "Predlozi za Horizont Evropa se po pravilu pišu na engleskom.", fLangEp: "Erasmus+ obrazac traži i rezime projekta na engleskom; i on se piše.",
       fDur: "Trajanje (meseci)", fAmount: "Traženi doprinos EU (EUR)", fAmountMax: (m) => `Poziv navodi najviše ${m} EUR po projektu.`, fLump: "Paušalni iznos (EUR)", fLumpPick: "Izaberite…",
       fLumpTopic: "Ova tema se finansira paušalnim iznosom (ograničenje broja strana je veće)", fField: "Oblast", fRole: "Naša uloga", fCoord: "Koordinator", fPartner: "Partner",
-      fTrl: "Nivo tehnološke spremnosti (TRL, nije obavezno)", fTrlStart: "na početku", fTrlEnd: "na kraju", improved: "dorađeno posle ocene",
+      fTrl: "Nivo tehnološke spremnosti (TRL, nije obavezno)", fTrlStart: "na početku", fTrlEnd: "na kraju", improved: "dorađeno posle ocene", serverRetry: (s) => `Server nije završio zahtev. Novi pokušaj za ${s} s…`,
       suggNote: "Vrednosti ispod su predložene na osnovu poziva, ideje i profila vaše organizacije. Proverite ih i izmenite ono što ne odgovara pre pisanja.",
       sugg: { call: "iz poziva", rules: "pravilo programa", usual: "uobičajeno za ovu vrstu akcije; poziv ga ne navodi", callMax: "iznos po projektu iz poziva", callRange: "gornja granica raspona iz poziva",
         idea: "vrste partnera iz ideje: zamenite ih svojim stvarnim partnerima", profile: "iz profila vaše organizacije" },
@@ -1979,24 +1979,29 @@ async function loadDraft(x) {
 function syncDraft(x, d, total) {
   x.proposal = { ...(x.proposal || {}), v: 2, written: Object.values(d.sections).filter((s) => s && s.text).length, hash: draftHash(d), tbc: tbcCount(d), ...(total ? { total } : {}) };
 }
+// A request the server did not finish (a fresh server instance can run over the free plan's CPU limit) is sent again
+// after a short wait, at most twice; the part is written once either way.
+const serverHiccup = (e) => !!e && (e.message === "server_error" || [500, 502, 503, 504].includes(e.status)) && !["ai_busy", "ai_unavailable", "ai_resting", "data_unavailable"].includes(e.message);
+async function retryWait(msg, state, pct) { for (let s = 6; s > 0; s -= 2) { opState(msg, state, T("app.serverRetry", s), pct); await sleep(2000); } }
 async function writeMissing(card, x, tpl, d) {
   tpl = tplOf(d) || tpl;
   const msg = card.querySelector("[data-appmsg]"), units = unitsOf(tpl, d.plan, d.facts.lang);
   const todo = units.filter((u) => !(d.sections[u.key] && d.sections[u.key].text));
-  let i = units.length - todo.length;
+  let i = units.length - todo.length, hiccups = 0;
   for (const u of todo) {
     i++;
     for (let attempt = 0; ; attempt++) {
       opState(msg, "generating", T("app.writing", i, units.length, unitTitle(u, d)), (100 * (i - 1)) / units.length);
       try {
         const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal/section`, { key: u.key });
-        d.sections[u.key] = r.section; syncDraft(x, d, units.length);
+        d.sections[u.key] = r.section; syncDraft(x, d, units.length); hiccups = 0;
         break;
       } catch (e) {
         if (e.message === "ai_busy" && attempt < 4) {
           for (let s = 30; s > 0; s -= 5) { opState(msg, "generating", T("app.busyWait", s), (100 * (i - 1)) / units.length); await sleep(5000); }
           continue;
         }
+        if (serverHiccup(e) && (hiccups = (hiccups || 0) + 1) <= 2) { await retryWait(msg, "generating", (100 * (i - 1)) / units.length); continue; }
         opState(msg, "failed", errText(e) + " " + T("app.stopped"));
         return false;
       }
@@ -2243,6 +2248,7 @@ async function runEvaluation(x, m) {
       try { r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/evaluate`, { lang: L(), run, ...(c ? { criterion: c.id } : {}) }); break; }
       catch (e) {
         if (e.message === "ai_busy" && attempt < 4) { for (let s = 30; s > 0; s -= 5) { opState(m, "analysing", T("app.busyWait", s), (100 * i) / crits.length); await sleep(5000); } continue; }
+        if (serverHiccup(e) && attempt < 2) { await retryWait(m, "analysing", (100 * i) / crits.length); continue; }
         throw e;
       }
     }
@@ -2268,6 +2274,7 @@ async function improveApplication(card, x, m) {
       try { const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal/section`, { key: u.key, ...flags }); d.sections[u.key] = r.section; break; }
       catch (e) {
         if (e.message === "ai_busy" && attempt < 4) { for (let s = 30; s > 0; s -= 5) { opState(m, "generating", T("app.busyWait", s)); await sleep(5000); } continue; }
+        if (serverHiccup(e) && attempt < 2) { await retryWait(m, "generating"); continue; }
         e.improveStop = true; throw e;
       }
     }

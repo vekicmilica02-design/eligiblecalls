@@ -4,7 +4,7 @@ import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completene
 import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS, HIGH, mandatorySummary, setGlossary, glossaryVersion } from "./rules.js";
 import { TEXT_FIELDS, textHash, estTokens, nonStandardSerbian, serbianLexFix } from "./lang.js";
 import { rubricFor, erasmusAction } from "./rubric.js";
-import { templateFor, tplOf, unitsOf, checkDraft, documentModel, factsText, ERASMUS_FIELDS } from "./templates.js";
+import { templateFor, tplOf, unitsOf, checkDraft, documentModel, factsText, ERASMUS_FIELDS, suggestFacts, factWarnings, draftHash, tbcCount } from "./templates.js";
 import { ideaIn as ideaInRaw, evalIn as evalInRaw, ideaTexts, evalTexts, applyIdeaTexts, applyEvalTexts } from "./content.js";
 
 const EC = window.EC;
@@ -130,11 +130,16 @@ const S = {
     why: { low_confidence: "The model was not sure.", quote_not_found: "The quoted text was not found in the source.", value_not_in_evidence: "The value does not appear in the quoted text.", weak_evidence: "The quoted text only weakly supports the value." },
     reviewProfile: "Check the profile", autoNote: "Filled fields are marked with their source and stay editable.",
     runSummary: (f, c) => `${f} filled · ${c} to decide`,
-    evTitle: "Evaluation against the call's criteria (indicative)", evLede: "Scores the idea against the award criteria of the call it targets, as published in that call's documentation (Horizon Europe General Annex D, the call document, the funder's assessment page, or the Erasmus+ Programme Guide). AI-assisted and indicative only; the official assessment is done by the funder's experts.",
+    evTitle: "Evaluation of the application against the call's criteria (indicative)", evLede: "Scores the full application against the award criteria of the call, criterion by criterion, as published in that call's documentation (Horizon Europe General Annex D, the call document, the funder's assessment page, or the Erasmus+ Programme Guide). AI-assisted and indicative only; the official assessment is done by the funder's experts.",
+    evCrit: (i, n, t) => `Criterion ${i} of ${n}: ${t}`, evNeedApp: "The evaluation reads the full application, not the short idea. Write the full application above, then evaluate it here.",
+    evNeedParts: (w, t) => `Write the remaining parts of the application first (${w} of ${t} written).`, evStale: "The application has changed since this evaluation. Evaluate again to score the current text.",
+    evTbc: (n) => `${n} place(s) in the application are marked "to be confirmed". The evaluation counts them as missing information; filling them in is usually the quickest way to gain points.`,
+    evImprove: "Improve the application using this evaluation", evImproveLede: "Rewrites the parts behind each criterion that lost points, following the evaluator's comments. Your facts, numbers and edits are kept; facts the platform does not have are marked \"to be confirmed\". Then the application is evaluated again.",
+    evImproving: (i, n, t) => `Improving part ${i} of ${n}: ${t}`, evImproved: (a, b, m) => `Improved and evaluated again: ${a} → ${b} of ${m}.`, evImproveStop: "Improving stopped. The parts already improved are kept; press the button again to continue.",
     evWill: "Criteria used:", evCritList: (l) => `scored on ${l}`, evShown: "Evaluation shown", evRerun: "Evaluate again", evShortDoc: "Call criteria", evShortText: "Funder criteria",
     evNoCriteria: "The award criteria of this call are not in our data (the funder publishes them only in documents we cannot read), so the idea cannot be evaluated here. Check the call's own documents:",
     evTextScale: "the funder states no point scale: each criterion is scored 0 to 5 as an indication", evNoThreshold: "No threshold stated", evNoTotal: "the documentation states no overall threshold", evBasis: "Basis", evSourceDoc: "Call documentation",
-    evRun: "Evaluate", evBusy: "Evaluating against the call's award criteria…", evDone: "Evaluation saved.",
+    evRun: "Evaluate the application", evBusy: "Evaluating the application…", evDone: "Evaluation saved.",
     evPass: "Above the thresholds", evFail: "Below a threshold",
     evStrengths: "Strengths", evWeak: "Weaknesses", evMissing: "Missing elements", evRec: "Recommendations",
     evNoMin: (names) => `No individual minimum for ${names}: the call document states none ("n/a"), so these criteria count only towards the overall threshold.`,
@@ -178,7 +183,14 @@ const S = {
       fLang: "Language of the application", fLangHe: "Horizon Europe proposals are normally written in English.", fLangEp: "The Erasmus+ form also asks for the project summary in English; it is written as well.",
       fDur: "Duration (months)", fAmount: "Requested EU contribution (EUR)", fAmountMax: (m) => `The call states up to ${m} EUR per project.`, fLump: "Lump sum (EUR)", fLumpPick: "Choose…",
       fLumpTopic: "This topic uses lump sum funding (page limit is higher)", fField: "Field", fRole: "Our role", fCoord: "Coordinator", fPartner: "Partner",
-      fTrl: "Technology readiness level (optional)", fTrlStart: "at the start", fTrlEnd: "at the end",
+      fTrl: "Technology readiness level (optional)", fTrlStart: "at the start", fTrlEnd: "at the end", improved: "improved after the evaluation",
+      suggNote: "The values below are suggested from the call, the idea and your organisation profile. Check them and change what does not fit before writing.",
+      sugg: { call: "from the call", rules: "programme rule", usual: "usual for this type of action; the call states none", callMax: "the call's amount per project", callRange: "the top of the call's range",
+        idea: "partner types from the idea: replace them with your real partners", profile: "from your organisation profile" },
+      trlCall: (t) => `The call says: "${t}".`,
+      warn: { amountHigh: (m) => `Above the call's maximum of ${m} EUR per project.`, amountLowRange: (a, b) => `Far below what the call funds per project (${a} to ${b} EUR). A plan this small will not match the work the call expects.`,
+        amountLow: (m) => `Far below the call's ${m} EUR per project.`, durRange: (a, b) => `Outside the duration the call allows (${a} to ${b} months).`, durShort: (u) => `Very short for this type of action; ${u} months is usual.` },
+      warnConfirm: (l) => `Some values look wrong for this call:\n${l}\n\nWrite the application anyway?`,
       fPartners: "Partners, one per line", fPartnersPh: "Name | Country | Type | Expertise and role in the project", fPartnersHint: (n) => `The programme needs at least ${n} organisations, including yours, from ${n} different countries. Missing partners are shown as places to fill in.`,
       fTeam: "Team and key staff (roles, expertise; no personal data you do not want in the text)", fTrack: "Previous projects and results of your organisation and partners", fExtra: "Other facts the text must use (pilots, data, infrastructure, letters of support, policy links)",
       fGo: "Write the application", fCancel: "Cancel", fields: { school: "School education", vet: "Vocational education and training", adult: "Adult education", youth: "Youth", higher: "Higher education" },
@@ -355,11 +367,16 @@ const S = {
     why: { low_confidence: "Model nije bio siguran.", quote_not_found: "Navedeni citat nije pronađen u izvoru.", value_not_in_evidence: "Vrednost se ne pojavljuje u citatu.", weak_evidence: "Citat slabo potkrepljuje vrednost." },
     reviewProfile: "Proverite profil", autoNote: "Popunjena polja su označena izvorom i mogu se menjati.",
     runSummary: (f, c) => `popunjeno ${f} · za odluku ${c}`,
-    evTitle: "Ocena prema kriterijumima poziva (okvirna)", evLede: "Ideja se ocenjuje prema kriterijumima za dodelu poziva na koji se odnosi, onako kako su objavljeni u dokumentaciji tog poziva (Aneks D programa Horizont Evropa, dokument poziva, stranica finansijera o oceni ili Vodič kroz program Erasmus+). Ocena uz pomoć AI je samo okvirna; zvaničnu ocenu daju eksperti finansijera.",
+    evTitle: "Ocena prijave prema kriterijumima poziva (okvirna)", evLede: "Cela prijava se ocenjuje prema kriterijumima za dodelu poziva, kriterijum po kriterijum, onako kako su objavljeni u dokumentaciji tog poziva (Aneks D programa Horizont Evropa, dokument poziva, stranica finansijera o oceni ili Vodič kroz program Erasmus+). Ocena uz pomoć AI je samo okvirna; zvaničnu ocenu daju eksperti finansijera.",
+    evCrit: (i, n, t) => `Kriterijum ${i} od ${n}: ${t}`, evNeedApp: "Ocenjuje se cela prijava, a ne kratka ideja. Napišite celu prijavu iznad, pa je ovde ocenite.",
+    evNeedParts: (w, t) => `Prvo napišite preostale delove prijave (napisano: ${w} od ${t}).`, evStale: "Prijava je izmenjena posle ove ocene. Ocenite je ponovo da biste dobili ocenu sadašnjeg teksta.",
+    evTbc: (n) => `Mesta u prijavi označena sa „potrebno potvrditi“: ${n}. Ocena ih računa kao podatke koji nedostaju; njihovo popunjavanje je obično najbrži način da se dobiju bodovi.`,
+    evImprove: "Doradi prijavu na osnovu ove ocene", evImproveLede: "Prepisuju se delovi prijave koji su izgubili bodove, prema komentarima ocenjivača. Vaše činjenice, brojevi i izmene se zadržavaju; podaci koje platforma nema označavaju se sa „potrebno potvrditi“. Zatim se prijava ponovo ocenjuje.",
+    evImproving: (i, n, t) => `Dorađuje se deo ${i} od ${n}: ${t}`, evImproved: (a, b, m) => `Prijava je dorađena i ponovo ocenjena: ${a} → ${b} od ${m}.`, evImproveStop: "Dorada je prekinuta. Već dorađeni delovi su sačuvani; ponovo pritisnite dugme da biste nastavili.",
     evWill: "Kriterijumi:", evCritList: (l) => `ocenjuje se ${l}`, evShown: "Prikazana ocena", evRerun: "Oceni ponovo", evShortDoc: "Kriterijumi poziva", evShortText: "Kriterijumi finansijera",
     evNoCriteria: "Kriterijumi za dodelu ovog poziva nisu u našim podacima (finansijer ih objavljuje samo u dokumentima koje ne možemo da pročitamo), pa ideja ovde ne može da se oceni. Pogledajte dokumenta poziva:",
     evTextScale: "finansijer ne navodi skalu bodova: svaki kriterijum se okvirno ocenjuje od 0 do 5", evNoThreshold: "Prag nije naveden", evNoTotal: "dokumentacija ne navodi ukupni prag", evBasis: "Osnova", evSourceDoc: "Dokumentacija poziva",
-    evRun: "Oceni", evBusy: "Ocenjivanje prema kriterijumima poziva…", evDone: "Ocena je sačuvana.",
+    evRun: "Oceni prijavu", evBusy: "Prijava se ocenjuje…", evDone: "Ocena je sačuvana.",
     evPass: "Iznad pragova", evFail: "Ispod praga",
     evStrengths: "Snage", evWeak: "Slabosti", evMissing: "Elementi koji nedostaju", evRec: "Preporuke",
     evNoMin: (names) => `Nema pojedinačnog minimuma za: ${names}. Dokument poziva ga ne navodi („n/a“), pa se ovi kriterijumi računaju samo u ukupni prag.`,
@@ -403,7 +420,14 @@ const S = {
       fLang: "Jezik prijave", fLangHe: "Predlozi za Horizont Evropa se po pravilu pišu na engleskom.", fLangEp: "Erasmus+ obrazac traži i rezime projekta na engleskom; i on se piše.",
       fDur: "Trajanje (meseci)", fAmount: "Traženi doprinos EU (EUR)", fAmountMax: (m) => `Poziv navodi najviše ${m} EUR po projektu.`, fLump: "Paušalni iznos (EUR)", fLumpPick: "Izaberite…",
       fLumpTopic: "Ova tema se finansira paušalnim iznosom (ograničenje broja strana je veće)", fField: "Oblast", fRole: "Naša uloga", fCoord: "Koordinator", fPartner: "Partner",
-      fTrl: "Nivo tehnološke spremnosti (TRL, nije obavezno)", fTrlStart: "na početku", fTrlEnd: "na kraju",
+      fTrl: "Nivo tehnološke spremnosti (TRL, nije obavezno)", fTrlStart: "na početku", fTrlEnd: "na kraju", improved: "dorađeno posle ocene",
+      suggNote: "Vrednosti ispod su predložene na osnovu poziva, ideje i profila vaše organizacije. Proverite ih i izmenite ono što ne odgovara pre pisanja.",
+      sugg: { call: "iz poziva", rules: "pravilo programa", usual: "uobičajeno za ovu vrstu akcije; poziv ga ne navodi", callMax: "iznos po projektu iz poziva", callRange: "gornja granica raspona iz poziva",
+        idea: "vrste partnera iz ideje: zamenite ih svojim stvarnim partnerima", profile: "iz profila vaše organizacije" },
+      trlCall: (t) => `U pozivu piše: „${t}“.`,
+      warn: { amountHigh: (m) => `Iznad najvišeg iznosa po projektu iz poziva (${m} EUR).`, amountLowRange: (a, b) => `Daleko ispod iznosa koji poziv finansira po projektu (od ${a} do ${b} EUR). Ovako mali plan neće odgovarati obimu rada koji poziv očekuje.`,
+        amountLow: (m) => `Daleko ispod iznosa od ${m} EUR po projektu iz poziva.`, durRange: (a, b) => `Van trajanja koje poziv dozvoljava (od ${a} do ${b} meseci).`, durShort: (u) => `Veoma kratko za ovu vrstu akcije; uobičajeno je ${u} meseci.` },
+      warnConfirm: (l) => `Neke vrednosti ne odgovaraju ovom pozivu:\n${l}\n\nIpak napisati prijavu?`,
       fPartners: "Partneri, jedan po redu", fPartnersPh: "Naziv | Država | Vrsta | Stručnost i uloga u projektu", fPartnersHint: (n) => `Najmanji broj organizacija, uključujući vašu: ${n}, i to iz isto toliko različitih država. Partneri koji nedostaju prikazuju se kao mesta za popunjavanje.`,
       fTeam: "Tim i ključno osoblje (uloge, stručnost; bez ličnih podataka koje ne želite u tekstu)", fTrack: "Prethodni projekti i rezultati vaše organizacije i partnera", fExtra: "Druge činjenice koje tekst mora da koristi (pilot-projekti, podaci, infrastruktura, pisma podrške, veza sa javnim politikama)",
       fGo: "Napiši prijavu", fCancel: "Otkaži", fields: { school: "Školsko obrazovanje", vet: "Stručno obrazovanje i obuka", adult: "Obrazovanje odraslih", youth: "Mladi", higher: "Visoko obrazovanje" },
@@ -1674,8 +1698,6 @@ const ideaEval = (x) => {
   const all = Object.values(evs);
   return all.length ? all.reduce((a, b) => ((b.at || 0) > (a.at || 0) ? b : a)) : null;
 };
-// Below a documented threshold (an individual minimum or the overall threshold): not offered as a recommendation.
-const belowThreshold = (x) => { const e = ideaEval(x); return !!e && e.passed === false; };
 // Text in another language than the page and no stored translation yet (the idea or one of its evaluations).
 // On the Serbian page the most frequent ijekavian forms and Croatian words left in model text are corrected word by word
 // before it is shown (no AI action); what that cannot fix is rewritten by the AI (autoTranslate).
@@ -1708,19 +1730,27 @@ async function autoTranslate() {
   }
   ST.translating = false;
 }
-const MAX_REVISIONS = 2;   // src/org/ideas.js
 function evalBox(x) {
   const evs = x.evaluations || {}, keys = Object.keys(evs), rb = ideaRubric(x);
+  const p = x.proposal && x.proposal.v === 2 ? x.proposal : null, complete = !!(p && p.total && p.written >= p.total);
   const sel = ST.evalSel[x.id] && evs[ST.evalSel[x.id]] ? ST.evalSel[x.id] : rb && evs[rb.key] ? rb.key : keys[keys.length - 1];
+  const e = sel ? evs[sel] : null;
   const call = (EC.CALLS || []).find((y) => y.id === x.callId);
   const link = (ST.crit && ST.crit.calls[x.callId] && ST.crit.calls[x.callId].url) || (call && call.url);
   const basis = rb ? `<p class="fine">${esc(T("evWill"))} <b>${esc(trTitle(rb.title))}</b> · ${rb.url ? `<a href="${esc(rb.url)}" target="_blank" rel="noopener">${esc(rb.sourceTitle)} ↗</a>` : esc(rb.sourceTitle)}${rb.criteria ? ` · ${esc(T("evCritList", rb.criteria.map((c) => `${crName(c.name)} (${ptsTxt(c.max)})`).join(", ")))}` : ` · ${esc(T("evTextScale"))}`}</p>`
     : `<p class="note">${esc(T("evNoCriteria"))}${link ? ` <a href="${esc(link)}" target="_blank" rel="noopener">${esc(T("official"))} ↗</a>` : ""}</p>`;
-  return `<details class="ev-box"${keys.length ? " open" : ""}><summary>${esc(T("evTitle"))}${keys.length ? ` · ${keys.map((k) => `${esc(evShort(evs[k], k))} ${ptsTxt(evs[k].total)}/${ptsTxt(evs[k].max)}`).join(" · ")}` : ""}</summary>
-    <p class="fine">${esc(T("evLede"))}</p>${basis}
+  const gate = !rb ? "" : !p ? `<p class="note">${esc(T("evNeedApp"))}</p>` : !complete ? `<p class="note">${esc(T("evNeedParts", p.written || 0, p.total || "?"))}</p>` : "";
+  const stale = !!(e && p && e.appHash && p.hash && e.appHash !== p.hash);
+  const can = canEdit() && premium();
+  return `<details class="ev-box"${keys.length || complete ? " open" : ""}><summary>${esc(T("evTitle"))}${keys.length ? ` · ${keys.map((k) => `${esc(evShort(evs[k], k))} ${ptsTxt(evs[k].total)}/${ptsTxt(evs[k].max)}`).join(" · ")}` : ""}</summary>
+    <p class="fine">${esc(T("evLede"))}</p>${basis}${gate}
     ${keys.length > 1 ? `<div class="oi-row"><select data-evsel aria-label="${esc(T("evShown"))}">${keys.map((k) => `<option value="${esc(k)}"${sel === k ? " selected" : ""}>${esc(evTitle(evs[k]))}</option>`).join("")}</select></div>` : ""}
-    ${canEdit() && rb ? `<div class="oi-row"><button type="button" class="btn quiet" data-act="evaluate"${premium() ? "" : " disabled"}>${esc(T(evs[rb.key] ? "evRerun" : "evRun"))}${premium() ? "" : " · " + esc(T("premiumTag"))}</button><span class="fine" role="status" data-evmsg></span></div>` : ""}
-    ${sel ? evalHTML(evalIn(evs[sel], L()) || evs[sel]) : ""}</details>`;
+    ${canEdit() && rb && complete ? `<div class="oi-row"><button type="button" class="btn quiet" data-act="evaluate"${premium() ? "" : " disabled"}>${esc(T(e ? "evRerun" : "evRun"))}${premium() ? "" : " · " + esc(T("premiumTag"))}</button><span class="op" role="status" data-evmsg></span></div>` : ""}
+    ${stale ? `<p class="note warn">${esc(T("evStale"))}</p>` : ""}
+    ${e ? evalHTML(evalIn(e, L()) || e) : ""}
+    ${e && p && p.tbc ? `<p class="note">${esc(T("evTbc", p.tbc))}</p>` : ""}
+    ${e && can && complete && !stale && e.total < e.max ? `<div class="ev-improve"><p class="fine">${esc(T("evImproveLede"))}</p><div class="oi-row"><button type="button" class="btn" data-act="evimprove">${esc(T("evImprove"))}</button><span class="op" role="status" data-evimsg></span></div></div>` : ""}
+  </details>`;
 }
 // Why the concept received its fit estimate: written by the AI for this concept and this call, checked to name the
 // concept's own elements (src/org/ideas.js cleanExplanation). Ideas without one can ask for it.
@@ -1740,12 +1770,11 @@ function ideaCard(x, res) {
   const sec = (k) => { const v = it[k]; if (!v || (Array.isArray(v) && !v.length)) return ""; return `<div><h4>${esc(T("ideaF." + k))}</h4>${Array.isArray(v) ? `<ul>${v.map((y) => `<li>${esc(y)}</li>`).join("")}</ul>` : `<p>${esc(v)}</p>`}</div>`; };
   const ratings = ["alignment", "priorities", "feasibility", "impact"].filter((k) => it.fit && it.fit[k]);
   return `<article class="oi-card idea" data-idea="${esc(x.id)}">
-    <div class="oi-row">${x.status === "saved" ? `<span class="sc-chip t-high">★ ${esc(T("ideaSavedChip"))}</span>` : belowThreshold(x) ? "" : `<span class="fine">#${x.rank}</span>`}${belowThreshold(x) ? `<span class="st ineligible">${esc(T("ideaBelowChip"))}</span>` : ""}<span class="ai-tag">AI</span><span class="fine">${esc(T("ideasAi"))}</span></div>
+    <div class="oi-row">${x.status === "saved" ? `<span class="sc-chip t-high">★ ${esc(T("ideaSavedChip"))}</span>` : `<span class="fine">#${x.rank}</span>`}<span class="ai-tag">AI</span><span class="fine">${esc(T("ideasAi"))}</span></div>
     <h3>${esc(it.title)}</h3>
     ${other ? `<p class="note">${esc(T("trNeeded"))} <button type="button" class="linkbtn" data-act="translate">${esc(T("trRun"))}</button><span class="op" data-trmsg role="status"></span></p>` : ""}
     <p>${esc(it.concept)}</p>
     ${it.previous ? `<p class="fine">${esc(T("revised", it.revisions || 1, ptsTxt(it.previous.evaluation && it.previous.evaluation.total), ptsTxt(it.previous.evaluation && it.previous.evaluation.max)))}</p>` : ""}
-    ${belowThreshold(x) && canEdit() && (x.idea.revisions || 0) < MAX_REVISIONS ? `<div class="oi-row"><button type="button" class="btn quiet" data-act="improve"${premium() ? "" : " disabled"}>${esc(T("improveRun"))}${premium() ? "" : " · " + esc(T("premiumTag"))}</button><span class="op" data-immsg role="status"></span></div>` : ""}
     <div class="idea-call"><span class="fine">${esc(T("ideaCall"))}</span>
       ${call ? `<a href="#org/${org.id}/match/${encodeURIComponent(call.key)}">${esc(call.title)}</a>` : `<span>${esc(x.callTitle || x.callId)}</span>`}
       <div class="oi-row">${call ? `<span>${esc((EC.P[call.programme] || {}).short || call.programmeName || call.programme)}</span>` : ""}${dl ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(dl))}</b> · <span data-dl="${esc(dl)}">${esc(EC.leftText(dl))}</span></span>` : `<span class="note warn">${esc(T("ideaClosed"))}</span>`}${call && call.url ? `<a class="fine" href="${esc(call.url)}" target="_blank" rel="noopener">${esc(T("official"))} ↗</a>` : ""}</div></div>
@@ -1762,11 +1791,11 @@ function ideaCard(x, res) {
       ${premium() || x.proposal ? "" : `<span class="fine" id="pw-${esc(x.id)}">${esc(T("premiumNeeded"))}${canEdit() ? ` <a href="#oiPaywall" data-pw>${esc(T("premiumHow"))}</a>` : ""}</span>`}
       <span class="fine" role="status" data-pdfmsg></span>
     </div>`}
+    ${appTpl(x) ? evalBox(x) : ""}
     <details class="idea-more"><summary><span class="t">${esc(T("ideaMore"))}</span><span class="s">${esc(T("ideaMoreHint"))}</span></summary>
       <div class="idea-body">${["problem", "solution", "objectives", "targetGroups", "activities", "methodology", "workPlan", "expectedResults", "impactPathway", "dissemination", "management", "potentialPartners", "whyItFits"].map(sec).join("")}
       ${ratings.length ? `<div><h4>${esc(T("fitTitle"))}</h4><ul>${ratings.map((k) => `<li>${esc(T("fitL." + k))}: ${it.fit[k]}/5</li>`).join("")}</ul>${it.fit.reasons ? `<p class="fine">${esc(it.fit.reasons)}</p>` : ""}</div>` : ""}</div>
       <p class="fine">${esc(T("ideaGen", fmtTime(x.createdAt), x.match.score))}</p></details>
-    ${evalBox(x)}
     ${canEdit() ? `<div class="idea-notes"><label for="n-${esc(x.id)}">${esc(T("ideaNotes"))}</label><textarea id="n-${esc(x.id)}" rows="2" maxlength="4000">${esc(x.notes || "")}</textarea></div>
     <div class="oi-row"><button type="button" class="btn quiet" data-act="save">${esc(T(x.status === "saved" ? "ideaUnsave" : "ideaSave"))}</button><button type="button" class="btn ghost" data-act="notes">${esc(T("ideaNotesSave"))}</button>
       <label class="opt"><input type="checkbox" data-act="compare"${ST.compare.has(x.id) ? " checked" : ""}> ${esc(T("ideaCompare"))}</label><button type="button" class="linkbtn" data-act="del">${esc(T("ideaDelete"))}</button><span class="fine" role="status" data-msg></span></div>`
@@ -1878,28 +1907,41 @@ function appTools(x, tpl) {
   </div>`;
 }
 function factsForm(x, tpl, prev) {
-  const f = prev || {}, ep = tpl.programme === "erasmus", r = epRules(tpl) || {}, id = esc(x.id);
+  const ep = tpl.programme === "erasmus", r = epRules(tpl) || {}, id = esc(x.id);
   const call = (EC.CALLS || []).find((c) => c.id === x.callId), max = (call && call.funding && call.funding.maxPerGrant) || null;
+  // First time: the platform's suggestions; writing again: what the applicant gave last time.
+  const sg = prev ? null : suggestFacts({ tpl, call, idea: x.idea, profile: ST.org && ST.org.profile, rules: epRules(tpl) });
+  const f = prev || (sg ? sg.values : {});
+  const why = (k) => (sg && sg.why[k] ? `<span class="fine sugg">${esc(T("app.sugg." + sg.why[k]))}</span>` : "");
   const lang = f.lang || (ep ? L() : "en"), min = ep ? r.minOrganisations || 2 : tpl.minParticipants || 1;
   const sel = (n, opts, v) => `<select id="${n}-${id}" name="${n}">${opts.map(([k, l]) => `<option value="${esc(k)}"${String(v ?? "") === String(k) ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
-  const ta = (n, label, v, ph = "") => `<label class="app-f wide"><span>${esc(label)}</span><textarea name="${n}" rows="3" maxlength="3000"${ph ? ` placeholder="${esc(ph)}"` : ""}>${esc(v || "")}</textarea></label>`;
+  const ta = (n, label, v, ph = "") => `<label class="app-f wide"><span>${esc(label)}</span><textarea name="${n}" rows="3" maxlength="3000"${ph ? ` placeholder="${esc(ph)}"` : ""}>${esc(v || "")}</textarea>${why(n)}</label>`;
   const trl = [["", "–"], ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => [n, "TRL " + n])];
+  const warn = (n) => `<span class="fine warn" data-warn="${n}" role="status"></span>`;
+  const partners = typeof f.partners === "string" ? f.partners : f.partners ? factsText(f) : "";
   return `<form class="app-form" data-appform>
-    <h4>${esc(T("app.fTitle"))}</h4><p class="note">${esc(T("app.fNote"))}</p>
+    <h4>${esc(T("app.fTitle"))}</h4><p class="note">${esc(T("app.fNote"))}</p>${sg ? `<p class="note">${esc(T("app.suggNote"))}</p>` : ""}
     <div class="app-grid">
       <label class="app-f"><span>${esc(T("app.fLang"))}</span>${sel("lang", [["en", "English"], ["sr", "Srpski"]], lang)}<span class="fine">${esc(T(ep ? "app.fLangEp" : "app.fLangHe"))}</span></label>
-      <label class="app-f"><span>${esc(T("app.fDur"))}</span><input type="number" name="durationMonths" min="${r.durationMonths ? r.durationMonths[0] : 6}" max="${r.durationMonths ? r.durationMonths[1] : 72}" value="${esc(f.durationMonths || "")}"${r.durationMonths ? ` placeholder="${r.durationMonths[0]}–${r.durationMonths[1]}"` : ""}></label>
+      <label class="app-f"><span>${esc(T("app.fDur"))}</span><input type="number" name="durationMonths" min="${r.durationMonths ? r.durationMonths[0] : 3}" max="${r.durationMonths ? r.durationMonths[1] : 72}" value="${esc(f.durationMonths || "")}"${r.durationMonths ? ` placeholder="${r.durationMonths[0]}–${r.durationMonths[1]}"` : ""}>${why("durationMonths")}${warn("durationMonths")}</label>
       ${ep ? `<label class="app-f"><span>${esc(T("app.fLump"))}</span>${sel("amount", [["", T("app.fLumpPick")], ...(r.lumpSums || []).map((v) => [v, fmtInt(v)])], f.amount)}</label>
         <label class="app-f"><span>${esc(T("app.fField"))}</span>${sel("field", [["", T("app.fLumpPick")], ...(r.fields || Object.keys(ERASMUS_FIELDS)).map((k) => [k, T("app.fields." + k)])], f.field)}</label>`
-      : `<label class="app-f"><span>${esc(T("app.fAmount"))}</span><input type="number" name="amount" min="0" step="1000"${max ? ` max="${max}"` : ""} value="${esc(f.amount || "")}">${max ? `<span class="fine">${esc(T("app.fAmountMax", fmtInt(max)))}</span>` : ""}</label>
+      : `<label class="app-f"><span>${esc(T("app.fAmount"))}</span><input type="number" name="amount" min="0" step="1000"${max ? ` max="${max}"` : ""} value="${esc(f.amount || "")}">${max ? `<span class="fine">${esc(T("app.fAmountMax", fmtInt(max)))}</span>` : ""}${why("amount")}${warn("amount")}</label>
         <label class="app-f"><span>${esc(T("app.fRole"))}</span>${sel("role", [["coordinator", T("app.fCoord")], ["partner", T("app.fPartner")]], f.role)}</label>
-        <label class="opt app-f wide"><input type="checkbox" name="lumpSumFunding"${f.lumpSumFunding ? " checked" : ""}> ${esc(T("app.fLumpTopic"))}</label>
-        ${tpl.key !== "HE-CSA" ? `<div class="app-f"><span>${esc(T("app.fTrl"))}</span><div class="oi-row">${esc(T("app.fTrlStart"))} ${sel("trlStart", trl, f.trl && f.trl.start)} ${esc(T("app.fTrlEnd"))} ${sel("trlEnd", trl, f.trl && f.trl.end)}</div></div>` : ""}`}
-      <label class="app-f wide"><span>${esc(T("app.fPartners"))}</span><textarea name="partners" rows="4" maxlength="6000" placeholder="${esc(T("app.fPartnersPh"))}">${esc(f.partners ? factsText(f) : "")}</textarea>${min > 1 ? `<span class="fine">${esc(T("app.fPartnersHint", min))}</span>` : ""}</label>
+        <label class="opt app-f wide"><input type="checkbox" name="lumpSumFunding"${f.lumpSumFunding ? " checked" : ""}><span>${esc(T("app.fLumpTopic"))} ${why("lumpSumFunding")}</span></label>
+        ${tpl.key !== "HE-CSA" ? `<div class="app-f"><span>${esc(T("app.fTrl"))}</span><div class="oi-row">${esc(T("app.fTrlStart"))} ${sel("trlStart", trl, f.trl && f.trl.start)} ${esc(T("app.fTrlEnd"))} ${sel("trlEnd", trl, f.trl && f.trl.end)}</div>${sg && sg.trl ? `<span class="fine sugg">${esc(T("app.trlCall", sg.trl.text))}</span>` : ""}</div>` : ""}`}
+      <label class="app-f wide"><span>${esc(T("app.fPartners"))}</span><textarea name="partners" rows="4" maxlength="6000" placeholder="${esc(T("app.fPartnersPh"))}">${esc(partners)}</textarea>${why("partners")}${min > 1 ? `<span class="fine">${esc(T("app.fPartnersHint", min))}</span>` : ""}</label>
       ${ta("team", T("app.fTeam"), f.team)}${ta("track", T("app.fTrack"), f.track)}${ta("extra", T("app.fExtra"), f.extra)}
     </div>
     <div class="oi-row"><button type="submit" class="btn">${esc(T("app.fGo"))}</button><button type="button" class="btn ghost" data-act="appcancel">${esc(T("app.fCancel"))}</button></div>
   </form>`;
+}
+// Warnings under the duration and amount fields, updated while the applicant types.
+function factsWarn(form, x, tpl) {
+  const call = (EC.CALLS || []).find((c) => c.id === x.callId);
+  const ws = factWarnings(readFacts(form), { tpl, call, rules: epRules(tpl) });
+  form.querySelectorAll("[data-warn]").forEach((el) => { const w = ws.find((y) => y.field === el.dataset.warn); el.textContent = w ? T("app.warn." + w.key, ...w.args.map(numArg)) : ""; });
+  return ws;
 }
 function readFacts(form) {
   const v = (n) => { const el = form.elements[n]; return el ? (el.type === "checkbox" ? el.checked : el.value) : undefined; };
@@ -1912,7 +1954,7 @@ function unitHTML(u, d, tpl, can) {
   const body = tpl.kind === "form"
     ? u.questions.map((q) => { const a = (s && s.answers && s.answers[q.id]) || ""; return `<div class="app-q"><p class="q">${esc(q.q)}</p><div class="a" data-q="${esc(q.id)}">${a ? viewText(a) : `<span class="fine">${esc(T("app.unitMissing"))}</span>`}</div><div class="oi-row"><span class="fine num">${chars(a)}</span>${a ? `<button type="button" class="linkbtn" data-copy="${esc(q.id)}">${esc(T("app.copy"))}</button>` : ""}</div></div>`; }).join("")
     : `<div class="a">${s && s.text ? viewText(s.text) : `<span class="fine">${esc(T("app.unitMissing"))}</span>`}</div>`;
-  return `<details class="app-unit" data-unit="${esc(u.key)}"><summary><span class="t">${esc(unitTitle(u, d))}</span><span class="fine">${s && s.text ? chars(s.text) : esc(T("app.unitMissing"))}${s && s.edited ? " · " + esc(T("app.edited")) : ""}</span></summary>
+  return `<details class="app-unit" data-unit="${esc(u.key)}"><summary><span class="t">${esc(unitTitle(u, d))}</span><span class="fine">${s && s.text ? chars(s.text) : esc(T("app.unitMissing"))}${s && s.edited ? " · " + esc(T("app.edited")) : s && s.improved ? " · " + esc(T("app.improved")) : ""}</span></summary>
     <div class="app-u-body">${body}<div class="oi-row">${can && s && s.text ? `<button type="button" class="btn quiet" data-uact="edit">${esc(T("app.edit"))}</button>` : ""}${can ? `<button type="button" class="linkbtn" data-uact="rewrite">${esc(T(s && s.text ? "app.rewrite" : "app.cont"))}</button>` : ""}${tpl.kind !== "form" && s && s.text ? `<button type="button" class="linkbtn" data-uact="copy">${esc(T("app.copy"))}</button>` : ""}<span class="fine" data-umsg role="status"></span></div></div></details>`;
 }
 const numArg = (a) => (Array.isArray(a) ? a.map(numArg) : typeof a === "number" && a >= 1000 ? fmtInt(a) : a);
@@ -1933,6 +1975,10 @@ async function loadDraft(x) {
 }
 // Writes the parts still missing, one request at a time. A per-minute limit of the free AI tier is waited out (up to four
 // times per part); any other error stops the run, and the written parts stay stored.
+// The idea's summary of its application (parts written, fingerprint, places to confirm), kept in step with the draft.
+function syncDraft(x, d, total) {
+  x.proposal = { ...(x.proposal || {}), v: 2, written: Object.values(d.sections).filter((s) => s && s.text).length, hash: draftHash(d), tbc: tbcCount(d), ...(total ? { total } : {}) };
+}
 async function writeMissing(card, x, tpl, d) {
   tpl = tplOf(d) || tpl;
   const msg = card.querySelector("[data-appmsg]"), units = unitsOf(tpl, d.plan, d.facts.lang);
@@ -1944,7 +1990,7 @@ async function writeMissing(card, x, tpl, d) {
       opState(msg, "generating", T("app.writing", i, units.length, unitTitle(u, d)), (100 * (i - 1)) / units.length);
       try {
         const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal/section`, { key: u.key });
-        d.sections[u.key] = r.section; x.proposal = { ...(x.proposal || {}), v: 2, written: Object.values(d.sections).filter((s) => s && s.text).length };
+        d.sections[u.key] = r.section; syncDraft(x, d, units.length);
         break;
       } catch (e) {
         if (e.message === "ai_busy" && attempt < 4) {
@@ -1975,10 +2021,10 @@ function drawApp(card, x, tpl) {
   body.querySelector('[data-act="apppdf"]').addEventListener("click", () => dl("pdf"));
   body.querySelector('[data-act="appdocx"]').addEventListener("click", () => dl("docx"));
   const cont = body.querySelector('[data-act="appcont"]');
-  if (cont) cont.addEventListener("click", async () => { cont.disabled = true; await writeMissing(card, x, tpl, d); drawApp(card, x, tpl); });
+  if (cont) cont.addEventListener("click", async () => { cont.disabled = true; await writeMissing(card, x, tpl, d); drawApp(card, x, tpl); redrawEval(card, x); });
   body.querySelectorAll(".app-unit").forEach((det) => {
     const key = det.dataset.unit, u = unitsOf(tpl, d.plan, d.facts.lang).find((y) => y.key === key), um = det.querySelector("[data-umsg]");
-    const redraw = () => { const n = document.createElement("div"); n.innerHTML = unitHTML(u, d, tpl, premium() && canEdit()); const fresh = n.firstElementChild; fresh.open = true; det.replaceWith(fresh); drawApp(card, x, tpl); const again = card.querySelector(`.app-unit[data-unit="${CSS.escape(key)}"]`); if (again) again.open = true; };
+    const redraw = () => { syncDraft(x, d); const n = document.createElement("div"); n.innerHTML = unitHTML(u, d, tpl, premium() && canEdit()); const fresh = n.firstElementChild; fresh.open = true; det.replaceWith(fresh); drawApp(card, x, tpl); redrawEval(card, x); const again = card.querySelector(`.app-unit[data-unit="${CSS.escape(key)}"]`); if (again) again.open = true; };
     const copy = async (t) => { try { await navigator.clipboard.writeText(t); um.textContent = T("app.copied"); } catch { um.textContent = ""; } };
     det.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", () => copy((d.sections[key].answers || {})[b.dataset.copy] || "")));
     const on = (a, fn) => { const b = det.querySelector(`[data-uact="${a}"]`); if (b) b.addEventListener("click", fn); };
@@ -2014,20 +2060,25 @@ function bindApp(card, x) {
     body.innerHTML = factsForm(x, tpl, prev);
     const form = body.querySelector("[data-appform]");
     body.querySelector('[data-act="appcancel"]').addEventListener("click", () => { body.innerHTML = ""; drawApp(card, x, tpl); });
+    form.addEventListener("input", () => factsWarn(form, x, tpl));
+    factsWarn(form, x, tpl);
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
+      const ws = factsWarn(form, x, tpl);
+      if (ws.length && !confirm(T("app.warnConfirm", ws.map((w) => "- " + T("app.warn." + w.key, ...w.args.map(numArg))).join("\n")))) return;
       const btn = form.querySelector('[type="submit"]'); btn.disabled = true;
       opState(msg, "generating", T("app.planning"));
       try {
         const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal`, { facts: readFacts(form), lang: L() });
-        ST.drafts[x.id] = r.proposal; x.proposal = { v: 2, at: r.proposal.at, template: r.proposal.template, written: 0 };
+        ST.drafts[x.id] = r.proposal; x.proposal = { v: 2, at: r.proposal.at, template: r.proposal.template, written: 0, total: (r.units || []).length, hash: draftHash(r.proposal), tbc: 0 };
+        x.evaluations = {}; redrawEval(card, x);
         ST.appOpen.add(x.id);
         const head = box.querySelector('[data-act="appstart"]');
         if (head) head.outerHTML = `<button type="button" class="btn pdf" data-act="appopen" aria-expanded="true">${esc(T("app.hide"))}</button><span class="fine">${esc(T("app.partsWritten", 0))}</span>`;
         bindOpen();
         body.innerHTML = "";
         await writeMissing(card, x, tpl, ST.drafts[x.id]);
-        drawApp(card, x, tpl);
+        drawApp(card, x, tpl); redrawEval(card, x);
       } catch (e) { opState(msg, "failed", errText(e)); btn.disabled = false; }
     });
     form.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -2160,13 +2211,11 @@ async function secIdeas(arg) {
   ST.compare = new Set([...(ST.compare || [])].filter((id) => ideas.some((x) => x.id === id)));
   const res = results(), cands = ideaCandidates();
   // Keep the member's choice while it still matches the shortlist; otherwise start from the most compatible calls.
-  // Calls whose ideas were all evaluated below a threshold are not ticked by default; they can still be chosen.
-  const okCalls = new Set(ideas.filter((x) => !belowThreshold(x)).map((x) => x.callId));
-  const weak = new Set(ideas.filter(belowThreshold).map((x) => x.callId).filter((c) => !okCalls.has(c)));
+  const weak = new Set();
   const keep = ST.ideaPick && ST.ideaPickOrg === org.id ? [...ST.ideaPick].filter((id) => cands.some((r) => r.callId === id)) : [];
   ST.ideaPick = new Set(keep.length ? keep : cands.filter((r) => !weak.has(r.callId)).slice(0, IDEA_CALLS).map((r) => r.callId)); ST.ideaPickOrg = org.id;
   const saved = ideas.filter((x) => x.status === "saved"), rest = ideas.filter((x) => x.status !== "saved").sort((a, b) => a.rank - b.rank);
-  const below = rest.filter(belowThreshold), sugg = rest.filter((x) => !belowThreshold(x));
+  const below = [], sugg = rest;
   const ready = ideaReady(p);
   return `<h1>${esc(T("ideasTitle"))}</h1><p class="lede">${esc(T("ideasLede"))}</p>
     ${!canEdit() ? `<p class="note">${esc(T("ideasViewerNote"))}</p>` : ""}
@@ -2181,70 +2230,79 @@ async function secIdeas(arg) {
     ${sugg.length || !below.length ? `<h2 class="idea-h">${esc(T("ideasSuggested"))}</h2>${sugg.length ? `<div class="match-list">${sugg.map((x) => ideaCard(x, res)).join("")}</div>` : `<p class="fine">${esc(T("ideasNone"))}</p>`}` : ""}
     ${below.length ? `<h2 class="idea-h" id="oiBelow">${esc(T("ideasBelow"))} (${below.length})</h2><p class="fine">${esc(T("ideasBelowNote"))}</p><div class="match-list">${below.map((x) => ideaCard(x, res)).join("")}</div>` : ""}`;
 }
-// Revises an idea that was evaluated below the threshold (the server uses that evaluation), then evaluates the new text.
-async function improveIdea(x, m) {
-  opState(m, "analysing", T("improveBusy"));
-  const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/improve`, { lang: L() });
-  Object.assign(x, r.idea);
-  opState(m, "analysing", T("evBusy"));
-  return runEvaluation(x);
-}
-// One evaluation request; the result is kept on the idea and shown as the selected evaluation.
-async function runEvaluation(x) {
-  const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/evaluate`, { lang: L() });
+// Evaluates the full application one award criterion at a time (one request each, so the text fits the free AI tier's
+// per-minute limit); a per-minute limit is waited out. The server returns the whole evaluation with the last criterion.
+async function runEvaluation(x, m) {
+  const rb = ideaRubric(x), run = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const crits = rb && rb.criteria ? rb.criteria : [null];
+  let r = null, cached = true;
+  for (let i = 0; i < crits.length; i++) {
+    const c = crits[i];
+    for (let attempt = 0; ; attempt++) {
+      opState(m, "analysing", c ? T("evCrit", i + 1, crits.length, crName(c.name)) : T("evBusy"), (100 * i) / crits.length);
+      try { r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/evaluate`, { lang: L(), run, ...(c ? { criterion: c.id } : {}) }); break; }
+      catch (e) {
+        if (e.message === "ai_busy" && attempt < 4) { for (let s = 30; s > 0; s -= 5) { opState(m, "analysing", T("app.busyWait", s), (100 * i) / crits.length); await sleep(5000); } continue; }
+        throw e;
+      }
+    }
+    if (!r.cached) cached = false;
+  }
+  if (!r || !r.evaluation) throw new Error("ai_bad_answer");
   x.evaluations = { ...(x.evaluations || {}), [r.evaluation.key]: r.evaluation }; ST.evalSel[x.id] = r.evaluation.key;
-  r.evaluation._cached = !!r.cached;
+  r.evaluation._cached = cached;
   return r.evaluation;
 }
-// Evaluates newly generated ideas one after another as soon as they are shown, so nobody has to press "Evaluate".
-// Each request counts against the same AI limits as a manual evaluation. A missing rubric or one unusable answer
-// skips that idea; a limit, the paywall or an unavailable model stops the run. The results are stored on the server,
-// so leaving the page keeps what was done.
-const AUTO_EVAL_STOP = new Set([402, 403, 429, 503, 0]);
-// Only the best-ranked new ideas are evaluated by themselves; the others have the Evaluate button. Each evaluation is one
-// model request, and every idea generation already uses one request per call.
-const AUTO_EVAL_MAX = 3;
-async function autoEvaluate(ids) {
-  const box = document.getElementById("oiEvalMsg"), route = location.hash;
-  const all = ids.map((id) => (ST.ideas || []).find((x) => x.id === id)).filter((x) => { const rb = x && ideaRubric(x); return rb && !(x.evaluations || {})[rb.key]; });
-  const todo = all.slice(0, AUTO_EVAL_MAX), left = all.length - todo.length;
-  if (!todo.length) { if (box && ids.length) { box.className = "note"; box.textContent = T("evAutoNone"); } return; }
-  let done = 0, below = 0, stop = null, revised = 0, lifted = 0, next = 0, finished = 0;
-  const progress = () => opState(box, "analysing", `${T("evBusy")} (${T("evAuto", Math.min(finished + 1, todo.length), todo.length)})`, (100 * finished) / todo.length);
-  progress();
-  // Two ideas at a time: each evaluation is one model request, and the two Groq models have separate per-minute limits.
-  const worker = async () => {
-    while (!stop && next < todo.length) {
-      const x = todo[next++], card = document.querySelector(`article.idea[data-idea="${CSS.escape(x.id)}"]`);
-      const cm = card && card.querySelector("[data-evmsg]"), cb = card && card.querySelector('[data-act="evaluate"]');
-      if (cb) cb.disabled = true; opState(cm, "analysing", T("evBusy"));
-      try {
-        let e = await runEvaluation(x);
-        // Below the threshold: revised once with that evaluation and evaluated again. Two more AI actions, only for ideas
-        // that would otherwise not be worth offering.
-        if (e.passed === false && !(x.idea.revisions > 0)) { e = await improveIdea(x, cm); revised++; if (e.passed !== false) lifted++; }
-        done++; if (e.passed === false) below++; opState(cm, "completed", T("evDone"));
+// Rewrites the parts behind the criteria that lost points with the evaluator's comments (the server reads the stored
+// evaluation), then the summary, then evaluates again.
+async function improveApplication(card, x, m) {
+  const d = await loadDraft(x), tpl = tplOf(d) || appTpl(x), before = ideaEval(x);
+  const units = unitsOf(tpl, d.plan, d.facts.lang);
+  const keys = new Set((before.criteria || []).filter((c) => c.score < c.max || (c.fixes || []).length).flatMap((c) => c.units || []));
+  const todo = units.filter((u) => keys.has(u.key)).map((u) => [u, { improve: true }]);
+  if (todo.length) for (const u of units.filter((y) => y.summary || y.english || y.id === "sum")) todo.push([u, { fresh: true }]);
+  for (let i = 0; i < todo.length; i++) {
+    const [u, flags] = todo[i];
+    for (let attempt = 0; ; attempt++) {
+      opState(m, "generating", T("evImproving", i + 1, todo.length, unitTitle(u, d)), (100 * i) / (todo.length + 1));
+      try { const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal/section`, { key: u.key, ...flags }); d.sections[u.key] = r.section; break; }
+      catch (e) {
+        if (e.message === "ai_busy" && attempt < 4) { for (let s = 30; s > 0; s -= 5) { opState(m, "generating", T("app.busyWait", s)); await sleep(5000); } continue; }
+        e.improveStop = true; throw e;
       }
-      catch (err) { opState(cm, "failed", errText(err)); if (cb) cb.disabled = false; if (AUTO_EVAL_STOP.has(err && err.status)) stop = err; }
-      finished++; if (!stop) progress();
     }
-  };
-  await Promise.all([worker(), worker()]);
-  ST.evalNote = { ok: !stop, text: (done ? T("evAutoDone", done, below) : "") + (revised ? " " + T("evAutoRevised", revised, lifted) : "") + (stop ? (done ? " " : "") + T("evAutoStop") + " " + errText(stop) : "") + (left && !stop ? (done ? " " : "") + T("evAutoMore", left) : "") };
-  if (location.hash === route) { ST.ideaNote = ST.lastIdeaNote || null; refresh(); }   // regroup the ideas: below-threshold concepts move to their own section
+  }
+  syncDraft(x, d);
+  if (ST.appOpen.has(x.id)) drawApp(card, x, tpl);
+  const after = await runEvaluation(x, m);
+  return { before: before.total, after: after.total, max: after.max };
 }
-// Evaluation box of one idea card: switch between stored evaluations, run a new one, redraw in place.
+// Evaluation box of one idea card: switch between stored evaluations, evaluate, improve, redraw in place.
+function redrawEval(card, x) {
+  const box = card && card.querySelector(".ev-box"); if (!box) return;
+  const open = box.open, nb = document.createElement("div"); nb.innerHTML = evalBox(x);
+  const fresh = nb.firstElementChild; if (!fresh) return;
+  fresh.open = open || fresh.open; box.replaceWith(fresh); bindEval(card, x);
+}
 function bindEval(card, x) {
-  const org = ST.org, id = x.id, box = card.querySelector(".ev-box"); if (!box) return;
+  const id = x.id, box = card.querySelector(".ev-box"); if (!box) return;
   const sel = box.querySelector("[data-evsel]"), btn = box.querySelector('[data-act="evaluate"]'), m = box.querySelector("[data-evmsg]");
-  const redraw = () => { const open = box.open; const nb = document.createElement("div"); nb.innerHTML = evalBox(x); const fresh = nb.firstElementChild; fresh.open = open || !!(x.evaluations || {})[ST.evalSel[id]]; box.replaceWith(fresh); bindEval(card, x); };
-  if (sel) sel.addEventListener("change", () => { ST.evalSel[id] = sel.value; redraw(); });
+  const imp = box.querySelector('[data-act="evimprove"]'), im = box.querySelector("[data-evimsg]");
+  if (sel) sel.addEventListener("change", () => { ST.evalSel[id] = sel.value; redrawEval(card, x); });
+  const lock = (on) => { [btn, imp].forEach((b) => { if (b) b.disabled = on; }); };
   if (btn) btn.addEventListener("click", async () => {
-    btn.disabled = true; opState(m, "analysing", T("evBusy"));
+    lock(true);
     try {
-      const ev = await runEvaluation(x); redraw();
+      const ev = await runEvaluation(x, m); redrawEval(card, x);
       const nm = card.querySelector("[data-evmsg]"); if (nm) { nm.className = "fine ok"; nm.textContent = T(ev._cached ? "evSame" : "evDone"); }
-    } catch (e) { opState(m, "failed", errText(e)); btn.disabled = false; }
+    } catch (e) { opState(m, "failed", errText(e)); lock(false); }
+  });
+  if (imp) imp.addEventListener("click", async () => {
+    lock(true);
+    try {
+      const r = await improveApplication(card, x, im); redrawEval(card, x);
+      const nm = card.querySelector("[data-evmsg]"); if (nm) { nm.className = "fine ok"; nm.textContent = T("evImproved", ptsTxt(r.before), ptsTxt(r.after), ptsTxt(r.max)); }
+    } catch (e) { opState(im, "failed", errText(e) + (e && e.improveStop ? " " + T("evImproveStop") : "")); lock(false); }
   });
 }
 afterRender.ideas = (arg) => {
@@ -2277,8 +2335,6 @@ afterRender.ideas = (arg) => {
       await loadMe(true);
       const fresh = (r.ideas || []).filter((x) => x.batchId === r.batchId).map((x) => x.id);
       ST.lastIdeaNote = null;
-      if (fresh.length && premium()) ST.autoEval = fresh;
-      else if (fresh.length) ST.evalNote = { ok: true, text: T("evAutoPremium") };
       refresh();
     } catch (e) { gen.disabled = false; opState(msg, "failed", errText(e)); }
     finally { if (skel && skel.classList.contains("skel-list")) skel.remove(); }
@@ -2329,10 +2385,6 @@ afterRender.ideas = (arg) => {
     on("pdfnew", "click", (ev) => makePdf(true, ev.currentTarget));
     bindEval(card, x);
     bindApp(card, x);
-    on("improve", "click", async (ev) => {
-      const b = ev.currentTarget, m = card.querySelector("[data-immsg]"); b.disabled = true;
-      try { await improveIdea(x, m); refresh(); } catch (e) { opState(m, "failed", errText(e)); b.disabled = false; }
-    });
     on("translate", "click", async (ev) => {
       const b = ev.currentTarget, m = card.querySelector("[data-trmsg]"); b.disabled = true; opState(m, "analysing", T("trBusy"));
       try { Object.assign(x, (await api("POST", `/orgs/${org.id}/ideas/${id}/translate`, { lang: L() })).idea); refresh(); } catch (e) { opState(m, "failed", errText(e)); b.disabled = false; }
@@ -2346,8 +2398,7 @@ afterRender.ideas = (arg) => {
   const evMsg = document.getElementById("oiEvalMsg");
   if (ST.evalNote && evMsg && ST.evalNote.text) { evMsg.className = ST.evalNote.ok ? "note ok" : "note warn"; evMsg.textContent = ST.evalNote.text; }
   ST.evalNote = null;
-  if (ST.autoEval && canEdit()) { const ids = ST.autoEval; ST.autoEval = null; autoEvaluate(ids); }
-  else autoTranslate();
+  autoTranslate();
 };
 /* ---------- saved reports ---------- */
 // The live assessment of a saved report's call, if the call is still published.

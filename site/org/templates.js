@@ -227,11 +227,13 @@ export function formTemplate(file, f, callLimit) {
   const narrative = units.filter((x) => !WP_DETAIL.test(x.title)).length + 1;
   const target = unitTarget(limit, narrative);
   const out = [];
+  let hadWp = false;
   for (const x of units) {
     const id = "f" + x.n.replace(/\./g, "_");
     const ask = x.ask && x.ask.length ? x.ask : [`Write section ${x.n} "${capWords(x.title)}" of the application.`];
     const g = x.n.split(".")[0];
-    if (WP_DETAIL.test(x.title)) {
+    if (WP_DETAIL.test(x.title) && !hadWp) {
+      hadWp = true;
       out.push({ id, n: x.n, title: capWords(x.title), part: "overview", ask: [...ask.slice(0, 2), "Give a brief presentation of the overall structure of the work plan and how the work packages inter-relate; the work package, deliverable, milestone and risk tables follow."], target: 2500, g, tablesAfter: true });
       out.push({ id: "wp", n: x.n, title: "Work package description", wp: true, ask: [...ask, "For this work package: objectives, tasks with the activities of each quantified, who does what, deliverables and milestones."], target: 3500, g });
     } else out.push({ id, n: x.n, title: capWords(x.title), ask, target, g });
@@ -595,4 +597,148 @@ export function draftDigest(draft, max = 9000) {
   const room = Math.max(400, Math.floor((max - head.length) / Math.max(1, keys.length)));
   const body = keys.map((k) => `[${S[k].title || k}] ${clip(S[k].text || Object.values(S[k].answers || {}).join(" "), room - 20)}`).join("\n");
   return (head + "\n" + body).slice(0, max);
+}
+
+// ---------- which parts of the application each award criterion reads ----------
+// The evaluation scores the full application criterion by criterion (src/org/evaluate.js), and the improvement step
+// rewrites the parts behind a criterion that lost points. Parts are matched to criteria by what they are about:
+// hand-made templates by their known section groups, other forms by their section headings.
+const CONCEPTS = [
+  ["partner", /partnership|consortium|cooperation arrangements|\bpartners?\b|project teams?|staff|experts|capacity of participants/i],
+  ["impact", /impact|dissemination|communication|exploitation|sustainab|visibility|outreach|follow-up/i],
+  ["impl", /implementation|quality|work ?plan|work ?packages?|management|resources|budget|cost|risk|timing|monitoring|project design|activit/i],
+  ["excel", /excellence|objectives|methodolog|concept|ambition|state of the art|approach|coordination and\/or support/i],
+  ["relev", /relevance|needs|background|priorit|rationale|complementarity|added value|context|description/i],
+];
+const FALLBACK = { partner: ["impl", "excel", "relev"], impl: ["partner", "excel", "relev"], excel: ["impl", "relev"], relev: ["excel", "impact"], impact: ["relev", "excel"] };
+const HINTS = {
+  KA220: { rel1: "relev", rel2: "relev", needs: "relev", partner: "partner", impact: "impact", pm1: "impl", pm2: "impl", wp: "impl" },
+  KA210: { desc1: "relev", desc2: "relev", coop: "partner", act: "impl", impact: "impact" },
+};
+const HE_CONCEPT = { 1: "excel", 2: "impact", 3: "impl" };
+const conceptOf = (t) => { for (const [k, re] of CONCEPTS) if (re.test(String(t || ""))) return k; return null; };
+const isSummary = (u) => !!(u.summary || u.english || u.id === "sum");
+// { criterionId: [unit keys] } for the criteria of rubric (rubric.criteria with ids c1..cn). When several criteria
+// share a theme (two "quality" criteria), a part goes to the one whose name and listed elements share most words with
+// its heading; a criterion left without parts reads the parts that share words with it, or the summary.
+const WORDS = (t) => new Set(String(t || "").toLowerCase().match(/[a-z]{5,}/g) || []);
+const overlap = (a, b) => { let n = 0; for (const w of a) if (b.has(w)) n++; return n; };
+export function criterionUnits(tpl, units, rubric) {
+  const crits = (rubric && rubric.criteria) || [];
+  const out = Object.fromEntries(crits.map((c) => [c.id, []]));
+  if (!crits.length) return out;
+  const cc = crits.map((c) => conceptOf(c.name));
+  const cw = crits.map((c) => WORDS([c.name, ...(c.aspects || [])].join(" ")));
+  const titleOf = (u) => [u.title, u.sub, u.section, u.part, tpl.groupTitles && tpl.groupTitles[u.g]].filter(Boolean).join(" ");
+  const pick = (concept, u) => {
+    if (!concept) return null;
+    for (const k of [concept, ...(FALLBACK[concept] || [])]) {
+      const idx = cc.map((x, i) => (x === k ? i : -1)).filter((i) => i >= 0);
+      if (!idx.length) continue;
+      if (idx.length === 1) return crits[idx[0]].id;
+      const uw = WORDS(titleOf(u) + " " + (u.ask || []).join(" "));
+      return crits[idx.reduce((b, i) => (overlap(uw, cw[i]) > overlap(uw, cw[b]) ? i : b), idx[0])].id;
+    }
+    return null;
+  };
+  for (const u of units) {
+    if (isSummary(u)) continue;
+    let concept = (HINTS[tpl.key] || {})[u.id] || null;
+    if (!concept && tpl.groups && tpl.groups[u.id]) concept = HE_CONCEPT[tpl.groups[u.id]] || null;
+    if (!concept && tpl.key === "CRIT" && /^c\d+$/.test(u.id)) { const c = crits.find((x) => x.id === u.id); if (c) { out[c.id].push(u.key); continue; } }
+    if (!concept) {
+      // The section group decides (a form's "1 RELEVANCE" holds its objectives), unless the part's own heading names a
+      // partnership or impact theme that has a criterion of its own.
+      const own = conceptOf(u.title || u.sub || u.section), grp = conceptOf(tpl.groupTitles && tpl.groupTitles[u.g]);
+      concept = own && cc.includes(own) && (own === "partner" || own === "impact" || !grp) ? own : grp || own || "impl";
+    }
+    const id = pick(concept, u) || crits[crits.length - 1].id;
+    out[id].push(u.key);
+  }
+  const sums = units.filter(isSummary).map((u) => u.key);
+  crits.forEach((c, i) => {
+    if (out[c.id].length) return;
+    const near = units.filter((u) => !isSummary(u)).map((u) => [u.key, overlap(WORDS(titleOf(u) + " " + (u.ask || []).join(" ")), cw[i])]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k]) => k);
+    out[c.id] = near.length ? units.filter((u) => near.includes(u.key)).map((u) => u.key) : sums.length ? sums : units.map((u) => u.key);
+  });
+  return out;
+}
+// A fingerprint of the written text, so the page can tell that an evaluation is older than the application.
+export function draftHash(draft) {
+  const S = (draft && draft.sections) || {};
+  const t = Object.keys(S).sort().map((k) => k + ":" + ((S[k] && S[k].text) || "")).join("\n");
+  let h = 0x811c9dc5;
+  for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(36);
+}
+export const tbcCount = (draft) => Object.values((draft && draft.sections) || {}).reduce((n, s) => n + ((s && s.text) || "").split(TBC).length - 1, 0);
+
+// ---------- suggested details for the application form ----------
+// Values the platform can propose before the applicant writes anything: from the call (duration, amount per project,
+// lump sum funding, technology readiness levels), the programme rules (Erasmus+ duration), the idea (partner types)
+// and the organisation profile (team, previous projects, infrastructure). Each value says where it comes from; the
+// applicant changes what does not fit.
+const callText = (c) => [c && c.conditions, c && c.description].filter(Boolean).join("\n");
+const MONTHS = /(?:duration|period|last|lasting|over|implemented|for)\D{0,40}?(?:(?:up to|maximum(?: of)?|max\.?|typically|between|of|from|minimum(?: of)?)\s+)?(\d{1,2})(?:\s*(?:-|–|to|and)\s*(\d{1,2}))?\s*months/gi;
+const NOT_DURATION = /evaluation|submission|outcome|grant agreement|signature|after the end|deadline|reporting|informing|time to grant|opened for|experience|continuous|at least/i;
+const MONTHS_AFTER = /(\d{1,2})(?:\s*(?:-|–|to)\s*(\d{1,2}))?\s*months\s*(?:in duration|duration|long)/gi;
+export function callDuration(c) {
+  const t = callText(c).replace(/\s+/g, " ");
+  for (const m of [...t.matchAll(MONTHS), ...t.matchAll(MONTHS_AFTER)]) {
+    const before = t.slice(Math.max(0, m.index - 70), m.index + m[0].length);
+    if (NOT_DURATION.test(before)) continue;
+    const a = +m[1], b = m[2] ? +m[2] : null;
+    if (a < 3 || a > 72 || (b && (b < a || b > 72))) continue;
+    const upTo = /up to|maximum|max\./i.test(m[0]), min = /minimum/i.test(m[0]);
+    return { months: b || a, range: b ? [a, b] : upTo ? [1, a] : min ? [a, 72] : null };
+  }
+  return null;
+}
+export function callTrl(c) {
+  const t = callText(c).replace(/\s+/g, " ");
+  let m = t.match(/start at TRLs?\s*(\d)(?:\s*[-–]\s*(\d))?\s*and (?:achieve|reach)\s*TRLs?\s*(\d)(?:\s*[-–]\s*(\d))?/i);
+  if (m) return { start: +m[1], end: +m[3], text: m[0] };
+  m = t.match(/(?:achieve|reach|be at)\s*TRLs?\s*(\d)(?:\s*[-–]\s*(\d))?\s*(?:by|at) the (?:end|action end)/i) || t.match(/at TRLs?\s*(\d)(?:\s*[-–]\s*(\d))?\s*by the (?:action|project) end/i);
+  if (m) return { start: null, end: +m[1], endMax: m[2] ? +m[2] : null, text: m[0] };
+  return null;
+}
+export const callLumpSum = (c) => /form of a lump sum|lump sum grant|funded (?:as|through) a lump sum/i.test(callText(c));
+const USUAL_MONTHS = { "HE-RIA-IA": 36, "HE-CSA": 24, "HE-RIA-IA-S1": 36, KA220: 24, KA210: 12 };
+export function suggestFacts({ tpl, call, idea, profile, rules }) {
+  const v = {}, why = {}, f = (call && call.funding) || {};
+  const d = callDuration(call), rng = rules && rules.durationMonths;
+  if (d && (!rng || (d.months >= rng[0] && d.months <= rng[1]))) { v.durationMonths = d.months; why.durationMonths = "call"; }
+  else { let u = USUAL_MONTHS[tpl.key] || 24; if (rng) u = Math.min(rng[1], Math.max(rng[0], u)); v.durationMonths = u; why.durationMonths = rng ? "rules" : "usual"; }
+  if (tpl.programme !== "erasmus") {
+    const amount = f.maxPerGrant || f.approxPerGrant || (call && call.bandValue) || null;
+    if (amount) { v.amount = Math.round(amount); why.amount = f.minPerGrant && f.maxPerGrant && f.minPerGrant !== f.maxPerGrant ? "callRange" : "callMax"; }
+    if (callLumpSum(call)) { v.lumpSumFunding = true; why.lumpSumFunding = "call"; }
+    const trl = tpl.key === "HE-CSA" ? null : callTrl(call);
+    if (trl) { v.trl = { start: trl.start, end: trl.end }; why.trl = "call"; }
+  }
+  const pp = (idea && idea.potentialPartners) || [];
+  if (pp.length) { v.partners = pp.slice(0, 6).map((p) => `(partner to be confirmed) |  | ${String(p).replace(/\|/g, "/").trim()} | `).join("\n"); why.partners = "idea"; }
+  const p = profile || {};
+  const team = [p.employees ? `Staff: ${p.employees}` : "", p.volunteers ? `Volunteers: ${p.volunteers}` : "", p.expertise || ""].filter(Boolean).join("\n");
+  if (team) { v.team = team.slice(0, 2500); why.team = "profile"; }
+  const track = [p.previousProjects || "", p.fundingDetails || ""].filter(Boolean).join("\n\n");
+  if (track) { v.track = track.slice(0, 2500); why.track = "profile"; }
+  const extra = [p.infrastructure ? `Infrastructure and resources: ${p.infrastructure}` : "", p.partnerships ? `Existing partnerships and networks: ${p.partnerships}` : ""].filter(Boolean).join("\n\n");
+  if (extra) { v.extra = extra.slice(0, 3000); why.extra = "profile"; }
+  return { values: v, why, duration: d, trl: tpl.key === "HE-CSA" ? null : callTrl(call) };
+}
+// Values that look wrong for this call: shown under the fields while the applicant types, and once more before writing.
+export function factWarnings(facts, { tpl, call, rules }) {
+  const out = [], f = (call && call.funding) || {}, a = +facts.amount || 0, m = +facts.durationMonths || 0;
+  if (tpl.programme !== "erasmus" && a) {
+    const lo = f.minPerGrant || (f.maxPerGrant ? f.maxPerGrant * 0.25 : 0);
+    if (f.maxPerGrant && a > f.maxPerGrant) out.push({ field: "amount", key: "amountHigh", args: [f.maxPerGrant] });
+    else if (lo && a < lo * 0.5) out.push({ field: "amount", key: f.minPerGrant ? "amountLowRange" : "amountLow", args: f.minPerGrant ? [f.minPerGrant, f.maxPerGrant || f.minPerGrant] : [f.maxPerGrant] });
+  }
+  if (m) {
+    const r = (rules && rules.durationMonths) || ((callDuration(call) || {}).range) || null;
+    if (r && (m < r[0] || m > r[1])) out.push({ field: "durationMonths", key: "durRange", args: [r[0], r[1]] });
+    else if (!r && tpl.programme === "horizon" && m < 12) out.push({ field: "durationMonths", key: "durShort", args: [USUAL_MONTHS[tpl.key] || 36] });
+  }
+  return out;
 }

@@ -406,3 +406,7 @@ table.off-t th { text-align: left; font-weight: 600; color: var(--muted); width:
 .app-f .oi-row select { width: auto; }
 .app-q { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
 .app-q .q { margin: 0; font-weight: 600; font-size: 13.5px; color: var(--ink-2); }
+/* suggested values in the application form, and the improvement step under an evaluation */
+.app-f .sugg { color: var(--muted, inherit); font-style: italic; font-weight: 400; }
+.app-f .fine.warn:empty { display: none; }
+.ev-improve { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 6px; }

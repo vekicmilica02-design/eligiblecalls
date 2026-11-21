@@ -225,11 +225,12 @@ async function startDraft({ env, db, org, user, profile, row, tpl, body, now, fe
     at: now, model: r.model || null, title: plan.title,
     call: { id: row.call_id, title: ctx.c ? ctx.c.t : row.call_title, programme: ctx.c ? ctx.c.p : null, deadline: ctx.c ? (nextDeadline(ctx.c, now) || "").split("|")[0] : row.call_deadline, maxPerProject: ctx.callMax, currency: ctx.cur },
   };
-  await db.prepare("UPDATE project_ideas SET proposal = ?, updated_at = ? WHERE id = ? AND org_id = ?").bind(JSON.stringify(draft), now, row.id, org.id).run();
+  // A new application replaces the old one, and its evaluations belonged to the old text.
+  await db.prepare("UPDATE project_ideas SET proposal = ?, evaluations = NULL, updated_at = ? WHERE id = ? AND org_id = ?").bind(JSON.stringify(draft), now, row.id, org.id).run();
   return json({ proposal: draft, units: units.map((u) => u.key), checks: checkDraft(draft, { rules, callMax: ctx.callMax }) });
 }
 
-export function sectionMessages({ tpl, unit, draft, call, profile, others, planMax = 6000 }) {
+export function sectionMessages({ tpl, unit, draft, call, profile, others, planMax = 6000, revise = null }) {
   const f = draft.facts, p = draft.plan, ps = draft.participants;
   const lang = unit.english ? "en" : f.lang;
   const form = tpl.kind === "form";
@@ -255,9 +256,17 @@ export function sectionMessages({ tpl, unit, draft, call, profile, others, planM
       : `4. Length: about ${unit.target} characters in total. ${PLAIN}${unit.canvas ? " Use the six canvas headings as \"### \" sub-headings." : ""}`,
     `5. Write in ${LANG(lang)}.`, ...srRule(lang),
     form ? `6. Answer with one JSON object and nothing else: {"answers": {${unit.questions.map((q) => `"${q.id}": "..."`).join(", ")}}}` : "6. Answer with the text only: no title line, no introduction, no closing remark.",
+    ...(revise ? [
+      "7. This is a REVISION. The current text and the evaluator's comments on it are given below. Keep what is correct and specific: every fact, number, name and the applicant's own wording where it works. Change the text so it answers the comments: fix the weaknesses, add what is missing and carry out the changes listed for this part. Where a change needs a fact that the profile, the facts and the plan do not give, write \"" + TBC(lang) + "\" in its place instead of inventing it. Keep the existing \"" + TBC(lang) + "\" markers unless the facts now give the information.",
+      "8. Length: about as long as the current text, at most a fifth longer, and within rule 4.",
+    ] : []),
   ].join("\n");
   const parts = [`CALL\n<call>\n${call}\n</call>`, `ORGANISATION PROFILE\n<profile>\n${profile}\n</profile>`, `APPLICANT'S FACTS\n<facts>\n${factsBlock(f, tpl, true)}\n</facts>`, `PLAN\n<plan>\n${planText(p, ps, ["s31", "wp", "pm1", "pm2", "act"].includes(unit.id) || !!unit.tablesAfter || tpl.key === "KA210", planMax)}\n</plan>`];
   if (others) parts.push(`EARLIER ANSWERS (for the summary)\n<answers>\n${others}\n</answers>`);
+  if (revise) {
+    parts.push(`CURRENT TEXT OF THIS PART\n<current>\n${revise.current}\n</current>`);
+    parts.push(`EVALUATOR'S COMMENTS (indicative evaluation of the full application)\n<comments>\n${revise.comments}\n</comments>`);
+  }
   return [{ role: "system", content: system }, { role: "user", content: parts.join("\n\n") + "\n\nWrite it now." }];
 }
 
@@ -297,18 +306,34 @@ export async function writeSection({ env, db, org, user, profile, ideaId, body, 
   const units = unitsOf(tpl, draft.plan, draft.facts.lang);
   const unit = units.find((u) => u.key === String(body.key || ""));
   if (!unit) throw new HttpError(400, "bad_unit");
-  if (draft.sections[unit.key] && draft.sections[unit.key].text && !body.fresh) return json({ key: unit.key, section: draft.sections[unit.key], cached: true });
+  const improve = !!body.improve;
+  if (draft.sections[unit.key] && draft.sections[unit.key].text && !body.fresh && !improve) return json({ key: unit.key, section: draft.sections[unit.key], cached: true });
+  let revise = null;
+  if (improve) {
+    // Rewrite this part with the comments of the latest evaluation of the application on the criteria it answers.
+    const cur = draft.sections[unit.key];
+    if (!cur || !cur.text) throw new HttpError(409, "no_text");
+    const evs = row.evaluations ? JSON.parse(row.evaluations) : {};
+    const ev = Object.entries(evs).filter(([k, v]) => k[0] !== "_" && v && v.basis === "application").map(([, v]) => v).sort((a, b) => (b.at || 0) - (a.at || 0))[0];
+    if (!ev) throw new HttpError(409, "no_evaluation");
+    const crs = (ev.criteria || []).filter((c) => (c.units || []).includes(unit.key) && (c.score < c.max || (c.fixes || []).some((f) => f.part === unit.key)));
+    if (!crs.length) return json({ key: unit.key, section: cur, skipped: true });
+    const comments = crs.map((c) => [`Criterion "${c.name}": ${c.score} of ${c.max}.`,
+      ...(c.fixes || []).filter((f) => f.part === unit.key).map((f) => "- Change in this part: " + f.change),
+      ...(c.weaknesses || []).map((w) => "- Weakness: " + w), ...(c.missing || []).map((w) => "- Missing: " + w), ...(c.recommendations || []).map((w) => "- Recommendation: " + w)].join("\n")).join("\n\n").slice(0, 3500);
+    revise = { current: tpl.kind === "form" ? JSON.stringify({ answers: cur.answers || {} }) : cur.text, comments };
+  }
   const ctx = await draftContext({ env, url, row, profile, now });
   const wide = ["s11", "s21", "rel1", "needs", "desc1"].includes(unit.id);
   let others = null;
   if (unit.summary) others = units.filter((u) => !u.summary && draft.sections[u.key]).map((u) => `[${u.section || u.title}] ${clip(draft.sections[u.key].text, 500)}`).join("\n").slice(0, 3500);
   const lang = unit.english ? "en" : draft.facts.lang;
-  const { messages, maxOut } = fitRequest((cn, pn, pl) => sectionMessages({ tpl, unit, draft, call: ctx.callText(wide ? cn + 600 : cn), profile: clip(profileBlock(profile), pn), others, planMax: pl }), unit, lang);
+  const { messages, maxOut } = fitRequest((cn, pn, pl) => sectionMessages({ tpl, unit, draft, call: ctx.callText(revise ? Math.round(cn / 2) : wide ? cn + 600 : cn), profile: clip(profileBlock(profile), revise ? Math.round(pn / 2) : pn), others, planMax: revise ? Math.round(pl * 0.6) : pl, revise }), unit, lang);
   const charge = (draft.runs || 0) >= (draft.allowance || units.length * 2);
   const r = await complete({ env, userId: user.id, messages, agent: "proposal", maxOut, now, fetchImpl, waitUntil, prefer: "fast", charge });
   const sec = cleanSection(r.text, unit, tpl);
   if (!sec) throw new HttpError(502, "ai_bad_answer");
-  const stored = { ...sec, title: unit.n ? `${unit.n} ${unit.title}${unit.part ? " · " + unit.part : ""}` : `${unit.section}${unit.sub ? " · " + unit.sub : ""}${unit.ref ? " · " + unit.ref : ""}${unit.english ? " (English)" : ""}`, at: now, model: r.model || null, edited: false };
+  const stored = { ...sec, title: unit.n ? `${unit.n} ${unit.title}${unit.part ? " · " + unit.part : ""}` : `${unit.section}${unit.sub ? " · " + unit.sub : ""}${unit.ref ? " · " + unit.ref : ""}${unit.english ? " (English)" : ""}`, at: now, model: r.model || null, edited: false, ...(revise ? { improved: true } : {}) };
   // Only this unit and the run counter change, so a unit written in another tab is not overwritten.
   await db.prepare("UPDATE project_ideas SET proposal = json_set(proposal, '$.sections.' || ?, json(?), '$.runs', COALESCE(json_extract(proposal, '$.runs'), 0) + 1), updated_at = ? WHERE id = ? AND org_id = ?")
     .bind(unit.key, JSON.stringify(stored), now, row.id, org.id).run();

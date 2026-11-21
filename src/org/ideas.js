@@ -7,6 +7,7 @@
 // Profile text and call text are data for the model: instructions inside them are not followed.
 // Ideas are AI-generated proposals and are labelled as such; only the profile and the call data are verified.
 
+import { tplOf, unitsOf, draftHash, tbcCount } from "../../site/org/templates.js";
 import { prepare, nextDeadline, eligibilityFor, srRule } from "../core.js";
 import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json, randomId, utcDay } from "./http.js";
@@ -257,8 +258,15 @@ const rowOut = (r) => ({
   id: r.id, batchId: r.batch_id, callId: r.call_id, rank: r.rank, status: r.status, idea: JSON.parse(r.idea), match: r.match ? JSON.parse(r.match) : null,
   notes: r.notes || "", lang: r.lang, profileVersion: r.profile_version, callTitle: r.call_title, callDeadline: r.call_deadline, model: r.model,
   createdAt: r.created_at, updatedAt: r.updated_at,
-  proposal: r.proposal ? (() => { const p = JSON.parse(r.proposal); return p.v === 2 ? { v: 2, at: p.at, model: p.model, lang: p.lang, template: p.template, written: Object.values(p.sections || {}).filter((s) => s && s.text).length } : { at: p.at, model: p.model, lang: p.lang }; })() : null,
-  evaluations: r.evaluations ? JSON.parse(r.evaluations) : {},
+  proposal: r.proposal ? (() => {
+    const p = JSON.parse(r.proposal);
+    if (p.v !== 2) return { at: p.at, model: p.model, lang: p.lang };
+    const tpl = tplOf(p);
+    return { v: 2, at: p.at, model: p.model, lang: p.lang, template: p.template, written: Object.values(p.sections || {}).filter((s) => s && s.text).length,
+      total: tpl ? unitsOf(tpl, p.plan, p.facts && p.facts.lang).length : null, hash: draftHash(p), tbc: tbcCount(p) };
+  })() : null,
+  // Only evaluations of the full application are shown; the earlier evaluations of the short idea stay in the database.
+  evaluations: r.evaluations ? Object.fromEntries(Object.entries(JSON.parse(r.evaluations)).filter(([k, v]) => k[0] !== "_" && v && v.basis === "application")) : {},
 });
 
 export async function listIdeas(db, orgId) {
@@ -436,6 +444,7 @@ export async function translateIdea({ env, db, org, user, ideaId, body, now, fet
   if ((row.lang !== lang && !(idea.tr && idea.tr[lang] && !fixSr(idea.tr[lang]))) || ideaFix) for (const [k, v] of Object.entries(ideaTexts(idea))) texts["i|" + k] = v;
   const evFix = new Set();
   for (const [key, ev] of Object.entries(evs)) {
+    if (key[0] === "_" || !ev || ev.basis !== "application") continue;   // only the evaluations that are shown
     const own = (ev.lang || "en") === lang;
     if (own && fixSr(evalTexts(ev))) evFix.add(key);
     else if (own || (ev.tr && ev.tr[lang] && !fixSr(ev.tr[lang]))) continue;

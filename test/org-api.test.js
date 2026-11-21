@@ -495,12 +495,9 @@ await t("premium access: one free generation, then paywall; request e-mails the 
   assert.equal((await call("GET", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia })).j.proposal.title, "Media literacy lab", "and the stored one is kept");
   // evaluation against the call's own criteria (detailed cases in the next test): stored under the rubric's key
   const rb = rubricFor({ id: c1.id }, CRIT, GUIDE);
-  if (rb && rb.criteria) {
-    aiAnswer = JSON.stringify({ criteria: rb.criteria.map((c) => ({ id: c.id, score: c.max, justification: "j" })), summary: "s", priorityActions: ["p"] });
-    r = await call("POST", `/api/orgs/${o}/ideas/${iid}/evaluate`, { cookie: pia, body: { lang: "en" } });
-    assert.equal(r.status, 200, JSON.stringify(r.j)); assert.equal(r.j.evaluation.key, rb.key); assert.equal(r.j.evaluation.usedProposal, true);
-    assert.match(aiSeen.at(-1).messages[1].content, /DETAILED PROPOSAL/);
-  } else if (!rb) assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/evaluate`, { cookie: pia, body: {} })).j.error, "no_criteria");
+  // the evaluation reads only a full application (cases in the evaluation test): the short proposal is not evaluated
+  if (rb) assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/evaluate`, { cookie: pia, body: { lang: "en" } })).j.error, "no_application");
+  else assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/evaluate`, { cookie: pia, body: {} })).j.error, "no_criteria");
   const listed = (await call("GET", `/api/orgs/${o}/ideas`, { cookie: pia })).j.ideas.find((x) => x.id === iid);
   assert.equal(listed.proposal.lang, "sr");
   // revoke: refused at once
@@ -548,7 +545,8 @@ await t("account deletion: blocked while sole owner of a shared organisation; re
   assert.equal((await call("GET", "/api/me", { cookie: bob })).j.user, null, "session gone");
 });
 
-await t("idea evaluation uses the criteria of the idea's own call: Horizon annex, call document table, funder text, Erasmus+ guide, or none", async () => {
+await t("evaluation reads the full application, one award criterion at a time: Horizon annex, call document table, funder text, Erasmus+ guide, or none; improvement from the evaluation", async () => {
+  const { TEMPLATES, templateFor, unitsOf, generalTemplate, criterionUnits } = await import("../site/org/templates.js");
   const ids = Object.keys(CRIT.calls);
   const he = ids.find((k) => CRIT.calls[k].kind === "framework" && !CRIT.calls[k].twoStage && CRIT.calls[k].row === "RIA_IA");
   const doc = ids.find((k) => { const r = rubricFor({ id: k }, CRIT, GUIDE); return r && r.kind === "document" && r.criteria.every((c) => c.min !== null) && r.total.threshold !== null; });
@@ -561,60 +559,125 @@ await t("idea evaluation uses the criteria of the idea's own call: Horizon annex
   await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { name: "Ivo org", orgType: "ngo", country: "RS", description: "Youth NGO." }, baseVersion: 1 } });
   const uid = (await call("GET", "/api/admin/access", { cookie: adm })).j.users.find((x) => x.email === "ivo@example.org").id;
   assert.equal((await call("POST", `/api/admin/users/${uid}/access`, { cookie: adm, body: { action: "grant" } })).j.status, "active");
-  let n = 0; const idea = (callId) => { const id = "idea-" + (++n) + "-" + callId.slice(0, 20); env.DB.prepare("INSERT INTO project_ideas (id, org_id, batch_id, call_id, rank, status, idea, match, lang, profile_version, call_title, created_by, created_at, updated_at) VALUES (?, ?, 'b', ?, 1, 'saved', ?, '{}', 'en', 2, ?, ?, ?, ?)").bind(id, o, callId, JSON.stringify({ callId, title: "Idea", concept: "c" }), "Call " + callId, uid, NOW, NOW).run(); return id; };
-  const ev = async (callId, answer) => { aiAnswer = JSON.stringify(answer); return call("POST", `/api/orgs/${o}/ideas/${idea(callId)}/evaluate`, { cookie: u, body: { lang: "en" } }); };
-  { const fid = idea(he); env.DB.prepare("UPDATE project_ideas SET idea = ? WHERE id = ?").bind(JSON.stringify({ callId: he, title: "Idea", concept: "c", fit: { alignment: 5, reasons: "SELF-RATING-MARKER" } }), fid).run();
-    aiAnswer = JSON.stringify({ criteria: [{ id: "c1", score: 3 }, { id: "c2", score: 3 }, { id: "c3", score: 3 }] });
-    assert.equal((await call("POST", `/api/orgs/${o}/ideas/${fid}/evaluate`, { cookie: u, body: { lang: "en" } })).status, 200);
-    assert.ok(!aiSeen.at(-1).messages[1].content.includes("SELF-RATING-MARKER"), "the idea's own fit ratings are not sent to the evaluator"); n++; }
-  // Horizon Europe: three criteria out of 5, half points, threshold 3 each and 10 in total
-  let r = await ev(he, { criteria: [{ id: "c1", score: 4.3 }, { id: "c2", score: 2 }, { id: "c3", score: 9 }], summary: "s" });
-  assert.equal(r.status, 200, JSON.stringify(r.j));
+  env.DB._db.prepare("DELETE FROM ai_usage WHERE user_id = ?").run(uid);
+  const plan = { title: "Youth resilience lab", acronym: "YRL", durationMonths: 24, summary: "Summary.", objectives: [{ id: "O1", text: "Train 200 youth workers", indicator: "trained", target: "200" }], targetGroups: [{ group: "Youth workers", reach: "200" }],
+    workPackages: [1, 2, 3].map((i) => ({ id: "WP" + i, title: "Work package " + i, lead: "P1", start: 1, end: 24, pm: { P1: 6 }, objectives: ["o"], tasks: [{ id: `T${i}.1`, title: "Task", lead: "P1", months: "M1-M6" }] })),
+    deliverables: [], milestones: [], risks: [], activities: [{ id: "A1", wp: "WP2", title: "Training", venue: "Novi Sad, Serbia", start: 3, end: 6, lead: "P1", participants: ["P1"], share: 100 }], budget: [] };
+  let n = 0;
+  const idea = (callId, { draft = true } = {}) => {
+    const id = "idea-" + (++n) + "-" + callId.slice(0, 20);
+    let proposal = null;
+    if (draft) {
+      const rb = rubricFor({ id: callId }, CRIT, GUIDE);
+      const tpl = templateFor(callId, CRIT, null, rb);
+      const gen = TEMPLATES[tpl.key] ? null : generalTemplate(rb, null);
+      const t2 = gen || tpl, units = unitsOf(t2, plan, "en");
+      const sections = Object.fromEntries(units.map((x) => [x.key, { title: x.key, text: `PART-${x.key} The association will train youth workers. Budget (to be confirmed).` }]));
+      proposal = JSON.stringify({ v: 2, template: t2.key, ...(gen ? { tpl: gen } : {}), lang: "en", facts: { lang: "en", partners: [], trl: {} }, participants: [{ code: "P1", name: "Ivo org", country: "Serbia" }], plan, sections, runs: units.length, allowance: units.length * 2 + 4, at: NOW, call: { id: callId } });
+    }
+    env.DB.prepare("INSERT INTO project_ideas (id, org_id, batch_id, call_id, rank, status, idea, match, lang, profile_version, call_title, created_by, created_at, updated_at, proposal) VALUES (?, ?, 'b', ?, 1, 'saved', ?, '{}', 'en', 2, ?, ?, ?, ?, ?)")
+      .bind(id, o, callId, JSON.stringify({ callId, title: "Idea", concept: "c", fit: { alignment: 5, reasons: "SELF-RATING-MARKER" } }), "Call " + callId, uid, NOW, NOW, proposal).run();
+    return id;
+  };
+  // every criterion of the call in order, the AI answer of each given by score
+  const evalAll = async (iid, callId, scores, extra = {}, force = false) => {
+    const rb = rubricFor({ id: callId }, CRIT, GUIDE); let r;
+    for (let i = 0; i < rb.criteria.length; i++) {
+      aiAnswer = JSON.stringify({ score: scores[i], justification: "j", strengths: ["s"], weaknesses: ["w" + i], missing: ["m"], recommendations: ["rec" + i], headline: "h" + i, fixes: [{ part: "NOT-A-PART", change: "dropped" }], ...extra });
+      r = await call("POST", `/api/orgs/${o}/ideas/${iid}/evaluate`, { cookie: u, body: { lang: "en", run: "run-" + iid, criterion: rb.criteria[i].id, force } });
+      assert.equal(r.status, 200, JSON.stringify(r.j));
+      assert.equal(r.j.done, i === rb.criteria.length - 1);
+    }
+    return r;
+  };
+  // the short idea alone is not evaluated
+  let r = await call("POST", `/api/orgs/${o}/ideas/${idea(he, { draft: false })}/evaluate`, { cookie: u, body: { lang: "en" } });
+  assert.deepEqual([r.status, r.j.error], [409, "no_application"]);
+  // nor an application with parts still to write
+  const part = idea(he); const row = env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = ?").get(part); const pd = JSON.parse(row.proposal); delete pd.sections.s32;
+  env.DB._db.prepare("UPDATE project_ideas SET proposal = ? WHERE id = ?").run(JSON.stringify(pd), part);
+  r = await call("POST", `/api/orgs/${o}/ideas/${part}/evaluate`, { cookie: u, body: { lang: "en" } });
+  assert.deepEqual([r.status, r.j.error, r.j.total - r.j.written], [409, "no_application", 1]);
+  // Horizon Europe: three criteria out of 5, half points, threshold 3 each and 10 in total; one AI action per evaluation
+  const left0 = (await call("GET", "/api/me/ai", { cookie: u })).j.left;
+  const hid = idea(he), seen0 = aiSeen.length;
+  r = await evalAll(hid, he, [4.3, 2, 9]);
+  assert.equal(aiSeen.length, seen0 + 3, "one request per criterion");
+  assert.equal((await call("GET", "/api/me/ai", { cookie: u })).j.left, left0 - 1, "one AI action for the whole evaluation");
   let e = r.j.evaluation;
-  assert.deepEqual([e.key, e.kind], ["HE-RIA_IA", "horizon"]);
+  assert.deepEqual([e.key, e.kind, e.basis], ["HE-RIA_IA", "horizon", "application"]);
   assert.deepEqual(e.criteria.map((c) => [c.name, c.max, c.min, c.score, c.pass]), [["Excellence", 5, 3, 4.5, true], ["Impact", 5, 3, 2, false], ["Quality and efficiency of the implementation", 5, 3, 5, true]]);
   assert.deepEqual([e.total, e.max, e.threshold, e.passesTotal, e.passesCriteria, e.passed], [11.5, 15, 10, true, false, false]);
-  assert.match(aiSeen.at(-1).messages[0].content, /score 0 to 5, half points allowed; at least 3 needed/);
-  assert.match(aiSeen.at(-1).messages[0].content, /General Annex|Annex D|General Annexes/);
-  // the Horizon Europe score descriptors and the concept rule are in the instructions; the idea's own fit ratings are not sent
-  assert.match(aiSeen.at(-1).messages[0].content, /3: good: the criterion is addressed well, but a number of shortcomings are present/);
-  assert.match(aiSeen.at(-1).messages[0].content, /This is a project concept, not a full application/);
-  assert.doesNotMatch(aiSeen.at(-1).messages[0].content, /an element the idea does not address earns nothing/);
+  assert.deepEqual(e.criteria[0].units, ["s11", "s12a", "s12b", "s12c"], "Excellence reads section 1 of Part B");
+  assert.deepEqual(e.criteria.map((c) => c.fixes.length), [0, 0, 0], "fixes for parts the criterion does not read are dropped");
+  assert.equal(e.summary, "h0 h1 h2"); assert.equal(e.priorityActions[0], "rec1", "the weakest criterion first");
+  const sys = aiSeen.at(-1).messages[0].content, usr = aiSeen.at(-1).messages[1].content;
+  assert.match(sys, /CRITERION: Quality and efficiency of the implementation \(score 0 to 5, half points allowed; at least 3 needed\)/);
+  assert.match(sys, /3: good: the criterion is addressed well, but a number of shortcomings are present/);
+  assert.match(sys, /This is the full application the organisation intends to submit/);
+  assert.match(sys, /"\(to be confirmed\)" are facts the applicant has not given yet/);
+  assert.match(usr, /\[s32\] s32\nPART-s32/); assert.doesNotMatch(usr, /PART-s11/, "only the parts of this criterion");
+  assert.ok(!aiSeen.slice(seen0).some((x) => x.messages.map((m) => m.content).join("\n").includes("SELF-RATING-MARKER")), "the idea's own fit ratings are not sent");
+  assert.ok(aiSeen.slice(seen0).every((x) => estTok(x.messages) + 1300 <= 7000), "each request fits Groq's per-minute room");
   // a call document with its score table: maxima and minima from the table, scores clamped
   const drb = rubricFor({ id: doc }, CRIT, GUIDE);
-  r = await ev(doc, { criteria: drb.criteria.map((c) => ({ id: c.id, score: c.max + 50 })) });
+  r = await evalAll(idea(doc), doc, drb.criteria.map((c) => c.max + 50));
   e = r.j.evaluation;
   assert.equal(e.key, "DOC"); assert.deepEqual(e.criteria.map((c) => c.score), drb.criteria.map((c) => c.max));
   assert.deepEqual([e.total, e.max, e.threshold, e.passed], [drb.total.max, drb.total.max, drb.total.threshold, true]);
-  // funder text without points: only criteria quoted from the text are kept, scored 0-5, no thresholds
+  // funder text without points: one request on the whole application; only criteria quoted from the text are kept
   const trb = rubricFor({ id: txt }, CRIT, GUIDE);
   const quote = trb.sourceText.split("\n").find((x) => x.length > 30).slice(0, 40);
-  r = await ev(txt, { criteria: [{ name: "Fit", quote, score: 4 }, { name: "Invented", quote: "global impact on the moon economy", score: 5 }] });
+  aiAnswer = JSON.stringify({ criteria: [{ name: "Fit", quote, score: 4 }, { name: "Invented", quote: "global impact on the moon economy", score: 5 }] });
+  r = await call("POST", `/api/orgs/${o}/ideas/${idea(txt)}/evaluate`, { cookie: u, body: { lang: "en" } });
   e = r.j.evaluation;
   assert.deepEqual([e.kind, e.criteria.length, e.criteria[0].score, e.max, e.threshold, e.passed], ["text", 1, 4, 5, null, null]);
-  assert.equal((await ev(txt, { criteria: [{ name: "Invented", quote: "nowhere in the text at all", score: 5 }] })).j.error, "ai_bad_answer");
-  // Erasmus+ round run by a national agency: the Programme Guide's KA210 criteria and thresholds
-  r = await ev(era, { criteria: [{ id: "c1", score: 35 }, { id: "c2", score: 10 }, { id: "c3", score: 14 }, { id: "c4", score: 15 }] });
+  assert.match(aiSeen.at(-1).messages[1].content, /FULL APPLICATION/);
+  // Erasmus+ round run by a national agency: the Programme Guide's KA210 criteria and thresholds, the form's parts
+  r = await evalAll(idea(era), era, [35, 10, 14, 15]);
   e = r.j.evaluation;
   assert.deepEqual(e.criteria.map((c) => [c.max, c.min, c.score, c.pass]), [[30, 15, 30, true], [30, 15, 10, false], [20, 10, 14, true], [20, 10, 15, true]]);
   assert.deepEqual([e.key, e.total, e.max, e.threshold, e.passed], ["KA210", 69, 100, 60, false]);
+  assert.deepEqual(e.criteria.map((c) => c.units), [["desc1", "desc2"], ["act_A1"], ["coop"], ["impact"]]);
   // a call whose criteria are not in the data cannot be evaluated
-  r = await ev(ptr, {});
+  r = await call("POST", `/api/orgs/${o}/ideas/${idea(ptr)}/evaluate`, { cookie: u, body: { lang: "en" } });
   assert.deepEqual([r.status, r.j.error], [409, "no_criteria"]);
-  const listed = (await call("GET", `/api/orgs/${o}/ideas`, { cookie: u })).j.ideas;
-  assert.equal(listed.filter((x) => Object.keys(x.evaluations).length).length, 5, "five evaluated ideas");
-  // unchanged inputs: the stored evaluation is returned without a model request; "force" asks the model again
-  const heIdea = listed.find((x) => x.evaluations["HE-RIA_IA"]);
-  const before = aiSeen.length, stored = heIdea.evaluations["HE-RIA_IA"];
-  aiAnswer = JSON.stringify({ criteria: [{ id: "c1", score: 1 }, { id: "c2", score: 1 }, { id: "c3", score: 1 }], summary: "different" });
-  r = await call("POST", `/api/orgs/${o}/ideas/${heIdea.id}/evaluate`, { cookie: u, body: { lang: "en" } });
-  assert.equal(r.status, 200); assert.equal(r.j.cached, true); assert.equal(aiSeen.length, before, "no model request");
-  assert.equal(r.j.evaluation.total, stored.total, "same stored result");
-  r = await call("POST", `/api/orgs/${o}/ideas/${heIdea.id}/evaluate`, { cookie: u, body: { lang: "en", force: true } });
-  assert.equal(aiSeen.length, before + 1, "force asks the model again"); assert.equal(r.j.evaluation.total, 3);
+  // an old evaluation of the short idea is kept in the database but not listed
+  env.DB._db.prepare("UPDATE project_ideas SET evaluations = ? WHERE id = ?").run(JSON.stringify({ "HE-RIA_IA": { key: "HE-RIA_IA", total: 9, max: 15, criteria: [] } }), part);
+  let listed = (await call("GET", `/api/orgs/${o}/ideas`, { cookie: u })).j.ideas;
+  assert.equal(listed.filter((x) => Object.keys(x.evaluations).length).length, 4, "four evaluated applications");
+  const hl = listed.find((x) => x.id === hid);
+  assert.deepEqual([hl.proposal.written, hl.proposal.total, hl.proposal.tbc, hl.proposal.hash === hl.evaluations["HE-RIA_IA"].appHash], [hl.proposal.total, 12, 12, true]);
+  // unchanged application: the stored scores are reused without a model request; "force" asks again
+  const before = aiSeen.length;
+  r = await evalAll(hid, he, [1, 1, 1]);
+  assert.equal(aiSeen.length, before, "no model request"); assert.equal(r.j.evaluation.total, 11.5);
+  for (const c of ["c1", "c2", "c3"]) { aiAnswer = JSON.stringify({ score: 3, justification: "j" }); r = await call("POST", `/api/orgs/${o}/ideas/${hid}/evaluate`, { cookie: u, body: { lang: "en", run: "forced", criterion: c, force: true } }); }
+  assert.equal(aiSeen.length, before + 3, "force asks the model again"); assert.equal(r.j.evaluation.total, 9);
+  // improvement: a part is rewritten with the comments of the criteria it answers; the evaluation paid for the round
+  r = await evalAll(hid, he, [4, 2, 5], { fixes: [{ part: "s21", change: "Name the KPI for each outcome" }, { part: "[s22]", change: "Add a dissemination table" }] }, true);
+  assert.deepEqual(r.j.evaluation.criteria[1].fixes.map((f) => f.part), ["s21", "s22"]);
+  const left1 = (await call("GET", "/api/me/ai", { cookie: u })).j.left;
+  aiAnswer = "The project's pathways towards impact, now with KPIs for every outcome and a budget (to be confirmed). ".repeat(4);
+  r = await call("POST", `/api/orgs/${o}/ideas/${hid}/proposal/section`, { cookie: u, body: { key: "s21", improve: true } });
+  assert.equal(r.status, 200, JSON.stringify(r.j)); assert.equal(r.j.section.improved, true); assert.equal(r.j.charged, false);
+  const ip = aiSeen.at(-1).messages.map((m) => m.content).join("\n");
+  assert.match(ip, /This is a REVISION/); assert.match(ip, /CURRENT TEXT OF THIS PART[\s\S]*PART-s21/); assert.match(ip, /Change in this part: Name the KPI for each outcome/);
+  assert.doesNotMatch(ip, /Add a dissemination table/, "only this part's changes");
+  assert.equal((await call("GET", "/api/me/ai", { cookie: u })).j.left, left1, "improving uses no action");
+  r = await call("POST", `/api/orgs/${o}/ideas/${hid}/proposal/section`, { cookie: u, body: { key: "s11", improve: true } });
+  assert.equal(r.j.skipped, undefined, "Excellence lost points, so its parts are improved");
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/${hid}/proposal/section`, { cookie: u, body: { key: "s31", improve: true } })).j.skipped, true, "a full score leaves its parts alone");
+  listed = (await call("GET", `/api/orgs/${o}/ideas`, { cookie: u })).j.ideas;
+  assert.notEqual(listed.find((x) => x.id === hid).proposal.hash, listed.find((x) => x.id === hid).evaluations["HE-RIA_IA"].appHash, "the evaluation is older than the text");
+  // the mapping covers every part of a hand-made template except the summary
+  const tpl = TEMPLATES.KA220, units = unitsOf(tpl, plan, "sr"), map = criterionUnits(tpl, units, rubricFor({ id: "ERASMUS-NA-2027-KA220-ADU-1" }, CRIT, GUIDE));
+  assert.deepEqual(units.filter((x) => !Object.values(map).flat().includes(x.key)).map((x) => x.key).sort(), ["summary", "summaryEn"]);
+
   // new ideas for the same call: the generator sees the call's award criteria and the last below-threshold evaluation
-  env.DB._db.prepare("UPDATE project_ideas SET evaluations = ? WHERE id = ?").run(JSON.stringify({ "HE-RIA_IA": { ...r.j.evaluation, passed: false,
-    criteria: r.j.evaluation.criteria.map((c, i) => (i === 2 ? { ...c, score: 1, pass: false, weaknesses: ["No work plan or partner roles"] } : c)) } }), heIdea.id);
+  const heIdea = { id: hid };
+  env.DB._db.prepare("UPDATE project_ideas SET evaluations = ? WHERE id = ?").run(JSON.stringify({ "HE-RIA_IA": { ...e, key: "HE-RIA_IA", passed: false, max: 15, threshold: 10,
+    criteria: [{ name: "Quality and efficiency of the implementation", score: 1, max: 5, min: 3, pass: false, weaknesses: ["No work plan or partner roles"] }] } }), heIdea.id);
   const heCall = JSON.parse(readFileSync(new URL("../site/data/index.json", import.meta.url), "utf8")).calls.find((c) => c.id === he);
   if (heCall && heCall.dl.some((d) => d.split("|")[0] > new Date(NOW).toISOString().slice(0, 16))) {
     aiAnswer = JSON.stringify({ ideas: [{ callId: he, title: "New concept", concept: "c", objectives: ["a by month 6", "b 40%"] }] });
@@ -623,23 +686,13 @@ await t("idea evaluation uses the criteria of the idea's own call: Horizon annex
     const prompt = aiSeen.at(-1).messages.map((m) => m.content).join("\n");
     assert.match(prompt, /AWARD CRITERIA[\s\S]*Quality and efficiency of the implementation: 0 to 5, at least 3 needed/);
     assert.match(prompt, /PREVIOUS EVALUATION[\s\S]*below the threshold[\s\S]*No work plan or partner roles/);
-    assert.match(prompt, /workPlan[\s\S]*impactPathway[\s\S]*dissemination/, "the idea answers the criteria with proposal elements");
-    // revision: an idea evaluated below the threshold is rewritten with that evaluation; its old evaluation goes
     const gen = r.j.ideas.find((x) => x.callId === he && x.status === "suggested");
-    env.DB._db.prepare("UPDATE project_ideas SET evaluations = ? WHERE id = ?").run(JSON.stringify({ "HE-RIA_IA": { key: "HE-RIA_IA", lang: "en", total: 6, max: 15, threshold: 10, passed: false, criteria: [{ name: "Impact", score: 2, max: 5, min: 3, pass: false, weaknesses: ["No dissemination plan"] }], summary: "Weak.", priorityActions: ["Add a dissemination plan"], at: NOW } }), gen.id);
-    aiAnswer = JSON.stringify({ ideas: [{ callId: he, title: "Revised concept", concept: "The association runs a revised concept for youth workers in three towns.", objectives: ["a by month 6", "b 40%"], dissemination: "Webinars for 200 youth workers", workPlan: ["WP1 (M1-M3): management → plan"] }] });
-    r = await call("POST", `/api/orgs/${o}/ideas/${gen.id}/improve`, { cookie: u, body: { lang: "en" } });
-    assert.equal(r.status, 200, JSON.stringify(r.j));
-    assert.deepEqual([r.j.idea.idea.title, r.j.idea.idea.revisions, r.j.idea.idea.previous.evaluation.total, Object.keys(r.j.idea.evaluations).length], ["Revised concept", 1, 6, 0]);
-    assert.equal(r.j.idea.idea.dissemination, "Webinars for 200 youth workers");
-    assert.match(aiSeen.at(-1).messages[1].content, /No dissemination plan/);
-    assert.equal((await call("POST", `/api/orgs/${o}/ideas/${gen.id}/improve`, { cookie: u, body: {} })).j.error, "not_below", "nothing to revise without a failed evaluation");
     // the idea and its evaluation in the other language: one translation, stored with them, not made twice
-    env.DB._db.prepare("UPDATE project_ideas SET evaluations = ? WHERE id = ?").run(JSON.stringify({ "HE-RIA_IA": { key: "HE-RIA_IA", lang: "en", total: 6, max: 15, criteria: [{ name: "Impact", score: 2, max: 5, justification: "Too vague." }], summary: "Weak.", at: NOW } }), gen.id);
-    aiAnswer = JSON.stringify({ "i|title": "Dorađeni koncept", "e|HE-RIA_IA|summary": "Slabo.", "e|HE-RIA_IA|c0.justification": "Previše neodređeno." });
+    env.DB._db.prepare("UPDATE project_ideas SET evaluations = ? WHERE id = ?").run(JSON.stringify({ "HE-RIA_IA": { key: "HE-RIA_IA", basis: "application", lang: "en", total: 6, max: 15, criteria: [{ name: "Impact", score: 2, max: 5, justification: "Too vague." }], summary: "Weak.", at: NOW } }), gen.id);
+    aiAnswer = JSON.stringify({ "i|title": "Novi koncept", "e|HE-RIA_IA|summary": "Slabo.", "e|HE-RIA_IA|c0.justification": "Previše neodređeno." });
     r = await call("POST", `/api/orgs/${o}/ideas/${gen.id}/translate`, { cookie: u, body: { lang: "sr" } });
     assert.equal(r.status, 200, JSON.stringify(r.j));
-    assert.equal(r.j.idea.idea.tr.sr.title, "Dorađeni koncept"); assert.equal(r.j.idea.idea.tr.sr.concept, "The association runs a revised concept for youth workers in three towns.", "a value the model left out keeps the original");
+    assert.equal(r.j.idea.idea.tr.sr.title, "Novi koncept");
     assert.equal(r.j.idea.evaluations["HE-RIA_IA"].tr.sr["c0.justification"], "Previše neodređeno.");
     const n0 = aiSeen.length;
     await call("POST", `/api/orgs/${o}/ideas/${gen.id}/translate`, { cookie: u, body: { lang: "sr" } });
@@ -651,8 +704,33 @@ await t("idea evaluation uses the criteria of the idea's own call: Horizon annex
     assert.equal(r.status, 200, JSON.stringify(r.j));
     assert.equal(aiSeen.length, n1 + 2, "generation and one translation");
     assert.match(aiSeen.at(-1).messages[0].content, /You translate the text values of a JSON object into Serbian/);
-    env.DB._db.prepare("DELETE FROM ai_usage WHERE user_id = (SELECT id FROM users WHERE email = 'ivo@example.org')").run();   // later tests start with a fresh daily allowance
   }
+  env.DB._db.prepare("DELETE FROM ai_usage WHERE user_id = (SELECT id FROM users WHERE email = 'ivo@example.org')").run();   // later tests start with a fresh daily allowance
+});
+
+await t("application details suggested from the call, the idea and the profile; warnings for values that do not fit the call", async () => {
+  const { TEMPLATES, suggestFacts, factWarnings, callDuration, callTrl, callLumpSum } = await import("../site/org/templates.js");
+  const he = TEMPLATES["HE-RIA-IA"];
+  const call = { funding: { minPerGrant: 1500000, maxPerGrant: 1500000 }, conditions: "Eligible costs will take the form of a lump sum as defined in the Decision of 7 July 2021. Information on the outcome of the evaluation: Maximum 5 months from the final date for submission.",
+    description: "Activities are expected to start at TRL 4-5 and achieve TRL 6 by the end of the project." };
+  const s = suggestFacts({ tpl: he, call, idea: { potentialPartners: ["University | AI lab", "Energy utility"] }, profile: { employees: 40, expertise: "Energy data", previousProjects: "EU project X", infrastructure: "Lab" } });
+  assert.deepEqual([s.values.durationMonths, s.why.durationMonths, s.values.amount, s.why.amount, s.values.lumpSumFunding, s.values.trl], [36, "usual", 1500000, "callMax", true, { start: 4, end: 6 }]);
+  assert.equal(s.values.partners, "(partner to be confirmed) |  | University / AI lab | \n(partner to be confirmed) |  | Energy utility | ");
+  assert.deepEqual([s.values.team, s.values.track, s.values.extra], ["Staff: 40\nEnergy data", "EU project X", "Infrastructure and resources: Lab"]);
+  assert.equal(callDuration(call), null, "the evaluation time is not a project duration");
+  assert.deepEqual(callDuration({ conditions: "Expected project duration: 48 months" }), { months: 48, range: null });
+  assert.deepEqual(callDuration({ description: "Funded projects (4 to 12 months in duration) will implement" }), { months: 12, range: [4, 12] });
+  assert.equal(callDuration({ description: "for a continuous period of at least 6 months" }), null);
+  assert.deepEqual(callTrl({ description: "Activities are expected to achieve TRL 5-7 by the end of the project" }), { start: null, end: 5, endMax: 7, text: "achieve TRL 5-7 by the end" });
+  assert.equal(callLumpSum({ conditions: "Decision authorising the use of lump sum contributions under the Horizon Europe Programme" }), false, "the list of legal documents does not make a topic lump sum");
+  assert.deepEqual(factWarnings({ amount: 3000, durationMonths: 7 }, { tpl: he, call }).map((w) => w.key), ["amountLowRange", "durShort"]);
+  assert.deepEqual(factWarnings({ amount: 1500000, durationMonths: 36 }, { tpl: he, call }), []);
+  assert.deepEqual(factWarnings({ amount: 2e6 }, { tpl: he, call }).map((w) => w.key), ["amountHigh"]);
+  const ka = TEMPLATES.KA220, rules = GUIDE.actions.find((a) => a.id === "KA220").rules;
+  const k = suggestFacts({ tpl: ka, call: {}, idea: {}, profile: {}, rules });
+  assert.equal(k.why.durationMonths, "rules"); assert.ok(k.values.durationMonths >= rules.durationMonths[0] && k.values.durationMonths <= rules.durationMonths[1]);
+  assert.equal(k.values.amount, undefined, "the Erasmus+ lump sum is the applicant's choice");
+  assert.deepEqual(factWarnings({ durationMonths: 99 }, { tpl: ka, call: {}, rules }).map((w) => w.key), ["durRange"]);
 });
 
 await t("official eligibility check: quotes verified against the official text, consortium never fails, stored per profile version", async () => {
@@ -1117,11 +1195,14 @@ await t("full application: plan, then one unit at a time; tables and amounts by 
   assert.ok(draftDigest(full).length <= 9000);
   const listed = (await call("GET", `/api/orgs/${o}/ideas`, { cookie: u })).j.ideas.find((x) => x.id === "ih");
   assert.deepEqual([listed.proposal.v, listed.proposal.template, listed.proposal.written], [2, "HE-RIA-IA", units.length]);
-  // evaluation reads the digest of the full application
+  // the written application is evaluated criterion by criterion: the plan and the parts that answer the criterion
   const rb = rubricFor({ id: he.id }, CRIT, GUIDE);
-  aiAnswer = JSON.stringify({ criteria: rb.criteria.map((c) => ({ id: c.id, score: 4, justification: "j" })), summary: "s", priorityActions: ["p"] });
-  r = await call("POST", `/api/orgs/${o}/ideas/ih/evaluate`, { cookie: u, body: { lang: "en" } });
-  assert.equal(r.status, 200, JSON.stringify(r.j)); assert.match(aiSeen.at(-1).messages[1].content, /DETAILED PROPOSAL[\s\S]*Title: Clean rivers[\s\S]*Work packages: WP1/);
+  for (const c of rb.criteria) {
+    aiAnswer = JSON.stringify({ score: 4, justification: "j", headline: "h" });
+    r = await call("POST", `/api/orgs/${o}/ideas/ih/evaluate`, { cookie: u, body: { lang: "en", run: "x", criterion: c.id } });
+    assert.equal(r.status, 200, JSON.stringify(r.j));
+  }
+  assert.equal(r.j.evaluation.total, 12); assert.match(aiSeen.at(-1).messages[1].content, /PLAN OF THE APPLICATION[\s\S]*Title: Clean rivers[\s\S]*Work packages:[\s\S]*\[s32\]/);
   // Erasmus+ KA220: lump sum split exactly; WP1 is project management; answers by question; summary in English too
   aiAnswer = (input) => /You plan a complete application/.test(input.messages[0].content) ? JSON.stringify(plan)
     : JSON.stringify({ answers: Object.fromEntries([...input.messages[0].content.matchAll(/^- \[(\w+)\]/gm)].map((m) => [m[1], "Odgovor " + m[1] + ". ".repeat(30)])) });

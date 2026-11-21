@@ -17,6 +17,7 @@ import { matchKey } from "./extract.js";
 import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
 import { textHash } from "../../site/org/lang.js";
 import { SR_STYLE } from "../core.js";
+import { draftDigest } from "../../site/org/templates.js";
 
 let GUIDE = null, CRIT = null;
 async function asset(env, url, path) {
@@ -98,7 +99,7 @@ export function evaluationMessages({ rubric, call, idea, proposal, profile, lang
     ];
   }
   const system = [...head, ...body].join("\n");
-  const user = `CALL\nTitle: ${call.title}\nProgramme: ${call.programme || "?"}\nIdentifier: ${call.id}\n\nORGANISATION PROFILE\n<profile>\n${profile}\n</profile>\n\nPROJECT IDEA\n<idea>\n${JSON.stringify(idea)}\n</idea>\n${proposal ? `\nDETAILED PROPOSAL\n<proposal>\n${JSON.stringify(proposal).slice(0, 9000)}\n</proposal>\n` : ""}\nReturn the JSON object.`;
+  const user = `CALL\nTitle: ${call.title}\nProgramme: ${call.programme || "?"}\nIdentifier: ${call.id}\n\nORGANISATION PROFILE\n<profile>\n${profile}\n</profile>\n\nPROJECT IDEA\n<idea>\n${JSON.stringify(idea)}\n</idea>\n${proposal ? `\nDETAILED PROPOSAL\n<proposal>\n${typeof proposal === "string" ? proposal : JSON.stringify(proposal).slice(0, 9000)}\n</proposal>\n` : ""}\nReturn the JSON object.`;
   return [{ role: "system", content: system }, { role: "user", content: user }];
 }
 
@@ -149,6 +150,8 @@ export async function evaluateIdea({ env, db, org, user, profile, ideaId, body, 
   const lang = body.lang === "sr" ? "sr" : body.lang === "en" ? "en" : row.lang;
   let proposal = null; try { proposal = row.proposal ? JSON.parse(row.proposal) : null; } catch { proposal = null; }
   if (proposal) { delete proposal.at; delete proposal.model; }
+  // A full application (v2): its plan and the start of every section, within the same length as before.
+  if (proposal && proposal.v === 2) proposal = draftDigest(proposal, 9000);
   // The idea without its own fit ratings: the evaluator scores the concept, not the generator's opinion of it (and the
   // ratings and their explanation cost about 400 tokens of Groq's per-minute limit).
   const { fit: _fit, ...forEval } = ideaForModel(JSON.parse(row.idea));

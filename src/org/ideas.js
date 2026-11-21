@@ -257,7 +257,7 @@ const rowOut = (r) => ({
   id: r.id, batchId: r.batch_id, callId: r.call_id, rank: r.rank, status: r.status, idea: JSON.parse(r.idea), match: r.match ? JSON.parse(r.match) : null,
   notes: r.notes || "", lang: r.lang, profileVersion: r.profile_version, callTitle: r.call_title, callDeadline: r.call_deadline, model: r.model,
   createdAt: r.created_at, updatedAt: r.updated_at,
-  proposal: r.proposal ? (() => { const p = JSON.parse(r.proposal); return { at: p.at, model: p.model, lang: p.lang }; })() : null,
+  proposal: r.proposal ? (() => { const p = JSON.parse(r.proposal); return p.v === 2 ? { v: 2, at: p.at, model: p.model, lang: p.lang, template: p.template, written: Object.values(p.sections || {}).filter((s) => s && s.text).length } : { at: p.at, model: p.model, lang: p.lang }; })() : null,
   evaluations: r.evaluations ? JSON.parse(r.evaluations) : {},
 });
 

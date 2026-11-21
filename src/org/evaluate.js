@@ -221,12 +221,15 @@ export async function evaluateIdea({ env, db, org, user, profile, ideaId, body, 
   const row = await db.prepare("SELECT * FROM project_ideas WHERE id = ? AND org_id = ?").bind(ideaId, org.id).first();
   if (!row) throw new HttpError(404, "not_found");
   const [crit, guide] = await Promise.all([loadCriteria(env, url), erasmusAction(row.call_id) ? loadGuide(env, url) : null]);
+  let draft = null; try { draft = row.proposal ? JSON.parse(row.proposal) : null; } catch { draft = null; }
+  // The call's title and programme come with the application; the call index (slow to read on a fresh server
+  // instance) is read only when there is none.
   let c = null;
-  try { c = (await loadIndex(env, url))._byId.get(row.call_id) || null; } catch { c = null; }
-  const call = { id: row.call_id, title: (c && c.t) || row.call_title || row.call_id, programme: (c && c.p) || "" };
+  const dc = draft && draft.v === 2 && draft.call && draft.call.programme ? draft.call : null;
+  if (!dc) { try { c = (await loadIndex(env, url))._byId.get(row.call_id) || null; } catch { c = null; } }
+  const call = { id: row.call_id, title: (dc && dc.title) || (c && c.t) || row.call_title || row.call_id, programme: (dc && dc.programme) || (c && c.p) || "" };
   const rubric = rubricFor(call, crit, guide);
   if (!rubric) throw new HttpError(409, "no_criteria", { url: (crit.calls[row.call_id] || {}).url || (c && c.u) || "" });
-  let draft = null; try { draft = row.proposal ? JSON.parse(row.proposal) : null; } catch { draft = null; }
   const tpl = draft && draft.v === 2 ? tplOf(draft) : null;
   const units = tpl ? unitsOf(tpl, draft.plan, draft.facts.lang) : [];
   const written = units.filter((u) => unitText(draft.sections[u.key]).trim()).length;

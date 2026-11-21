@@ -134,6 +134,9 @@ export async function callTemplate(env, url, callId) {
 }
 const nameOfCountry = (index, c) => { const n = index && index.countryNames && index.countryNames[String(c || "").toUpperCase()]; return n ? n[0] : c || ""; };
 
+const CALL_X = "Call text (excerpt): ";
+const callSnapshot = (ctx) => { const t = ctx.callText(2400); const i = t.indexOf(CALL_X); return i >= 0 ? { head: t.slice(0, i), x: t.slice(i + CALL_X.length) } : { head: t, x: "" }; };
+const fromSnapshot = (s) => (n) => (s.x ? s.head + CALL_X + clip(s.x, n) : s.head);
 async function draftContext({ env, url, row, profile, now }) {
   const index = await loadIndex(env, url);
   const c = index._byId.get(row.call_id) || null;
@@ -221,6 +224,9 @@ async function startDraft({ env, db, org, user, profile, row, tpl, body, now, fe
   if (!facts.durationMonths) facts.durationMonths = plan.durationMonths;
   const units = unitsOf(tpl, plan, facts.lang);
   const draft = {
+    // The call as the section prompts quote it, kept with the draft: writing a part then needs no call index (parsing
+    // it took about 50 ms of CPU on a fresh server instance, over the free plan's 10 ms per request).
+    callText: callSnapshot(ctx),
     v: 2, template: tpl.key, ...(TEMPLATES[tpl.key] ? {} : { tpl }), lang: facts.lang, facts, participants: ps, plan, sections: {}, runs: 0, allowance: units.length * 2 + 4,
     at: now, model: r.model || null, title: plan.title,
     call: { id: row.call_id, title: ctx.c ? ctx.c.t : row.call_title, programme: ctx.c ? ctx.c.p : null, deadline: ctx.c ? (nextDeadline(ctx.c, now) || "").split("|")[0] : row.call_deadline, maxPerProject: ctx.callMax, currency: ctx.cur },
@@ -323,12 +329,19 @@ export async function writeSection({ env, db, org, user, profile, ideaId, body, 
       ...(c.weaknesses || []).map((w) => "- Weakness: " + w), ...(c.missing || []).map((w) => "- Missing: " + w), ...(c.recommendations || []).map((w) => "- Recommendation: " + w)].join("\n")).join("\n\n").slice(0, 3500);
     revise = { current: tpl.kind === "form" ? JSON.stringify({ answers: cur.answers || {} }) : cur.text, comments };
   }
-  const ctx = await draftContext({ env, url, row, profile, now });
+  // Drafts made before the call text was kept with them read the call index once and keep the text from then on.
+  let callText;
+  if (draft.callText) callText = fromSnapshot(draft.callText);
+  else {
+    const snap = callSnapshot(await draftContext({ env, url, row, profile, now }));
+    await db.prepare("UPDATE project_ideas SET proposal = json_set(proposal, '$.callText', json(?)) WHERE id = ? AND org_id = ?").bind(JSON.stringify(snap), row.id, org.id).run();
+    callText = fromSnapshot(snap);
+  }
   const wide = ["s11", "s21", "rel1", "needs", "desc1"].includes(unit.id);
   let others = null;
   if (unit.summary) others = units.filter((u) => !u.summary && draft.sections[u.key]).map((u) => `[${u.section || u.title}] ${clip(draft.sections[u.key].text, 500)}`).join("\n").slice(0, 3500);
   const lang = unit.english ? "en" : draft.facts.lang;
-  const { messages, maxOut } = fitRequest((cn, pn, pl) => sectionMessages({ tpl, unit, draft, call: ctx.callText(revise ? Math.round(cn / 2) : wide ? cn + 600 : cn), profile: clip(profileBlock(profile), revise ? Math.round(pn / 2) : pn), others, planMax: revise ? Math.round(pl * 0.6) : pl, revise }), unit, lang);
+  const { messages, maxOut } = fitRequest((cn, pn, pl) => sectionMessages({ tpl, unit, draft, call: callText(revise ? Math.round(cn / 2) : wide ? cn + 600 : cn), profile: clip(profileBlock(profile), revise ? Math.round(pn / 2) : pn), others, planMax: revise ? Math.round(pl * 0.6) : pl, revise }), unit, lang);
   const charge = (draft.runs || 0) >= (draft.allowance || units.length * 2);
   const r = await complete({ env, userId: user.id, messages, agent: "proposal", maxOut, now, fetchImpl, waitUntil, prefer: "fast", charge });
   const sec = cleanSection(r.text, unit, tpl);

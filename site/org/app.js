@@ -4,6 +4,7 @@ import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completene
 import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS, HIGH, mandatorySummary, setGlossary, glossaryVersion } from "./rules.js";
 import { TEXT_FIELDS, textHash, estTokens, nonStandardSerbian, serbianLexFix } from "./lang.js";
 import { rubricFor, erasmusAction } from "./rubric.js";
+import { templateFor, tplOf, unitsOf, checkDraft, documentModel, factsText, ERASMUS_FIELDS } from "./templates.js";
 import { ideaIn as ideaInRaw, evalIn as evalInRaw, ideaTexts, evalTexts, applyIdeaTexts, applyEvalTexts } from "./content.js";
 
 const EC = window.EC;
@@ -165,6 +166,48 @@ const S = {
       alignment: "Alignment with the call and programme priorities", budget: "Indicative budget structure", requested: "Requested amount", callMax: "call maximum",
       noTotal: "The call states no amount per project; the structure below is in shares of the total.", category: "Category", share: "Share", indicative: "Indicative amount", noteCol: "Note",
       footer: "AI-assisted draft, check before use" },
+    app: {
+      title: "Full application", follows: "Follows the official structure",
+      basisCriteria: "This call's official application form is not in our data, so the structure follows the call's award criteria. Check the call's own form and move the text into it.",
+      basisGeneral: "This call's official application form and award criteria are not in our data, so the text follows a general project structure. Check the call's own form and move the text into it.", premium: "Writing the full application is a premium feature.",
+      lede: "Writes the whole application in the order of the official template, part by part, from your profile, this idea and the details below. Tables, months and amounts are made from one plan, so they match everywhere. You review it, fill in what is marked, and submit it yourself on the official portal.",
+      start: "Write the full application", open: "Open the application", hide: "Close the application", cont: "Continue writing", again: "Write again with new details",
+      againWarn: "Writing again replaces the current text, including your edits. Continue?", partsWritten: (n) => `${n} part(s) written so far.`,
+      pdf: "Download PDF", docx: "Download Word (.docx)", earlier: "Download the earlier short proposal (PDF)",
+      fTitle: "Details for the application", fNote: "What you enter here is used as fact. Whatever is missing is written as \"(to be confirmed)\" so you can fill it in later. Nothing is invented about your organisation or partners.",
+      fLang: "Language of the application", fLangHe: "Horizon Europe proposals are normally written in English.", fLangEp: "The Erasmus+ form also asks for the project summary in English; it is written as well.",
+      fDur: "Duration (months)", fAmount: "Requested EU contribution (EUR)", fAmountMax: (m) => `The call states up to ${m} EUR per project.`, fLump: "Lump sum (EUR)", fLumpPick: "Choose…",
+      fLumpTopic: "This topic uses lump sum funding (page limit is higher)", fField: "Field", fRole: "Our role", fCoord: "Coordinator", fPartner: "Partner",
+      fTrl: "Technology readiness level (optional)", fTrlStart: "at the start", fTrlEnd: "at the end",
+      fPartners: "Partners, one per line", fPartnersPh: "Name | Country | Type | Expertise and role in the project", fPartnersHint: (n) => `The programme needs at least ${n} organisations, including yours, from ${n} different countries. Missing partners are shown as places to fill in.`,
+      fTeam: "Team and key staff (roles, expertise; no personal data you do not want in the text)", fTrack: "Previous projects and results of your organisation and partners", fExtra: "Other facts the text must use (pilots, data, infrastructure, letters of support, policy links)",
+      fGo: "Write the application", fCancel: "Cancel", fields: { school: "School education", vet: "Vocational education and training", adult: "Adult education", youth: "Youth", higher: "Higher education" },
+      planning: "Planning objectives, work packages, deliverables and amounts…", writing: (i, n, t) => `Part ${i} of ${n}: ${t}`, busyWait: (s) => `The AI is busy (free tier, per-minute limit). Trying again in ${s} s…`,
+      done: "All parts are written. Review them below, fill in what is marked, then download.", stopped: "Writing stopped. Written parts are kept; press Continue writing to finish.",
+      checks: "Checks done by the platform", unitMissing: "not written yet", edited: "edited by you", chars: (n) => `${n.toLocaleString("en-GB")} characters`,
+      edit: "Edit", save: "Save", cancel: "Cancel", rewrite: "Write this part again", copy: "Copy", copied: "Copied.", saved: "Saved.", rewriteWarn: "Writing this part again replaces its text, including your edits. Continue?",
+      formLimits: "The online form shows the character limit of each field; compare it with the length shown here.",
+      declaration: "The Erasmus+ form asks the applicant to confirm that the application contains original content authored by the applicant organisation. Treat this text as a draft: rewrite it in your own words and check every statement.",
+      heNote: "Part A (participants, budget table, ethics and security) is filled in directly on the Funding & Tenders Portal; this document is Part B.",
+      doc: { acronym: "Acronym", call: "Call", template: "Template", duration: "Duration", months: "months", requested: "Requested EU contribution", lumpSum: "Lump sum",
+        disclaimer: "Draft prepared with AI assistance from the organisation's profile, the idea, the applicant's details and the call data, in the structure of the official template. Check every fact, number and rule against the call documents. Text marked \"(to be confirmed)\" needs your input. The applicant is responsible for the submitted content.",
+        tbc: "(to be completed)", tbcShort: "(to be confirmed)", participants: "List of participants", no: "No.", participant: "Participant", country: "Country", orgType: "Type", partner: "partner", coordinator: "coordinator",
+        gantt: "Timing of the work packages (Gantt chart)", t31a: "List of work packages", t31b: "Work package description", t31c: "List of deliverables", t31d: "List of milestones", t31e: "Critical risks for implementation", t31f: "Summary of staff effort",
+        t31g: "'Subcontracting costs' items", t31h: "'Purchase costs' items (major equipment costs)", t31gNote: "To be completed by the consortium if subcontracting is planned: participant, cost (EUR), description of tasks and justification.", t31hNote: "To be completed for participants whose equipment costs exceed 15% of their personnel costs: participant, cost (EUR), justification.",
+        wpNo: "WP No.", wpTitle: "Work package title", leadNo: "Lead No.", leadName: "Lead participant", pm: "Person-months", startM: "Start month", endM: "End month", startEnd: "Start and end", objectives: "Objectives", descWork: "Description of work",
+        delName: "Deliverable name", shortDesc: "Short description", type: "Type", dissem: "Dissemination level", month: "Delivery month", msName: "Milestone name", relWp: "Related WP(s)", dueMonth: "Due month", verification: "Means of verification",
+        riskDesc: "Description of risk", wpsInvolved: "WP(s) involved", mitigation: "Proposed risk-mitigation measures", likelihood: "likelihood", severity: "severity", lv: { low: "low", medium: "medium", high: "high" }, totalPm: "Total person-months",
+        context: "Context", item: "Item", value: "Value", field: "Field", formLang: "Language used to fill in the form", participatingOrgs: "Participating organisations",
+        activity: "Activity", venue: "Venue", start: "Start", end: "End", lead: "Leading organisation", amount: "Amount (EUR)", expected: "Expected results", grant: "Grant (EUR)", noActivities: "Number of activities", total: "Total",
+        pmAmount: "Grant amount allocated to project management", budgetSummary: "Budget summary", subcontractNote: "Subcontracting of services is allowed if it does not cover core activities; if planned, its amount must be included in the description of the activities.", characters: "characters", footer: "AI-assisted draft, check before submitting" },
+      chk: { pagesUnknown: (p) => `Estimated length about ${p} pages; the call's page limit is not in our data.`, basisCriteria: "Structure built from the call's award criteria, not from an official form: check the call's application form.", basisGeneral: "General structure, not an official form: check the call's application form and its questions.",
+        unitsDone: (n) => `All ${n} parts are written.`, unitsMissing: (m, n) => `${m} of ${n} parts are not written yet.`, pages: (p, l) => `Estimated length about ${p} pages; the limit is ${l} pages (the official template at its font size decides).`,
+        consortium: (n, c) => `${n} organisations from ${c} countries.`, consortiumHE: (n, c) => `${n} organisations from ${c} countries named. Most Horizon Europe topics need at least 3 independent organisations from 3 different EU Member States or Associated Countries; check the topic's conditions.`,
+        consortiumEP: (mo, mc, n, c) => `The action needs at least ${mo} organisations from ${mc} different countries (EU Member States or third countries associated to the Programme); ${n} from ${c} countries are named.`,
+        dmp: (id, m) => `Data management plan: ${id}, month ${m}.`, dmpMissing: "No data management plan deliverable by month 6 (required for funded proposals).", pmWp: (id) => `Project management work package: ${id}.`, pmWpMissing: "No project management work package (the template advises one).",
+        overMax: (a, m) => `The requested amount ${a} EUR is above the call's ${m} EUR per project.`, lumpSum: (a) => `Lump sum: ${a} EUR.`, lumpSumMissing: (l) => `Choose one of the lump sums: ${l.join(", ")} EUR.`,
+        duration: (d, a, b) => `Duration ${d} months (allowed ${a} to ${b}).`, durationMissing: (a, b) => `Set the duration (${a} to ${b} months).`, split: (n, a) => `The ${n} amounts add up to the lump sum of ${a} EUR.`, splitOff: (s, a) => `The amounts add up to ${s} EUR, not ${a} EUR.`,
+        fieldMissing: "Choose the field (school, VET, adult, youth or higher education).", tbc: (n) => `${n} place(s) marked "to be confirmed" need your input.`, noTbc: "Nothing is marked \"to be confirmed\"." } },
     pwTitle: "Premium access", pwTitleFree: "Free trial", pwLede: "You have used your free idea generation. Premium access unlocks further idea generation, the detailed proposal PDF and the Erasmus+ evaluation.",
     pwFreeLeft: (n) => `You can generate project ideas ${n === 1 ? "once" : n + " times"} for free. The detailed proposal PDF and the Erasmus+ evaluation need premium access.`,
     pwAskEarly: "Ask for premium access now", pwAsk: "Request access", pwAskDone: "Request sent. The administrator has been notified.",
@@ -348,6 +391,48 @@ const S = {
       alignment: "Usklađenost sa pozivom i prioritetima programa", budget: "Okvirna struktura budžeta", requested: "Traženi iznos", callMax: "maksimum poziva",
       noTotal: "Poziv ne navodi iznos po projektu; struktura ispod je u udelima ukupnog iznosa.", category: "Kategorija", share: "Udeo", indicative: "Okvirni iznos", noteCol: "Napomena",
       footer: "nacrt uz pomoć AI, proverite pre upotrebe" },
+    app: {
+      title: "Cela prijava", follows: "Prati zvaničnu strukturu",
+      basisCriteria: "Zvanični obrazac prijave za ovaj poziv nije u našim podacima, pa struktura prati kriterijume za dodelu iz poziva. Proverite obrazac samog poziva i prenesite tekst u njega.",
+      basisGeneral: "Zvanični obrazac prijave i kriterijumi za ovaj poziv nisu u našim podacima, pa tekst prati opštu strukturu projekta. Proverite obrazac samog poziva i prenesite tekst u njega.", premium: "Pisanje cele prijave je premium funkcija.",
+      lede: "Piše celu prijavu redom kojim ide zvanični obrazac, deo po deo, na osnovu vašeg profila, ove ideje i podataka ispod. Tabele, meseci i iznosi nastaju iz jednog plana, pa se svuda slažu. Vi pregledate tekst, popunite označena mesta i sami podnosite prijavu na zvaničnom portalu.",
+      start: "Napiši celu prijavu", open: "Otvori prijavu", hide: "Zatvori prijavu", cont: "Nastavi pisanje", again: "Napiši ponovo sa novim podacima",
+      againWarn: "Ponovno pisanje zamenjuje sadašnji tekst, uključujući vaše izmene. Nastaviti?", partsWritten: (n) => `Broj do sada napisanih delova: ${n}.`,
+      pdf: "Preuzmi PDF", docx: "Preuzmi Word (.docx)", earlier: "Preuzmi raniji kratak predlog (PDF)",
+      fTitle: "Podaci za prijavu", fNote: "Ono što ovde unesete koristi se kao činjenica. Ono što nedostaje upisuje se kao „(potrebno potvrditi)“, da biste kasnije dopunili. Ništa se ne izmišlja o vašoj organizaciji ni o partnerima.",
+      fLang: "Jezik prijave", fLangHe: "Predlozi za Horizont Evropa se po pravilu pišu na engleskom.", fLangEp: "Erasmus+ obrazac traži i rezime projekta na engleskom; i on se piše.",
+      fDur: "Trajanje (meseci)", fAmount: "Traženi doprinos EU (EUR)", fAmountMax: (m) => `Poziv navodi najviše ${m} EUR po projektu.`, fLump: "Paušalni iznos (EUR)", fLumpPick: "Izaberite…",
+      fLumpTopic: "Ova tema se finansira paušalnim iznosom (ograničenje broja strana je veće)", fField: "Oblast", fRole: "Naša uloga", fCoord: "Koordinator", fPartner: "Partner",
+      fTrl: "Nivo tehnološke spremnosti (TRL, nije obavezno)", fTrlStart: "na početku", fTrlEnd: "na kraju",
+      fPartners: "Partneri, jedan po redu", fPartnersPh: "Naziv | Država | Vrsta | Stručnost i uloga u projektu", fPartnersHint: (n) => `Najmanji broj organizacija, uključujući vašu: ${n}, i to iz isto toliko različitih država. Partneri koji nedostaju prikazuju se kao mesta za popunjavanje.`,
+      fTeam: "Tim i ključno osoblje (uloge, stručnost; bez ličnih podataka koje ne želite u tekstu)", fTrack: "Prethodni projekti i rezultati vaše organizacije i partnera", fExtra: "Druge činjenice koje tekst mora da koristi (pilot-projekti, podaci, infrastruktura, pisma podrške, veza sa javnim politikama)",
+      fGo: "Napiši prijavu", fCancel: "Otkaži", fields: { school: "Školsko obrazovanje", vet: "Stručno obrazovanje i obuka", adult: "Obrazovanje odraslih", youth: "Mladi", higher: "Visoko obrazovanje" },
+      planning: "Planiraju se ciljevi, radni paketi, isporuke i iznosi…", writing: (i, n, t) => `Deo ${i} od ${n}: ${t}`, busyWait: (s) => `AI je zauzet (besplatni nivo, ograničenje po minutu). Novi pokušaj za ${s} s…`,
+      done: "Svi delovi su napisani. Pregledajte ih ispod, popunite označena mesta, pa preuzmite.", stopped: "Pisanje je prekinuto. Napisani delovi su sačuvani; pritisnite Nastavi pisanje da biste završili.",
+      checks: "Provere koje radi platforma", unitMissing: "još nije napisano", edited: "izmenili ste", chars: (n) => `znakova: ${n.toLocaleString("sr-Latn-RS")}`,
+      edit: "Izmeni", save: "Sačuvaj", cancel: "Otkaži", rewrite: "Napiši ovaj deo ponovo", copy: "Kopiraj", copied: "Kopirano.", saved: "Sačuvano.", rewriteWarn: "Ponovno pisanje ovog dela zamenjuje njegov tekst, uključujući vaše izmene. Nastaviti?",
+      formLimits: "Onlajn obrazac prikazuje ograničenje broja znakova za svako polje; uporedite ga sa dužinom prikazanom ovde.",
+      declaration: "Erasmus+ obrazac traži od podnosioca da potvrdi da prijava sadrži originalan sadržaj čiji je autor organizacija podnosilac. Ovaj tekst koristite kao nacrt: preradite ga svojim rečima i proverite svaku tvrdnju.",
+      heNote: "Deo A (učesnici, tabela budžeta, etika i bezbednost) popunjava se direktno na portalu Funding & Tenders; ovaj dokument je Deo B.",
+      doc: { acronym: "Akronim", call: "Poziv", template: "Obrazac", duration: "Trajanje", months: "meseci", requested: "Traženi doprinos EU", lumpSum: "Paušalni iznos",
+        disclaimer: "Nacrt pripremljen uz pomoć AI na osnovu profila organizacije, ideje, podataka podnosioca i podataka o pozivu, u strukturi zvaničnog obrasca. Proverite svaku činjenicu, broj i pravilo u dokumentaciji poziva. Tekst označen sa „(potrebno potvrditi)“ zahteva vaš unos. Za podneti sadržaj odgovara podnosilac.",
+        tbc: "(potrebno dopuniti)", tbcShort: "(potrebno potvrditi)", participants: "Spisak učesnika", no: "Br.", participant: "Učesnik", country: "Država", orgType: "Vrsta", partner: "partner", coordinator: "koordinator",
+        gantt: "Vremenski raspored radnih paketa (Gantov dijagram)", t31a: "Spisak radnih paketa", t31b: "Opis radnog paketa", t31c: "Spisak isporuka", t31d: "Spisak ključnih tačaka", t31e: "Kritični rizici za realizaciju", t31f: "Pregled angažovanja osoblja",
+        t31g: "Stavke „troškova podugovaranja“", t31h: "Stavke „troškova nabavke“ (veća oprema)", t31gNote: "Konzorcijum popunjava ako planira podugovaranje: učesnik, trošak (EUR), opis zadataka i obrazloženje.", t31hNote: "Popunjava se za učesnike čiji troškovi opreme prelaze 15% troškova osoblja: učesnik, trošak (EUR), obrazloženje.",
+        wpNo: "Br. RP", wpTitle: "Naziv radnog paketa", leadNo: "Br. nosioca", leadName: "Nosilac", pm: "Osoba-meseci", startM: "Početni mesec", endM: "Završni mesec", startEnd: "Početak i kraj", objectives: "Ciljevi", descWork: "Opis rada",
+        delName: "Naziv isporuke", shortDesc: "Kratak opis", type: "Vrsta", dissem: "Nivo dostupnosti", month: "Mesec isporuke", msName: "Naziv ključne tačke", relWp: "Povezani RP", dueMonth: "Rok (mesec)", verification: "Način provere",
+        riskDesc: "Opis rizika", wpsInvolved: "Povezani RP", mitigation: "Predložene mere za ublažavanje rizika", likelihood: "verovatnoća", severity: "ozbiljnost", lv: { low: "niska", medium: "srednja", high: "visoka" }, totalPm: "Ukupno osoba-meseci",
+        context: "Kontekst", item: "Stavka", value: "Vrednost", field: "Oblast", formLang: "Jezik na kom se popunjava obrazac", participatingOrgs: "Organizacije učesnice",
+        activity: "Aktivnost", venue: "Mesto", start: "Početak", end: "Kraj", lead: "Organizacija nosilac", amount: "Iznos (EUR)", expected: "Očekivani rezultati", grant: "Grant (EUR)", noActivities: "Broj aktivnosti", total: "Ukupno",
+        pmAmount: "Iznos granta za upravljanje projektom", budgetSummary: "Pregled budžeta", subcontractNote: "Podugovaranje usluga je dozvoljeno ako ne obuhvata ključne aktivnosti; ako je planirano, iznos mora biti uključen u opis aktivnosti.", characters: "znakova", footer: "Nacrt urađen uz pomoć AI, proverite pre podnošenja" },
+      chk: { pagesUnknown: (p) => `Procenjena dužina je oko ${p} str.; ograničenje broja strana za ovaj poziv nije u našim podacima.`, basisCriteria: "Struktura je napravljena iz kriterijuma za dodelu, a ne iz zvaničnog obrasca: proverite obrazac prijave za poziv.", basisGeneral: "Opšta struktura, a ne zvanični obrazac: proverite obrazac prijave za poziv i njegova pitanja.",
+        unitsDone: (n) => `Napisani su svi delovi (${n}).`, unitsMissing: (m, n) => `Nenapisani delovi: ${m} od ${n}.`, pages: (p, l) => `Procenjena dužina je oko ${p} str.; ograničenje je ${l} str. (merodavan je zvanični obrazac sa propisanim fontom).`,
+        consortium: (n, c) => `Organizacija: ${n}; različitih država: ${c}.`, consortiumHE: (n, c) => `Navedeno organizacija: ${n}; različitih država: ${c}. Većina tema Horizonta Evropa traži najmanje 3 nezavisne organizacije iz 3 različite države članice EU ili pridružene države; proverite uslove teme.`,
+        consortiumEP: (mo, mc, n, c) => `Akcija traži najmanje ${mo} organizacije iz ${mc} različite države (države članice EU ili treće zemlje pridružene Programu). Navedeno organizacija: ${n}; različitih država: ${c}.`,
+        dmp: (id, m) => `Plan upravljanja podacima: ${id}, mesec ${m}.`, dmpMissing: "Nema isporuke plana upravljanja podacima do 6. meseca (obavezan za finansirane predloge).", pmWp: (id) => `Radni paket za upravljanje projektom: ${id}.`, pmWpMissing: "Nema radnog paketa za upravljanje projektom (obrazac ga preporučuje).",
+        overMax: (a, m) => `Traženi iznos ${a} EUR je veći od ${m} EUR po projektu koliko navodi poziv.`, lumpSum: (a) => `Paušalni iznos: ${a} EUR.`, lumpSumMissing: (l) => `Izaberite jedan od paušalnih iznosa: ${l.join(", ")} EUR.`,
+        duration: (d, a, b) => `Trajanje u mesecima: ${d} (dozvoljeno od ${a} do ${b}).`, durationMissing: (a, b) => `Unesite trajanje (od ${a} do ${b} meseci).`, split: (n, a) => `Zbir iznosa (stavki: ${n}) jednak je paušalnom iznosu od ${a} EUR.`, splitOff: (s, a) => `Zbir iznosa je ${s} EUR, a ne ${a} EUR.`,
+        fieldMissing: "Izaberite oblast (školsko, stručno obrazovanje, obrazovanje odraslih, mladi ili visoko obrazovanje).", tbc: (n) => `Mesta označena sa „potrebno potvrditi“ koja traže vaš unos: ${n}.`, noTbc: "Ništa nije označeno sa „potrebno potvrditi“." } },
     pwTitle: "Premium pristup", pwTitleFree: "Besplatna proba", pwLede: "Iskoristili ste besplatno generisanje ideja. Premium pristup omogućava dalje generisanje ideja, detaljan predlog u PDF-u i Erasmus+ ocenu.",
     pwFreeLeft: (n) => `Projektne ideje možete besplatno generisati ${n === 1 ? "jednom" : n + " puta"}. Detaljan predlog u PDF-u i Erasmus+ ocena zahtevaju premium pristup.`,
     pwAskEarly: "Zatražite premium pristup sada", pwAsk: "Zatraži pristup", pwAskDone: "Zahtev je poslat. Administrator je obavešten.",
@@ -1416,6 +1501,11 @@ async function loadCriteria() {
   if (!ST.crit) { try { const r = await fetch("org/criteria.json", { cache: "no-cache" }); ST.crit = r.ok ? await r.json() : { calls: {}, frameworks: {} }; } catch { ST.crit = { calls: {}, frameworks: {} }; } }
   return ST.crit;
 }
+// Which official application form each call uses (site/org/forms-index.json, written by ingest/app_forms.py).
+async function loadFormsIdx() {
+  if (ST.formsIdx === undefined) { try { const r = await fetch("org/forms-index.json", { cache: "no-cache" }); ST.formsIdx = r.ok ? await r.json() : null; } catch { ST.formsIdx = null; } }
+  return ST.formsIdx;
+}
 async function loadGuide() { if (!ST.guide) { const r = await fetch("org/erasmus-2026.json", { cache: "no-cache" }); ST.guide = await r.json(); } return ST.guide; }
 const ext = (url, label) => (url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)} ↗</a>` : "");
 const pts = (n) => String(n).replace(/\.0$/, "");
@@ -1666,12 +1756,12 @@ function ideaCard(x, res) {
     <p class="fine">${esc(T("conceptFitBasis"))}</p>
     ${fit == null ? "" : fitExplainHTML(x, it)}
     ${x.profileVersion !== ST.org.version ? `<p class="fine">${esc(T("ideaStale", x.profileVersion))}</p>` : ""}
-    <div class="idea-tools">
+    ${appTpl(x) ? appTools(x, appTpl(x)) : `<div class="idea-tools">
       <button type="button" class="btn pdf" data-act="pdf"${premium() || x.proposal ? "" : ` aria-describedby="pw-${esc(x.id)}"`}${x.proposal || (premium() && canEdit()) ? "" : " disabled"}><span class="pdf-ic" aria-hidden="true">PDF</span> ${esc(T(x.proposal ? "pdfDownload" : "pdfCreate"))}${premium() || x.proposal ? "" : ` <span class="lock">${esc(T("premiumTag"))}</span>`}</button>
       ${x.proposal && premium() && canEdit() ? `<button type="button" class="linkbtn" data-act="pdfnew">${esc(T("pdfRegenerate"))}</button>` : ""}
       ${premium() || x.proposal ? "" : `<span class="fine" id="pw-${esc(x.id)}">${esc(T("premiumNeeded"))}${canEdit() ? ` <a href="#oiPaywall" data-pw>${esc(T("premiumHow"))}</a>` : ""}</span>`}
       <span class="fine" role="status" data-pdfmsg></span>
-    </div>
+    </div>`}
     <details class="idea-more"><summary><span class="t">${esc(T("ideaMore"))}</span><span class="s">${esc(T("ideaMoreHint"))}</span></summary>
       <div class="idea-body">${["problem", "solution", "objectives", "targetGroups", "activities", "methodology", "workPlan", "expectedResults", "impactPathway", "dissemination", "management", "potentialPartners", "whyItFits"].map(sec).join("")}
       ${ratings.length ? `<div><h4>${esc(T("fitTitle"))}</h4><ul>${ratings.map((k) => `<li>${esc(T("fitL." + k))}: ${it.fit[k]}/5</li>`).join("")}</ul>${it.fit.reasons ? `<p class="fine">${esc(it.fit.reasons)}</p>` : ""}</div>` : ""}</div>
@@ -1753,6 +1843,293 @@ async function downloadProposal(x, p) {
   const pm = await loadPdfMake();
   await new Promise((res, rej) => { try { pm.createPdf(proposalDoc(x, p, ST.org && ST.org.profile && ST.org.profile.name)).download(fileSafe(p.title || x.idea.title) + ".pdf", res); } catch (e) { rej(e); } });
 }
+// ---------- Full application (v2): official template, written part by part (site/org/templates.js, src/org/proposal.js) ----------
+const DOCXJS = "https://cdn.jsdelivr.net/npm/docx@9.5.1/dist/index.iife.js";
+const appTpl = (x) => (ST.crit ? templateFor(x.callId, ST.crit, ST.formsIdx, ideaRubric(x)) : null);
+const epRules = (tpl) => { const a = tpl && tpl.action && ST.guide && ST.guide.actions.find((y) => y.id === tpl.action); return a ? { ...a.rules, fields: a.fields } : null; };
+const fmtInt = (n, lang) => new Intl.NumberFormat((lang || L()) === "sr" ? "sr-Latn-RS" : "en-GB", { maximumFractionDigits: 0 }).format(n);
+const docL = (lang) => ({ ...S[lang === "sr" ? "sr" : "en"].app.doc, money: (n) => fmtInt(n, lang) });
+if (!ST.drafts) ST.drafts = {};
+if (!ST.appOpen) ST.appOpen = new Set();
+const unitTitle = (u, d) => {
+  if (u.n) {
+    if (u.ref) { const w = (d.plan.workPackages || []).find((x) => x.id === u.ref); return `${u.n} ${u.ref}: ${w ? w.title : ""}`; }
+    return `${u.n === "0" ? "" : u.n + " "}${u.title}${u.part ? " · " + u.part : ""}`;
+  }
+  let t = u.section + (u.sub ? " · " + u.sub : "") + (u.part ? " (" + u.part + ")" : "");
+  if (u.ref) { const w = (d.plan.workPackages || []).find((x) => x.id === u.ref), a = (d.plan.activities || []).find((x) => x.id === u.ref); t += " · " + (w ? `${w.id}: ${w.title}` : a ? a.title : u.ref); }
+  return t + (u.english ? " (English)" : "");
+};
+function appTools(x, tpl) {
+  const p = x.proposal && x.proposal.v === 2 ? x.proposal : null, old = x.proposal && !x.proposal.v ? x.proposal : null;
+  const can = premium() && canEdit(), src = tpl.source;
+  return `<div class="idea-tools app-tools" data-app>
+    <div class="app-head"><b>${esc(T("app.title"))}</b><span class="fine">${tpl.basis === "criteria" || tpl.basis === "general" ? esc(T(tpl.basis === "criteria" ? "app.basisCriteria" : "app.basisGeneral")) : `${esc(T("app.follows"))}: ${esc(tpl.name)} · ${esc(src.title)}${src.version ? ", " + esc(src.version) : ""}${src.date ? ` (${esc(src.date)})` : ""}`}${src.url ? ` <a href="${esc(src.url)}" target="_blank" rel="noopener">↗</a>` : ""}</span></div>
+    <p class="fine">${esc(T("app.lede"))}</p>
+    <div class="oi-row">
+      ${p ? `<button type="button" class="btn pdf" data-act="appopen" aria-expanded="${ST.appOpen.has(x.id)}">${esc(T(ST.appOpen.has(x.id) ? "app.hide" : "app.open"))}</button><span class="fine">${esc(T("app.partsWritten", p.written || 0))}</span>`
+        : `<button type="button" class="btn pdf" data-act="appstart"${can ? "" : " disabled"}>${esc(T("app.start"))}${premium() ? "" : ` <span class="lock">${esc(T("premiumTag"))}</span>`}</button>`}
+      ${p && can ? `<button type="button" class="linkbtn" data-act="appagain">${esc(T("app.again"))}</button>` : ""}
+      ${old ? `<button type="button" class="linkbtn" data-act="pdf">${esc(T("app.earlier"))}</button>` : ""}
+      ${premium() ? "" : `<span class="fine">${esc(T("app.premium"))}${canEdit() ? ` <a href="#oiPaywall" data-pw>${esc(T("premiumHow"))}</a>` : ""}</span>`}
+    </div>
+    <span class="op" data-appmsg role="status"></span><span class="fine" role="status" data-pdfmsg></span>
+    <div data-appbody></div>
+  </div>`;
+}
+function factsForm(x, tpl, prev) {
+  const f = prev || {}, ep = tpl.programme === "erasmus", r = epRules(tpl) || {}, id = esc(x.id);
+  const call = (EC.CALLS || []).find((c) => c.id === x.callId), max = (call && call.funding && call.funding.maxPerGrant) || null;
+  const lang = f.lang || (ep ? L() : "en"), min = ep ? r.minOrganisations || 2 : tpl.minParticipants || 1;
+  const sel = (n, opts, v) => `<select id="${n}-${id}" name="${n}">${opts.map(([k, l]) => `<option value="${esc(k)}"${String(v ?? "") === String(k) ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+  const ta = (n, label, v, ph = "") => `<label class="app-f wide"><span>${esc(label)}</span><textarea name="${n}" rows="3" maxlength="3000"${ph ? ` placeholder="${esc(ph)}"` : ""}>${esc(v || "")}</textarea></label>`;
+  const trl = [["", "–"], ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => [n, "TRL " + n])];
+  return `<form class="app-form" data-appform>
+    <h4>${esc(T("app.fTitle"))}</h4><p class="note">${esc(T("app.fNote"))}</p>
+    <div class="app-grid">
+      <label class="app-f"><span>${esc(T("app.fLang"))}</span>${sel("lang", [["en", "English"], ["sr", "Srpski"]], lang)}<span class="fine">${esc(T(ep ? "app.fLangEp" : "app.fLangHe"))}</span></label>
+      <label class="app-f"><span>${esc(T("app.fDur"))}</span><input type="number" name="durationMonths" min="${r.durationMonths ? r.durationMonths[0] : 6}" max="${r.durationMonths ? r.durationMonths[1] : 72}" value="${esc(f.durationMonths || "")}"${r.durationMonths ? ` placeholder="${r.durationMonths[0]}–${r.durationMonths[1]}"` : ""}></label>
+      ${ep ? `<label class="app-f"><span>${esc(T("app.fLump"))}</span>${sel("amount", [["", T("app.fLumpPick")], ...(r.lumpSums || []).map((v) => [v, fmtInt(v)])], f.amount)}</label>
+        <label class="app-f"><span>${esc(T("app.fField"))}</span>${sel("field", [["", T("app.fLumpPick")], ...(r.fields || Object.keys(ERASMUS_FIELDS)).map((k) => [k, T("app.fields." + k)])], f.field)}</label>`
+      : `<label class="app-f"><span>${esc(T("app.fAmount"))}</span><input type="number" name="amount" min="0" step="1000"${max ? ` max="${max}"` : ""} value="${esc(f.amount || "")}">${max ? `<span class="fine">${esc(T("app.fAmountMax", fmtInt(max)))}</span>` : ""}</label>
+        <label class="app-f"><span>${esc(T("app.fRole"))}</span>${sel("role", [["coordinator", T("app.fCoord")], ["partner", T("app.fPartner")]], f.role)}</label>
+        <label class="opt app-f wide"><input type="checkbox" name="lumpSumFunding"${f.lumpSumFunding ? " checked" : ""}> ${esc(T("app.fLumpTopic"))}</label>
+        ${tpl.key !== "HE-CSA" ? `<div class="app-f"><span>${esc(T("app.fTrl"))}</span><div class="oi-row">${esc(T("app.fTrlStart"))} ${sel("trlStart", trl, f.trl && f.trl.start)} ${esc(T("app.fTrlEnd"))} ${sel("trlEnd", trl, f.trl && f.trl.end)}</div></div>` : ""}`}
+      <label class="app-f wide"><span>${esc(T("app.fPartners"))}</span><textarea name="partners" rows="4" maxlength="6000" placeholder="${esc(T("app.fPartnersPh"))}">${esc(f.partners ? factsText(f) : "")}</textarea>${min > 1 ? `<span class="fine">${esc(T("app.fPartnersHint", min))}</span>` : ""}</label>
+      ${ta("team", T("app.fTeam"), f.team)}${ta("track", T("app.fTrack"), f.track)}${ta("extra", T("app.fExtra"), f.extra)}
+    </div>
+    <div class="oi-row"><button type="submit" class="btn">${esc(T("app.fGo"))}</button><button type="button" class="btn ghost" data-act="appcancel">${esc(T("app.fCancel"))}</button></div>
+  </form>`;
+}
+function readFacts(form) {
+  const v = (n) => { const el = form.elements[n]; return el ? (el.type === "checkbox" ? el.checked : el.value) : undefined; };
+  return { lang: v("lang"), durationMonths: v("durationMonths"), amount: v("amount"), field: v("field") || undefined, role: v("role"), lumpSumFunding: !!v("lumpSumFunding"),
+    trl: { start: v("trlStart"), end: v("trlEnd") }, partners: v("partners"), team: v("team"), track: v("track"), extra: v("extra") };
+}
+const viewText = (t) => textParts(String(t || "").replace(/^### (.*)$/gm, "\u0000$1\u0000")).map((x) => x.ul ? `<ul>${x.ul.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>` : x.p.split("\u0000").map((seg, i) => (i % 2 ? `<strong class="sub">${esc(seg)}</strong>` : seg.trim() ? `<p>${esc(seg.trim())}</p>` : "")).join("")).join("");
+function unitHTML(u, d, tpl, can) {
+  const s = d.sections[u.key], chars = (t) => esc(T("app.chars", String(t || "").length));
+  const body = tpl.kind === "form"
+    ? u.questions.map((q) => { const a = (s && s.answers && s.answers[q.id]) || ""; return `<div class="app-q"><p class="q">${esc(q.q)}</p><div class="a" data-q="${esc(q.id)}">${a ? viewText(a) : `<span class="fine">${esc(T("app.unitMissing"))}</span>`}</div><div class="oi-row"><span class="fine num">${chars(a)}</span>${a ? `<button type="button" class="linkbtn" data-copy="${esc(q.id)}">${esc(T("app.copy"))}</button>` : ""}</div></div>`; }).join("")
+    : `<div class="a">${s && s.text ? viewText(s.text) : `<span class="fine">${esc(T("app.unitMissing"))}</span>`}</div>`;
+  return `<details class="app-unit" data-unit="${esc(u.key)}"><summary><span class="t">${esc(unitTitle(u, d))}</span><span class="fine">${s && s.text ? chars(s.text) : esc(T("app.unitMissing"))}${s && s.edited ? " · " + esc(T("app.edited")) : ""}</span></summary>
+    <div class="app-u-body">${body}<div class="oi-row">${can && s && s.text ? `<button type="button" class="btn quiet" data-uact="edit">${esc(T("app.edit"))}</button>` : ""}${can ? `<button type="button" class="linkbtn" data-uact="rewrite">${esc(T(s && s.text ? "app.rewrite" : "app.cont"))}</button>` : ""}${tpl.kind !== "form" && s && s.text ? `<button type="button" class="linkbtn" data-uact="copy">${esc(T("app.copy"))}</button>` : ""}<span class="fine" data-umsg role="status"></span></div></div></details>`;
+}
+const numArg = (a) => (Array.isArray(a) ? a.map(numArg) : typeof a === "number" && a >= 1000 ? fmtInt(a) : a);
+function viewerHTML(x, tpl, d) {
+  const can = premium() && canEdit(), units = unitsOf(tpl, d.plan, d.facts.lang);
+  const missing = units.filter((u) => !(d.sections[u.key] && d.sections[u.key].text)).length;
+  const checks = checkDraft(d, { rules: epRules(tpl), callMax: d.call && d.call.maxPerProject });
+  return `<div class="app-view">
+    <div class="oi-row"><button type="button" class="btn" data-act="apppdf"><span class="pdf-ic" aria-hidden="true">PDF</span> ${esc(T("app.pdf"))}</button><button type="button" class="btn quiet" data-act="appdocx">${esc(T("app.docx"))}</button>${missing && can ? `<button type="button" class="btn quiet" data-act="appcont">${esc(T("app.cont"))}</button>` : ""}</div>
+    <p class="note">${esc(tpl.kind === "partb" ? T("app.heNote") : T("app.declaration") + " " + T("app.formLimits"))}</p>
+    <h4>${esc(T("app.checks"))}</h4><ul class="app-checks">${checks.map((c) => `<li class="chk-${c.level}">${esc(T("app.chk." + c.key, ...c.args.map(numArg)))}</li>`).join("")}</ul>
+    <div class="app-units">${units.map((u) => unitHTML(u, d, tpl, can)).join("")}</div>
+  </div>`;
+}
+async function loadDraft(x) {
+  if (!ST.drafts[x.id]) ST.drafts[x.id] = (await api("GET", `/orgs/${ST.org.id}/ideas/${x.id}/proposal`)).proposal;
+  return ST.drafts[x.id];
+}
+// Writes the parts still missing, one request at a time. A per-minute limit of the free AI tier is waited out (up to four
+// times per part); any other error stops the run, and the written parts stay stored.
+async function writeMissing(card, x, tpl, d) {
+  tpl = tplOf(d) || tpl;
+  const msg = card.querySelector("[data-appmsg]"), units = unitsOf(tpl, d.plan, d.facts.lang);
+  const todo = units.filter((u) => !(d.sections[u.key] && d.sections[u.key].text));
+  let i = units.length - todo.length;
+  for (const u of todo) {
+    i++;
+    for (let attempt = 0; ; attempt++) {
+      opState(msg, "generating", T("app.writing", i, units.length, unitTitle(u, d)), (100 * (i - 1)) / units.length);
+      try {
+        const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal/section`, { key: u.key });
+        d.sections[u.key] = r.section; x.proposal = { ...(x.proposal || {}), v: 2, written: Object.values(d.sections).filter((s) => s && s.text).length };
+        break;
+      } catch (e) {
+        if (e.message === "ai_busy" && attempt < 4) {
+          for (let s = 30; s > 0; s -= 5) { opState(msg, "generating", T("app.busyWait", s), (100 * (i - 1)) / units.length); await sleep(5000); }
+          continue;
+        }
+        opState(msg, "failed", errText(e) + " " + T("app.stopped"));
+        return false;
+      }
+    }
+  }
+  opState(msg, "completed", T("app.done"));
+  return true;
+}
+function drawApp(card, x, tpl) {
+  const body = card.querySelector("[data-appbody]"), d = ST.drafts[x.id];
+  tpl = (d && tplOf(d)) || tpl;
+  body.innerHTML = ST.appOpen.has(x.id) && d ? viewerHTML(x, tpl, d) : "";
+  const ob = card.querySelector('[data-act="appopen"]');
+  if (ob) { ob.textContent = T(ST.appOpen.has(x.id) ? "app.hide" : "app.open"); ob.setAttribute("aria-expanded", String(ST.appOpen.has(x.id))); }
+  const pw = card.querySelector('[data-act="appopen"] + .fine'); if (pw && d) pw.textContent = T("app.partsWritten", Object.values(d.sections).filter((s) => s && s.text).length);
+  if (!d || !ST.appOpen.has(x.id)) return;
+  const pdfMsg = card.querySelector("[data-pdfmsg]");
+  const dl = async (kind) => {
+    opState(pdfMsg, "drawing", "");
+    try { await (kind === "docx" ? downloadDocx(d) : downloadAppPdf(d)); opState(pdfMsg, "completed", ""); } catch (e) { opState(pdfMsg, "failed", (e && e.status ? errText(e) : T("pdfFail"))); }
+  };
+  body.querySelector('[data-act="apppdf"]').addEventListener("click", () => dl("pdf"));
+  body.querySelector('[data-act="appdocx"]').addEventListener("click", () => dl("docx"));
+  const cont = body.querySelector('[data-act="appcont"]');
+  if (cont) cont.addEventListener("click", async () => { cont.disabled = true; await writeMissing(card, x, tpl, d); drawApp(card, x, tpl); });
+  body.querySelectorAll(".app-unit").forEach((det) => {
+    const key = det.dataset.unit, u = unitsOf(tpl, d.plan, d.facts.lang).find((y) => y.key === key), um = det.querySelector("[data-umsg]");
+    const redraw = () => { const n = document.createElement("div"); n.innerHTML = unitHTML(u, d, tpl, premium() && canEdit()); const fresh = n.firstElementChild; fresh.open = true; det.replaceWith(fresh); drawApp(card, x, tpl); const again = card.querySelector(`.app-unit[data-unit="${CSS.escape(key)}"]`); if (again) again.open = true; };
+    const copy = async (t) => { try { await navigator.clipboard.writeText(t); um.textContent = T("app.copied"); } catch { um.textContent = ""; } };
+    det.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", () => copy((d.sections[key].answers || {})[b.dataset.copy] || "")));
+    const on = (a, fn) => { const b = det.querySelector(`[data-uact="${a}"]`); if (b) b.addEventListener("click", fn); };
+    on("copy", () => copy(d.sections[key].text));
+    on("rewrite", async (ev) => {
+      const s = d.sections[key];
+      if (s && s.text && !confirm(T("app.rewriteWarn"))) return;
+      ev.currentTarget.disabled = true; opState(um, "generating", unitTitle(u, d));
+      try { d.sections[key] = (await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal/section`, { key, fresh: !!(s && s.text) })).section; redraw(); }
+      catch (e) { opState(um, "failed", errText(e)); ev.currentTarget.disabled = false; }
+    });
+    on("edit", () => {
+      const s = d.sections[key];
+      if (tpl.kind === "form") det.querySelectorAll(".a[data-q]").forEach((a) => { a.innerHTML = `<textarea rows="8" data-qedit="${esc(a.dataset.q)}">${esc((s.answers || {})[a.dataset.q] || "")}</textarea>`; });
+      else det.querySelector(".a").innerHTML = `<textarea rows="18" data-tedit>${esc(s.text)}</textarea>`;
+      const row = det.querySelector('[data-uact="edit"]').parentElement;
+      row.innerHTML = `<button type="button" class="btn" data-uact="save">${esc(T("app.save"))}</button><button type="button" class="btn ghost" data-uact="cancel">${esc(T("app.cancel"))}</button><span class="fine" data-umsg role="status"></span>`;
+      row.querySelector('[data-uact="cancel"]').addEventListener("click", redraw);
+      row.querySelector('[data-uact="save"]').addEventListener("click", async (ev) => {
+        const body = tpl.kind === "form" ? { key, answers: Object.fromEntries([...det.querySelectorAll("[data-qedit]")].map((t) => [t.dataset.qedit, t.value])) } : { key, text: det.querySelector("[data-tedit]").value };
+        ev.currentTarget.disabled = true;
+        try { d.sections[key] = (await api("PATCH", `/orgs/${ST.org.id}/ideas/${x.id}/proposal`, body)).section; redraw(); }
+        catch (e) { row.querySelector("[data-umsg]").textContent = errText(e); ev.currentTarget.disabled = false; }
+      });
+    });
+  });
+}
+function bindApp(card, x) {
+  const tpl = appTpl(x), box = card.querySelector("[data-app]");
+  if (!tpl || !box) return;
+  const body = box.querySelector("[data-appbody]"), msg = box.querySelector("[data-appmsg]");
+  const showForm = (prev) => {
+    body.innerHTML = factsForm(x, tpl, prev);
+    const form = body.querySelector("[data-appform]");
+    body.querySelector('[data-act="appcancel"]').addEventListener("click", () => { body.innerHTML = ""; drawApp(card, x, tpl); });
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const btn = form.querySelector('[type="submit"]'); btn.disabled = true;
+      opState(msg, "generating", T("app.planning"));
+      try {
+        const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal`, { facts: readFacts(form), lang: L() });
+        ST.drafts[x.id] = r.proposal; x.proposal = { v: 2, at: r.proposal.at, template: r.proposal.template, written: 0 };
+        ST.appOpen.add(x.id);
+        const head = box.querySelector('[data-act="appstart"]');
+        if (head) head.outerHTML = `<button type="button" class="btn pdf" data-act="appopen" aria-expanded="true">${esc(T("app.hide"))}</button><span class="fine">${esc(T("app.partsWritten", 0))}</span>`;
+        bindOpen();
+        body.innerHTML = "";
+        await writeMissing(card, x, tpl, ST.drafts[x.id]);
+        drawApp(card, x, tpl);
+      } catch (e) { opState(msg, "failed", errText(e)); btn.disabled = false; }
+    });
+    form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+  const start = box.querySelector('[data-act="appstart"]');
+  if (start) start.addEventListener("click", () => showForm(null));
+  const again = box.querySelector('[data-act="appagain"]');
+  if (again) again.addEventListener("click", async () => {
+    if (!confirm(T("app.againWarn"))) return;
+    try { const d = await loadDraft(x); ST.appOpen.delete(x.id); drawApp(card, x, tpl); showForm(d.facts); } catch (e) { opState(msg, "failed", errText(e)); }
+  });
+  const bindOpen = () => {
+    const ob = box.querySelector('[data-act="appopen"]');
+    if (!ob || ob._bound) return; ob._bound = true;
+    ob.addEventListener("click", async () => {
+      if (ST.appOpen.has(x.id)) { ST.appOpen.delete(x.id); drawApp(card, x, tpl); return; }
+      opState(msg, "reading", "");
+      try { await loadDraft(x); ST.appOpen.add(x.id); opState(msg, "idle"); drawApp(card, x, tpl); } catch (e) { opState(msg, "failed", errText(e)); }
+    });
+  };
+  bindOpen();
+  if (ST.appOpen.has(x.id) && ST.drafts[x.id]) drawApp(card, x, tpl);
+}
+
+// Lines of one text block: "- " lines become a list, the rest stay paragraphs.
+function textParts(t) {
+  const out = []; let list = null, brk = true;
+  for (const line of String(t || "").split("\n")) {
+    const m = line.match(/^\s*[-•]\s+(.*)$/);
+    if (m) { if (!list) out.push((list = { ul: [] })); list.ul.push(m[1]); brk = true; }
+    else if (!line.trim()) { list = null; brk = true; }
+    else { list = null; const last = out[out.length - 1]; if (!brk && last && last.p !== undefined) last.p += " " + line.trim(); else out.push({ p: line.trim() }); brk = false; }
+  }
+  return out;
+}
+const ganttCols = (months) => (months > 36 ? Array.from({ length: Math.ceil(months / 3) }, (_, i) => ({ label: "Q" + (i + 1), from: i * 3 + 1, to: i * 3 + 3 })) : Array.from({ length: months }, (_, i) => ({ label: String(i + 1), from: i + 1, to: i + 1 })));
+function appPdfDoc(d) {
+  const L2 = docL(d.facts.lang), model = documentModel(d, L2), content = [];
+  for (const b of model) {
+    if (b.h === 1) content.push({ text: b.text, style: "h1" });
+    else if (b.h === 2) content.push({ text: b.text, style: "h2" });
+    else if (b.h === 3) content.push({ text: b.text, style: "h3" });
+    else if (b.h === 4) content.push({ text: b.text, bold: true, margin: [0, 4, 0, 2] });
+    else if (b.meta) content.push({ text: b.meta.join("\n"), style: "meta" });
+    else if (b.note) content.push({ text: b.note, style: "note" });
+    else if (b.p !== undefined) for (const x of textParts(b.p)) content.push(x.ul ? { ul: x.ul, margin: [0, 0, 0, 6] } : { text: x.p, margin: [0, 0, 0, 6], bold: !!b.bold, italics: !!b.missing, color: b.missing ? "#777" : undefined });
+    else if (b.qa !== undefined) {
+      content.push({ text: b.qa, style: "q" });
+      if (b.text) for (const x of textParts(b.text)) content.push(x.ul ? { ul: x.ul, margin: [0, 0, 0, 4] } : { text: x.p, margin: [0, 0, 0, 4] });
+      else content.push({ text: L2.tbc, italics: true, color: "#777" });
+      content.push({ text: `${fmtInt(String(b.text || "").length, d.facts.lang)} ${L2.characters}`, style: "small", margin: [0, 0, 0, 8] });
+    } else if (b.table) {
+      const cell = (c) => (c && typeof c === "object" ? { text: String(c.text ?? ""), colSpan: c.colSpan } : String(c ?? ""));
+      const rows = b.table.rows.map((r) => r.map((c, i) => (c === "" && i > 0 && r.slice(0, i).some((y) => y && y.colSpan && r.indexOf(y) + y.colSpan > i) ? {} : cell(c))));
+      content.push({ table: { headerRows: 1, widths: b.table.widths, body: [b.table.head.map((h) => ({ text: h, style: "th" })), ...rows] }, layout: "lightHorizontalLines", fontSize: 8, margin: [0, 2, 0, 8] });
+    } else if (b.gantt) {
+      const cols = ganttCols(b.gantt.months);
+      content.push({ table: { headerRows: 1, widths: [34, ...cols.map(() => "*")], body: [[{ text: "", style: "th" }, ...cols.map((c) => ({ text: c.label, fontSize: 5, alignment: "center" }))],
+        ...b.gantt.rows.map((r) => [{ text: r.label, fontSize: 7, bold: true }, ...cols.map((c) => (c.to >= r.start && c.from <= r.end ? { text: "", fillColor: "#1f4e79" } : { text: "" }))])] }, layout: { hLineWidth: () => 0.3, vLineWidth: () => 0.3, hLineColor: () => "#ccc", vLineColor: () => "#ccc" }, margin: [0, 2, 0, 8] });
+    }
+  }
+  return { info: { title: (d.plan && d.plan.title) || "Application", creator: "Eligible Calls" }, pageSize: "A4", pageMargins: [45, 50, 45, 50], content,
+    footer: (cur, tot) => ({ columns: [{ text: "Eligible Calls · " + L2.footer, fontSize: 7, color: "#888" }, { text: `${cur} / ${tot}`, alignment: "right", fontSize: 7, color: "#888" }], margin: [45, 18, 45, 0] }),
+    defaultStyle: { font: "Roboto", fontSize: 10, lineHeight: 1.2 },
+    styles: { h1: { fontSize: 17, bold: true, margin: [0, 0, 0, 6] }, h2: { fontSize: 13, bold: true, color: "#1f4e79", margin: [0, 12, 0, 5] }, h3: { fontSize: 11, bold: true, margin: [0, 8, 0, 3] },
+      meta: { fontSize: 9, color: "#444", margin: [0, 0, 0, 6] }, note: { fontSize: 8, italics: true, color: "#555", margin: [0, 2, 0, 8] }, q: { fontSize: 9, bold: true, color: "#333", margin: [0, 6, 0, 2] }, small: { fontSize: 7.5, color: "#777" }, th: { bold: true, fontSize: 8 } } };
+}
+const appFile = (d, ext) => fileSafe((d.plan && (d.plan.acronym || d.plan.title)) || "application") + "-" + (d.template || "app") + "." + ext;
+async function downloadAppPdf(d) {
+  const pm = await loadPdfMake();
+  await new Promise((res, rej) => { try { pm.createPdf(appPdfDoc(d)).download(appFile(d, "pdf"), res); } catch (e) { rej(e); } });
+}
+async function downloadDocx(d) {
+  if (!window.docx) await EC.loadScript(DOCXJS);
+  const X = window.docx, L2 = docL(d.facts.lang), model = documentModel(d, L2), kids = [];
+  const P = (text, o = {}) => new X.Paragraph({ children: [new X.TextRun({ text: String(text ?? ""), bold: o.bold, italics: o.italics, size: o.size, color: o.color })], spacing: { after: o.after ?? 120 }, heading: o.heading });
+  const pushText = (t) => { for (const x of textParts(t)) { if (x.ul) x.ul.forEach((li) => kids.push(new X.Paragraph({ text: li, bullet: { level: 0 } }))); else kids.push(P(x.p)); } };
+  const tCell = (c, o = {}) => new X.TableCell({ children: [P(c && typeof c === "object" ? c.text : c, { size: 18, bold: o.bold, after: 40 })], columnSpan: c && typeof c === "object" && c.colSpan ? c.colSpan : undefined, shading: o.fill ? { fill: o.fill } : undefined });
+  for (const b of model) {
+    if (b.h) kids.push(P(b.text, { heading: [null, X.HeadingLevel.TITLE, X.HeadingLevel.HEADING_1, X.HeadingLevel.HEADING_2, X.HeadingLevel.HEADING_3][b.h], after: 120 }));
+    else if (b.meta) b.meta.forEach((m) => kids.push(P(m, { size: 18, color: "444444", after: 40 })));
+    else if (b.note) kids.push(P(b.note, { italics: true, size: 18, color: "555555" }));
+    else if (b.p !== undefined) { if (b.missing) kids.push(P(b.p, { italics: true, color: "777777" })); else if (b.bold) kids.push(P(b.p, { bold: true })); else pushText(b.p); }
+    else if (b.qa !== undefined) {
+      kids.push(P(b.qa, { bold: true, size: 20, color: "333333", after: 60 }));
+      if (b.text) pushText(b.text); else kids.push(P(L2.tbc, { italics: true, color: "777777" }));
+      kids.push(P(`${fmtInt(String(b.text || "").length, d.facts.lang)} ${L2.characters}`, { size: 16, color: "777777", after: 200 }));
+    } else if (b.table) {
+      const rows = [new X.TableRow({ tableHeader: true, children: b.table.head.map((h) => tCell(h, { bold: true, fill: "E8EEF5" })) })];
+      for (const r of b.table.rows) { const cells = []; let skip = 0; for (const c of r) { if (skip) { skip--; continue; } if (c && typeof c === "object" && c.colSpan) skip = c.colSpan - 1; cells.push(tCell(c)); } rows.push(new X.TableRow({ children: cells })); }
+      kids.push(new X.Table({ rows, width: { size: 100, type: X.WidthType.PERCENTAGE } }), P(""));
+    } else if (b.gantt) {
+      const cols = ganttCols(b.gantt.months);
+      const rows = [new X.TableRow({ children: [tCell(""), ...cols.map((c) => tCell(c.label, { bold: true }))] }), ...b.gantt.rows.map((r) => new X.TableRow({ children: [tCell(r.label, { bold: true }), ...cols.map((c) => tCell("", c.to >= r.start && c.from <= r.end ? { fill: "1F4E79" } : {}))] }))];
+      kids.push(new X.Table({ rows, width: { size: 100, type: X.WidthType.PERCENTAGE } }), P(""));
+    }
+  }
+  const doc = new X.Document({ creator: "Eligible Calls", title: (d.plan && d.plan.title) || "Application", styles: { default: { document: { run: { font: "Calibri", size: 22 } } } }, sections: [{ children: kids }] });
+  const blob = await X.Packer.toBlob(doc);
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = appFile(d, "docx"); document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
 // Premium access card: what the user can do now, how to ask for access, and where the request stands.
 function paywallHTML(a, set) {
   if (!a || a.active) return a && a.active && a.request && a.request.expiresAt ? `<p class="fine">${esc(T("premiumUntil", fmtTime(a.request.expiresAt)))}</p>` : "";
@@ -1779,6 +2156,7 @@ async function secIdeas(arg) {
   const canGen = acc.active || acc.freeLeft > 0;
   ST.ideas = ideas;
   try { await loadCriteria(); if (ideas.some((x) => erasmusAction(x.callId))) await loadGuide(); } catch { /* the evaluation box says the criteria are unavailable */ }
+  await loadFormsIdx();
   ST.compare = new Set([...(ST.compare || [])].filter((id) => ideas.some((x) => x.id === id)));
   const res = results(), cands = ideaCandidates();
   // Keep the member's choice while it still matches the shortlist; otherwise start from the most compatible calls.
@@ -1950,6 +2328,7 @@ afterRender.ideas = (arg) => {
     on("pdf", "click", (ev) => makePdf(false, ev.currentTarget));
     on("pdfnew", "click", (ev) => makePdf(true, ev.currentTarget));
     bindEval(card, x);
+    bindApp(card, x);
     on("improve", "click", async (ev) => {
       const b = ev.currentTarget, m = card.querySelector("[data-immsg]"); b.disabled = true;
       try { await improveIdea(x, m); refresh(); } catch (e) { opState(m, "failed", errText(e)); b.disabled = false; }

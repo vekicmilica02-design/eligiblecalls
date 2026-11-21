@@ -603,6 +603,16 @@ body.chat-open .chat-fab { display: none; }
 /* ---------- i18n ---------- */
 const I18N = {
   en: {
+    howTitle: "How the platform works",
+    howBody: `<p>Eligible Calls is a directory of open European and national funding calls, plus a workspace that checks which of them fit your organisation. Anyone can search the calls; the workspace needs a sign-in.</p>
+<ol><li><b>Sign in with Google</b> under Profile and create your organisation.</li>
+<li><b>Fill in the profile:</b> type of organisation, country, sectors, experience and the other fields. You can upload documents (PDF, scans, Word files, images) and the platform reads them and fills in the fields, marking each value "auto-filled: please check".</li>
+<li><b>Open Eligibility matching.</b> Every call gets two results. The status says whether you can apply at all (eligible, to verify, not eligible). The percentage says how well the call fits you: green is 70% and above, yellow 50 to 69%, red below 50%. Open any call to see which requirements you meet and how proposals are evaluated.</li>
+<li><b>Generate project ideas.</b> Pick up to 6 calls and the AI writes a project idea for each. Each idea is scored automatically against that call's own award criteria.</li>
+<li><b>Write the full application and evaluate it.</b> The platform writes the whole application part by part, in the structure of the call's official application form (Horizon Europe, Erasmus+, CERV, Creative Europe, Digital Europe and the other EU programmes). Where a call's form is not available, the structure follows the call's award criteria. You edit it, fill in what is marked, download it as PDF or Word and submit it yourself on the official portal. You can also save eligibility reports to compare later.</li>
+<li><b>Ask the assistant</b> in the chat for quick questions about calls.</li></ol>
+<p><b>How it helps.</b> You stop reading hundreds of call documents to find the ones you can apply to. You see early why a call does not fit (wrong applicant type, no consortium, weak fit). You start your application from a structured draft instead of a blank page.</p>
+<p><b>Limits.</b> Each user gets one free idea generation; after that, idea generation, the full application and the evaluation need premium access. Each user has 20 AI actions per day. The official call documents always decide: check every fact before you submit.</p>`,
         accTitle: "Accounts and privacy (Organization Intelligence)",
     accBody: `<ul><li><b>Who runs this site.</b> Milica Vekić. Contact: <a href="mailto:vekicmilica02@gmail.com">vekicmilica02@gmail.com</a>.</li>
 <li><b>Sign-in.</b> With Google. Eligible Calls receives your e-mail address, your name as shown in your Google account and Google's account id; it never sees your password.</li>
@@ -671,6 +681,16 @@ const I18N = {
     updAuto: (when) => `Updated automatically every 2 hours. Last import: ${when}.`
   },
   sr: {
+    howTitle: "Kako platforma funkcioniše",
+    howBody: `<p>Eligible Calls je pregled otvorenih evropskih i nacionalnih poziva za finansiranje, uz radni prostor koji proverava koji od njih odgovaraju vašoj organizaciji. Pozive može da pretražuje svako; za radni prostor je potrebna prijava.</p>
+<ol><li><b>Prijavite se preko Google naloga</b> u delu Profil i napravite svoju organizaciju.</li>
+<li><b>Popunite profil:</b> vrstu organizacije, državu, sektore, iskustvo i ostala polja. Možete otpremiti dokumente (PDF, skenirane dokumente, Word fajlove, slike), a platforma ih čita i popunjava polja, uz oznaku „automatski popunjeno: proverite“ za svaku vrednost.</li>
+<li><b>Otvorite proveru podobnosti.</b> Svaki poziv dobija dva rezultata. Status pokazuje da li uopšte možete da konkurišete (podobni, potrebno proveriti, nepodobni). Procenat pokazuje koliko vam poziv odgovara: zeleno od 70%, žuto od 50 do 69%, crveno ispod 50%. Otvorite bilo koji poziv da vidite koje uslove ispunjavate i kako se predlozi ocenjuju.</li>
+<li><b>Generišite projektne ideje.</b> Izaberite do 6 poziva, a AI za svaki piše projektnu ideju. Svaka ideja se automatski ocenjuje prema kriterijumima za dodelu tog poziva.</li>
+<li><b>Napišite celu prijavu i ocenite je.</b> Platforma piše celu prijavu deo po deo, u strukturi zvaničnog obrasca prijave za taj poziv (Horizont Evropa, Erasmus+, CERV, Kreativna Evropa, Digitalna Evropa i ostali programi EU). Kada obrazac poziva nije dostupan, struktura prati kriterijume za dodelu iz poziva. Vi je dorađujete, popunjavate označena mesta, preuzimate kao PDF ili Word i sami je podnosite na zvaničnom portalu. Izveštaje o podobnosti možete sačuvati da biste ih kasnije uporedili.</li>
+<li><b>Pitajte asistenta</b> u četu za brza pitanja o pozivima.</li></ol>
+<p><b>Kako pomaže.</b> Ne morate da čitate stotine dokumenata da biste našli pozive za koje možete da konkurišete. Rano vidite zašto vam poziv ne odgovara (pogrešna vrsta podnosioca, nema konzorcijuma, slabo poklapanje). Prijavu počinjete od strukturisanog nacrta umesto od prazne stranice.</p>
+<p><b>Ograničenja.</b> Svaki korisnik ima jedno besplatno generisanje ideja; posle toga generisanje ideja, cela prijava i ocena zahtevaju premium pristup. Svaki korisnik ima 20 AI akcija dnevno. Uvek je merodavna zvanična dokumentacija poziva: proverite svaku činjenicu pre podnošenja.</p>`,
         accTitle: "Nalozi i privatnost (Analiza organizacije)",
     accBody: `<ul><li><b>Ko upravlja sajtom.</b> Milica Vekić. Kontakt: <a href="mailto:vekicmilica02@gmail.com">vekicmilica02@gmail.com</a>.</li>
 <li><b>Prijava.</b> Preko Google naloga. Eligible Calls dobija vašu e-mail adresu, ime kako je navedeno u Google nalogu i Google identifikator naloga; lozinku nikada ne vidi.</li>
@@ -1404,6 +1424,7 @@ function renderAbout() {
   const st = { Y: 0, P: 0, N: 0, C: 0 }; CALLS.forEach((c) => Object.values(c.eligibility).forEach(([s]) => st[s]++));
   app.innerHTML = `<div class="wrap page prose"><h1>${esc(lang === "sr" ? "O podacima" : "About the data")}</h1>
   <p class="lede">Where the calls come from, how eligibility is decided, and what is not known.</p>
+  <h2 id="how">${esc(t("howTitle"))}</h2>${t("howBody")}
   <h2>Sources</h2>
   <p>Every call comes from an official source and links to the call's own page. Last import: ${esc(new Date(META.generated).toUTCString())}.</p>
   <ul>${(META.sources || []).map((s) => `<li><b>${esc(s.name)}</b>: ${(k.bySource && k.bySource[s.key]) || 0} calls published${s.ok === false ? ` (the last update failed; data from ${esc(s.fetchedAt ? new Date(s.fetchedAt).toUTCString() : "an earlier import")} is shown)` : ""}.</li>`).join("")}</ul>

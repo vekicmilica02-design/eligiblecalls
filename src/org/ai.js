@@ -7,6 +7,9 @@
 // Provider order: Workers AI, then Cerebras (only when CEREBRAS_API_KEY is set), then the Groq chain. With
 // prefer: "fast" (evaluations) Cerebras and Groq come first and Workers AI last.
 //
+// charge: false (the parts of a full application after its plan, src/org/proposal.js) asks the model without using one of
+// the user's daily AI actions; the site's provider budgets still apply.
+//
 // Answer cache (table ai_cache, migration 0008): a caller that passes `cacheOrg` gets the stored answer for exactly the
 // same prompt (agent, output limit and every message, as a SHA-256 key) made for the same organisation in the last
 // AI_CACHE_DAYS days (default 30). A stored answer uses no AI action and no provider allowance. The caller decides
@@ -54,7 +57,7 @@ async function reserveUser(env, userId, now, limit) {
 const provKey = (o) => (o.provider === "groq" ? groqKey(o.model) : o.provider === "cerebras" ? "cerebras:" + o.model : "workers-ai");
 const releaseUser = (env, userId, now) => env.DB.prepare("UPDATE ai_usage SET count = MAX(0, count - 1) WHERE day = ? AND user_id = ?").bind(utcDay(now), userId).run();
 
-export async function complete({ env, userId, messages, agent = "other", maxOut = 1500, now = Date.now(), fetchImpl = fetch, waitUntil = (p) => p, cacheOrg = null, fresh = false, prefer = null }) {
+export async function complete({ env, userId, messages, agent = "other", maxOut = 1500, now = Date.now(), fetchImpl = fetch, waitUntil = (p) => p, cacheOrg = null, fresh = false, prefer = null, charge = true }) {
   const db = env.DB;
   const day = utcDay(now);
   const tokIn = estTokens(messages.map((m) => m.content).join("\n"));
@@ -68,9 +71,9 @@ export async function complete({ env, userId, messages, agent = "other", maxOut 
       return { text: hit.text, provider: "cache", model: hit.model || null, cached: true, keep: async () => {} };
     }
   }
-  const a = await userAllowance(env, userId, now);
+  const a = charge ? await userAllowance(env, userId, now) : { used: 0, limit: Infinity };
   if (a.used >= a.limit) throw new HttpError(429, "ai_user_limit", { limit: a.limit });
-  const reserve = () => reserveUser(env, userId, now, a.limit);
+  const reserve = () => (charge ? reserveUser(env, userId, now, a.limit) : Promise.resolve(true));
   const share = num(env.ORG_BUDGET_SHARE, 0.6);
   const usage = await getUsage(db, day);
   const wModel = env.AI_MODEL || "@cf/meta/llama-4-scout-17b-16e-instruct";
@@ -111,7 +114,7 @@ export async function complete({ env, userId, messages, agent = "other", maxOut 
       }
     }
   }
-  await releaseUser(env, userId, now).catch(() => {});   // nothing answered: the action is not used
+  if (charge) await releaseUser(env, userId, now).catch(() => {});   // nothing answered: the action is not used
   // A per-minute limit anywhere in the chain is reported as such (the request can be repeated shortly), even when a
   // later provider failed for another reason: the last error alone hid it.
   throw new HttpError(503, errs.some((e) => e instanceof ProviderError && e.code === "busy") ? "ai_busy" : "ai_unavailable");

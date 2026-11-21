@@ -10,7 +10,7 @@ import { cleanProfile, contextFrom, changedFields, completeness, FIELD } from ".
 import { extractFromText, researchUrl } from "./extract.js";
 import { generateIdeas, listIdeas, updateIdea, explainFit, improveIdea, translateIdea } from "./ideas.js";
 import { requireAccess, countIdeaRun, accessOf, isAdmin, userAccessRoute, adminRoute } from "./access.js";
-import { makeProposal, getProposal } from "./proposal.js";
+import { makeProposal, getProposal, writeSection, editDraft } from "./proposal.js";
 import { evaluateIdea } from "./evaluate.js";
 import { planFill } from "./autofill.js";
 import { reportsRoute } from "./reports.js";
@@ -311,7 +311,13 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
           if (reserved && !(out.generated > 0)) await db.prepare("UPDATE users SET idea_runs = MAX(0, idea_runs - 1) WHERE id = ?").bind(user.id).run();
         }
       }
-      if (parts[3] && parts[4] === "proposal") {
+      if (parts[3] && parts[4] === "proposal" && parts[5] === "section" && M === "POST") {
+        await requireAccess(db, user, "proposal", now);
+        const cur = await currentProfile(db, m);
+        return await writeSection({ env, db, org: m, user, profile: cur.profile, ideaId: parts[3], body, now, fetchImpl, waitUntil, url: request.url });
+      }
+      if (parts[3] && parts[4] === "proposal" && !parts[5] && M === "PATCH") return await editDraft({ db, org: m, ideaId: parts[3], body, now });
+      if (parts[3] && parts[4] === "proposal" && !parts[5]) {
         if (M === "GET") return await getProposal(db, orgId, parts[3]);
         if (M === "POST") {
           await requireAccess(db, user, "proposal", now);

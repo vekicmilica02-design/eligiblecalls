@@ -11,6 +11,8 @@ import { mockD1, mockAssets, sseStream, mockFetch } from "./mocks.js";
 import { readFileSync, existsSync } from "node:fs";
 import { _resetIdeasIndex, verifyIdeas, conceptFit, rankScore } from "../src/org/ideas.js";
 import { rubricFor } from "../site/org/rubric.js";
+import { estTokens } from "../site/org/lang.js";
+const estTok = (m) => estTokens(m.map((x) => x.content).join("\n"));
 const CRIT = JSON.parse(readFileSync(new URL("../site/org/criteria.json", import.meta.url), "utf8"));
 const GUIDE = JSON.parse(readFileSync(new URL("../site/org/erasmus-2026.json", import.meta.url), "utf8"));
 
@@ -479,7 +481,8 @@ await t("premium access: one free generation, then paywall; request e-mails the 
     methodology: "m", outputs: [{ output: "o1", indicator: "i", target: "t" }, { output: "o2" }], impact: "i", partnership: { structure: "s", partners: [{ profile: "School", country: "HR", role: "r" }] },
     timeline: [{ phase: "Prep", period: "M1-M3", milestones: ["m"] }], monitoring: "m", sustainability: "s", risks: [{ risk: "r", likelihood: "extreme", mitigation: "m" }], alignment: "a",
     budget: { requestedTotal: 1e12, basis: "b", categories: [{ category: "Staff", share: 3 }, { category: "Travel", share: 1 }, { category: "Bad", share: -5 }], considerations: "c" } });
-  r = await call("POST", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia, body: { lang: "sr" } });
+  // the short proposal (v1) is still available with short: true; every call otherwise gets the full application
+  r = await call("POST", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia, body: { lang: "sr", short: true } });
   assert.equal(r.status, 200, JSON.stringify(r.j));
   const pr = r.j.proposal;
   assert.deepEqual(pr.budget.categories.map((c) => c.share), [75, 25]);
@@ -488,7 +491,7 @@ await t("premium access: one free generation, then paywall; request e-mails the 
   assert.match(aiSeen.at(-1).messages[0].content, /Serbian \(Latin script\)/);
   assert.equal((await call("GET", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia })).j.proposal.title, "Media literacy lab");
   aiAnswer = JSON.stringify({ title: "only a title" });
-  assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia, body: {} })).j.error, "ai_bad_answer", "an incomplete proposal is refused");
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia, body: { short: true } })).j.error, "ai_bad_answer", "an incomplete proposal is refused");
   assert.equal((await call("GET", `/api/orgs/${o}/ideas/${iid}/proposal`, { cookie: pia })).j.proposal.title, "Media literacy lab", "and the stored one is kept");
   // evaluation against the call's own criteria (detailed cases in the next test): stored under the rubric's key
   const rb = rubricFor({ id: c1.id }, CRIT, GUIDE);
@@ -1030,6 +1033,132 @@ await t("evaluations ask the fast providers first; other work keeps Workers AI f
   assert.match(scaleGuide([5, 5, 5])[2], /^2: fair/);
   assert.match(scaleGuide([30, 30, 20, 20])[3], /^60% of the maximum: good/);
   assert.match(scaleGuide([40])[3], /^24: good/);
+});
+
+await t("full application: plan, then one unit at a time; tables and amounts by code; edits; one AI action per draft", async () => {
+  const { TEMPLATES, templateFor, unitsOf, checkDraft, documentModel, draftDigest, cleanFacts } = await import("../site/org/templates.js");
+  const { _resetForms } = await import("../src/org/proposal.js"); _resetForms();
+  _resetIdeasIndex();
+  const idx = JSON.parse(readFileSync(new URL("../site/data/index.json", import.meta.url), "utf8"));
+  const he = idx.calls.find((c) => CRIT.calls[c.id] && CRIT.calls[c.id].kind === "framework" && CRIT.calls[c.id].row === "RIA_IA" && !CRIT.calls[c.id].twoStage);
+  assert.ok(he, "a Horizon RIA/IA call in the data");
+  assert.equal(templateFor(he.id, CRIT).key, "HE-RIA-IA");
+  assert.equal(templateFor("ERASMUS-NA-2027-KA220-2027-03-05", CRIT).key, "KA220");
+  assert.equal(templateFor("SOMETHING-ELSE", CRIT).key, "GEN", "a call with nothing in the data: general structure");
+  // site/org/forms.json is written by ingest/app_forms.py in the refresh workflow; without it these checks are skipped
+  const FORMS = existsSync(new URL("../site/org/forms.json", import.meta.url)) ? JSON.parse(readFileSync(new URL("../site/org/forms.json", import.meta.url), "utf8")) : { calls: {}, forms: {} };
+  const cerv = idx.calls.find((c) => c.id.startsWith("CERV-") && FORMS.calls[c.id]);
+  if (cerv) {
+    const ct = templateFor(cerv.id, CRIT, FORMS, rubricFor({ id: cerv.id }, CRIT, GUIDE));
+    assert.equal(ct.key, "F:af_cerv_en.pdf"); assert.equal(ct.basis, "form");
+    assert.deepEqual(ct.units.slice(0, 3).map((u) => u.n), ["1.1", "1.2", "1.3"]);
+    assert.ok(ct.units.some((u) => u.wp) && ct.units.some((u) => u.tablesAfter), "work packages from the plan");
+    assert.equal(ct.pageLimit.standard, FORMS.calls[cerv.id].pageLimit || FORMS.forms["af_cerv_en.pdf"].pageLimit);
+    if (existsSync(new URL("../site/org/forms-index.json", import.meta.url))) assert.equal(templateFor(cerv.id, CRIT, JSON.parse(readFileSync(new URL("../site/org/forms-index.json", import.meta.url), "utf8")), null).units, null, "the browser index names the form; units come with the draft");
+  }
+  const doc = idx.calls.find((c) => CRIT.calls[c.id] && CRIT.calls[c.id].kind === "document" && !(FORMS.calls[c.id] && FORMS.calls[c.id].forms.some((f) => FORMS.forms[f] && FORMS.forms[f].usable)) && rubricFor({ id: c.id }, CRIT, GUIDE) && rubricFor({ id: c.id }, CRIT, GUIDE).criteria);
+  if (doc) { const dt = templateFor(doc.id, CRIT, FORMS, rubricFor({ id: doc.id }, CRIT, GUIDE)); assert.equal(dt.key, "CRIT"); assert.equal(dt.units[1].title, rubricFor({ id: doc.id }, CRIT, GUIDE).criteria[0].name); }
+  NOW += 2 * 864e5;   // sign-in links per address and day
+  const u = await signIn("writer@example.org"), adm = await signIn("admin@example.org");
+  const o = (await call("POST", "/api/orgs", { cookie: u, body: { name: "Writer org" } })).j.id;
+  await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { name: "Writer org", orgType: "ngo", country: "RS", description: "Research NGO in Novi Sad." }, baseVersion: 1 } });
+  const uid = env.DB._db.prepare("SELECT id FROM users WHERE email = ?").get("writer@example.org").id;
+  await call("POST", `/api/admin/users/${uid}/access`, { cookie: adm, body: { action: "grant", days: 30 } });
+  const ins = (id, callId) => env.DB._db.prepare("INSERT INTO project_ideas (id, org_id, batch_id, call_id, rank, idea, match, lang, profile_version, call_title, created_by, created_at, updated_at) VALUES (?, ?, 'b', ?, 1, ?, ?, 'en', 2, 't', ?, ?, ?)")
+    .run(id, o, callId, JSON.stringify({ title: "Clean rivers", concept: "c", problem: "p", objectives: ["o"] }), JSON.stringify({ score: 80, status: "eligible" }), uid, NOW, NOW);
+  ins("ih", he.id); ins("ie", "ERASMUS-NA-2027-KA220-2027-03-05");
+  const plan = {
+    title: "Clean rivers", acronym: "CLEAN", durationMonths: 36, summary: "s", objectives: [{ text: "o1", indicator: "i", target: "t" }, { text: "o2", indicator: "i", target: "t" }],
+    workPackages: [{ title: "Project management", lead: "P1", start: 1, end: 36, pm: { P1: 12, P9: 5 }, share: 20, tasks: [{ title: "t", lead: "P2" }] }, { title: "Pilots", lead: "P2", start: 3, end: 30, pm: { P2: 20, P3: 8 }, share: 50 }, { title: "Dissemination", lead: "P3", start: 1, end: 36, pm: { P3: 6 }, share: 30 }],
+    deliverables: [{ wp: "WP1", name: "DMP", type: "DMP", month: 6 }, { wp: "WP2", name: "Pilot report", type: "R", month: 24 }, { wp: "wp9", name: "Stray", month: 99 }],
+    milestones: [{ name: "Pilots start", wps: ["WP2"], month: 12 }], risks: [{ risk: "Delay", likelihood: "high", severity: "extreme", wps: ["WP2"], mitigation: "m" }],
+    activities: [{ wp: "WP2", title: "Training", share: 1 }, { wp: "WP2", title: "Pilot", share: 2 }, { wp: "WP3", title: "Event", share: 1 }], budget: [{ category: "Personnel", share: 3 }, { category: "Travel", share: 1 }],
+  };
+  aiAnswer = (input) => /You plan a complete application/.test(input.messages[0].content) ? JSON.stringify(plan)
+    : /"answers"/.test(input.messages[0].content) ? JSON.stringify({ answers: Object.fromEntries([...input.messages[0].content.matchAll(/^- \[(\w+)\]/gm)].map((m) => [m[1], "Answer text for " + m[1] + ". ".repeat(30)])) })
+    : "### Sub\n\nParagraph one of the section, written for the project. ".repeat(8) + "Partner (to be confirmed).";
+  const left0 = (await call("GET", "/api/me/ai", { cookie: u })).j.left;
+  const facts = { lang: "en", durationMonths: 36, amount: 2e9, partners: "Uni Novi Sad | Serbia | university | pilots\nTU Graz | Austria | university | modelling", team: "Two researchers" };
+  let r = await call("POST", `/api/orgs/${o}/ideas/ih/proposal`, { cookie: u, body: { facts } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  const d = r.j.proposal;
+  assert.equal(d.v, 2); assert.equal(d.template, "HE-RIA-IA");
+  assert.deepEqual(d.participants.map((p) => p.code), ["P1", "P2", "P3"]); assert.equal(d.participants[0].country, "Serbia");
+  assert.deepEqual(d.plan.workPackages[0].pm, { P1: 12 }, "person-months only for known participants");
+  assert.equal(d.plan.deliverables.find((x) => x.name === "Stray").wp, "WP1"); assert.equal(d.plan.deliverables.find((x) => x.name === "Stray").month, 36);
+  assert.equal(d.plan.risks[0].severity, "medium");
+  if (he.f) assert.ok(d.facts.amount <= he.f, "requested amount clamped to the call's maximum");
+  assert.match(aiSeen.at(-1).messages[1].content, /P2: Uni Novi Sad, Serbia/);
+  assert.equal((await call("GET", "/api/me/ai", { cookie: u })).j.left, left0 - 1, "the plan uses one action");
+  const units = unitsOf(TEMPLATES["HE-RIA-IA"], d.plan, "en").map((x) => x.key);
+  assert.deepEqual(units, r.j.units);
+  assert.ok(units.includes("wp_WP1") && units.includes("wp_WP3") && units.includes("s32"));
+  for (const k of units) {
+    const s = await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: k } });
+    assert.equal(s.status, 200, k + " " + JSON.stringify(s.j));
+    assert.ok(estTok(aiSeen.at(-1).messages) <= 7000, "each request fits Groq's per-minute room");
+  }
+  assert.equal((await call("GET", "/api/me/ai", { cookie: u })).j.left, left0 - 1, "sections use no action");
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: "nope" } })).status, 400);
+  assert.equal((await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: "s11" } })).j.cached, true);
+  r = await call("PATCH", `/api/orgs/${o}/ideas/ih/proposal`, { cookie: u, body: { key: "s11", text: "My own objectives text." } });
+  assert.equal(r.j.section.edited, true);
+  const full = (await call("GET", `/api/orgs/${o}/ideas/ih/proposal`, { cookie: u })).j.proposal;
+  assert.equal(full.sections.s11.text, "My own objectives text."); assert.equal(full.runs, units.length);
+  const checks = checkDraft(full, { callMax: he.f });
+  assert.equal(checks[0].key, "unitsDone");
+  assert.ok(checks.find((c) => c.key === "dmp" && c.level === "ok")); assert.ok(checks.find((c) => c.key === "pmWp"));
+  assert.deepEqual(checks.find((c) => c.key === "consortiumHE").args, [3, 2], "3 participants but only 2 countries");
+  assert.ok(checks.find((c) => c.key === "tbc"));
+  const L = new Proxy({ money: (n) => String(n), lv: { low: "low", medium: "medium", high: "high" } }, { get: (o, k) => (k in o ? o[k] : String(k)) });
+  const model = documentModel(full, L);
+  assert.ok(model.some((b) => b.gantt) && model.some((b) => b.table && b.table.head.includes("totalPm")));
+  assert.ok(model.some((b) => b.h === 2 && b.text === "1. Excellence") && model.some((b) => b.h === 3 && b.text === "3.2 Capacity of participants and consortium as a whole"));
+  assert.ok(draftDigest(full).length <= 9000);
+  const listed = (await call("GET", `/api/orgs/${o}/ideas`, { cookie: u })).j.ideas.find((x) => x.id === "ih");
+  assert.deepEqual([listed.proposal.v, listed.proposal.template, listed.proposal.written], [2, "HE-RIA-IA", units.length]);
+  // evaluation reads the digest of the full application
+  const rb = rubricFor({ id: he.id }, CRIT, GUIDE);
+  aiAnswer = JSON.stringify({ criteria: rb.criteria.map((c) => ({ id: c.id, score: 4, justification: "j" })), summary: "s", priorityActions: ["p"] });
+  r = await call("POST", `/api/orgs/${o}/ideas/ih/evaluate`, { cookie: u, body: { lang: "en" } });
+  assert.equal(r.status, 200, JSON.stringify(r.j)); assert.match(aiSeen.at(-1).messages[1].content, /DETAILED PROPOSAL[\s\S]*Title: Clean rivers[\s\S]*Work packages: WP1/);
+  // Erasmus+ KA220: lump sum split exactly; WP1 is project management; answers by question; summary in English too
+  aiAnswer = (input) => /You plan a complete application/.test(input.messages[0].content) ? JSON.stringify(plan)
+    : JSON.stringify({ answers: Object.fromEntries([...input.messages[0].content.matchAll(/^- \[(\w+)\]/gm)].map((m) => [m[1], "Odgovor " + m[1] + ". ".repeat(30)])) });
+  assert.equal(cleanFacts({ amount: 100000 }, TEMPLATES.KA220, GUIDE.actions[1].rules).amount, null, "only the programme's lump sums");
+  r = await call("POST", `/api/orgs/${o}/ideas/ie/proposal`, { cookie: u, body: { facts: { lang: "sr", amount: 250000, field: "youth", durationMonths: 24, partners: "A | Croatia | NGO | x" } } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  const e = r.j.proposal;
+  assert.equal(e.template, "KA220"); assert.equal(e.plan.workPackages[0].title, "Project management");
+  assert.equal(e.plan.workPackages.reduce((t, w) => t + w.amount, 0), 250000);
+  for (const w of e.plan.workPackages) { const acts = e.plan.activities.filter((x) => x.wp === w.id); if (acts.length) assert.equal(acts.reduce((t, x) => t + x.amount, 0), w.amount); }
+  assert.equal(e.participants.length, 3, "a placeholder up to the minimum of three organisations");
+  const eu = r.j.units;
+  assert.ok(eu.includes("summaryEn") && eu.indexOf("summary") < eu.indexOf("summaryEn") && !eu.includes("wp_WP1"));
+  for (const k of eu) assert.equal((await call("POST", `/api/orgs/${o}/ideas/ie/proposal/section`, { cookie: u, body: { key: k } })).status, 200, k);
+  assert.match(aiSeen.at(-1).messages[0].content, /Write in English/, "the English summary");
+  const ef = (await call("GET", `/api/orgs/${o}/ideas/ie/proposal`, { cookie: u })).j.proposal;
+  assert.ok(Object.keys(ef.sections.rel1.answers).length === 4);
+  const ec = checkDraft(ef, { rules: GUIDE.actions[1].rules });
+  assert.ok(ec.find((c) => c.key === "split" && c.level === "ok") && ec.find((c) => c.key === "lumpSum" && c.level === "ok") && ec.find((c) => c.key === "consortiumEP"));
+  r = await call("PATCH", `/api/orgs/${o}/ideas/ie/proposal`, { cookie: u, body: { key: "impact", answers: { assess: "Moj odgovor" } } });
+  assert.deepEqual(r.j.section.answers, { assess: "Moj odgovor" });
+  assert.ok(documentModel(ef, L).some((b) => b.qa && b.count));
+  // a call with a parsed official form: the template travels with the draft
+  if (cerv) {
+    ins("ic", cerv.id);
+    aiAnswer = (input) => /You plan a complete application/.test(input.messages[0].content) ? JSON.stringify(plan) : "### Sub\n\n" + "A paragraph for this section of the form. ".repeat(10);
+    r = await call("POST", `/api/orgs/${o}/ideas/ic/proposal`, { cookie: u, body: { facts: { lang: "en" } } });
+    assert.equal(r.status, 200, JSON.stringify(r.j));
+    assert.equal(r.j.proposal.template, "F:af_cerv_en.pdf"); assert.equal(r.j.proposal.tpl.key, "F:af_cerv_en.pdf");
+    for (const k of r.j.units) assert.equal((await call("POST", `/api/orgs/${o}/ideas/ic/proposal/section`, { cookie: u, body: { key: k } })).status, 200, k);
+    assert.match(aiSeen.at(-1).messages[0].content, /EU Grants Application form \(CERV\)/);
+    const cd = (await call("GET", `/api/orgs/${o}/ideas/ic/proposal`, { cookie: u })).j.proposal;
+    const cm = documentModel(cd, L);
+    assert.ok(cm.some((b) => b.h === 2 && /^1\. Relevance/.test(b.text)) && cm.some((b) => b.h === 3 && /^1\.1 Background/.test(b.text)) && cm.some((b) => b.gantt));
+    assert.ok(!cm.some((b) => b.h === 3 && /^Table 3\.1/.test(b.text)), "Horizon table numbers only in Horizon Part B");
+    assert.ok(checkDraft(cd, {}).some((c) => c.key === "pages"));
+  }
 });
 
 console.log(`\n${pass} passed`);

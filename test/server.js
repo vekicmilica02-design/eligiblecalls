@@ -57,6 +57,29 @@ function demoAI(seen) {
       const ideas = ids.slice(0, 3).map(idea).concat([idea("INVENTED-CALL-ID", 3)]);
       return sseStream([{ response: JSON.stringify({ ideas }) }, { response: "", usage: { prompt_tokens: 3500, completion_tokens: 900 } }]);
     }
+    if (sys.startsWith("You plan a complete application")) {
+      // Full application plan: participants from the prompt, work packages with person-months, deliverables, activities.
+      const codes = [...input.messages[1].content.matchAll(/^(P\d+): /gm)].map((m) => m[1]);
+      const ep = /lump sum/i.test(sys) && /Erasmus/.test(sys);
+      const plan = { title: "River data commons", acronym: "RIVDAT", durationMonths: 24, summary: "Test plan summary written by the test model.",
+        objectives: [{ text: "Build an open river data platform", indicator: "datasets published", target: "40 by M18" }, { text: "Train 120 local officials", indicator: "people trained", target: "120 by M24" }],
+        targetGroups: [{ group: "Municipal water services", reach: "30" }],
+        workPackages: [1, 2, 3, 4].map((i) => ({ title: ["Project management", "Data platform", "Pilots in three river basins", "Dissemination, exploitation and communication"][i - 1], lead: codes[(i - 1) % codes.length], start: i === 3 ? 6 : 1, end: i === 2 ? 18 : 24,
+          pm: Object.fromEntries(codes.map((c, j) => [c, 2 + i + j])), share: [15, 35, 30, 20][i - 1], objectives: ["Objective of WP" + i], tasks: [{ title: "Task one of WP" + i, lead: codes[0], months: "M1-M6" }, { title: "Task two of WP" + i, lead: codes[1] || codes[0], months: "M6-M18" }] })),
+        deliverables: [{ wp: "WP1", name: "Data management plan", type: "DMP", month: 6, lead: codes[0], description: "FAIR data plan" }, { wp: "WP2", name: "Platform v1", type: "OTHER", month: 12, lead: codes[1] || codes[0] }, { wp: "WP4", name: "Dissemination plan", type: "R", month: 6, lead: codes[0] }],
+        milestones: [{ name: "Platform online", wps: ["WP2"], month: 12, verification: "Public URL" }],
+        risks: [{ risk: "Data owners do not share data", likelihood: "medium", severity: "high", wps: ["WP2"], mitigation: "Agreements signed in M3" }],
+        activities: ep || true ? [{ wp: "WP2", title: "Training of trainers", venue: "Novi Sad, Serbia", start: 3, end: 4, lead: codes[0], share: 60, results: "20 trainers", participantsNo: "20 youth workers" }, { wp: "WP3", title: "Local workshops", venue: "Zagreb, Croatia", start: 8, end: 12, lead: codes[1] || codes[0], share: 40, results: "6 workshops" }] : [],
+        budget: [{ category: "Personnel", share: 65 }, { category: "Travel and subsistence", share: 10 }, { category: "Other goods, works and services", share: 25 }] };
+      return sseStream([{ response: JSON.stringify(plan) }, { response: "", usage: { prompt_tokens: 3200, completion_tokens: 2400 } }]);
+    }
+    if (sys.startsWith("You write ")) {
+      // One part of a full application: answers by question id for forms, plain text with a sub-heading otherwise.
+      const ids = [...sys.matchAll(/^- \[(\w+)\]/gm)].map((m) => m[1]);
+      const para = "This paragraph was written by the test model for the part asked. It names the river basins, the 40 datasets by M18 and the 120 officials trained by M24, and it marks unknown facts (to be confirmed). ";
+      const out = ids.length ? JSON.stringify({ answers: Object.fromEntries(ids.map((id) => [id, para + para + "\n\n- First point\n- Second point"])) }) : `### First aspect\n\n${para.repeat(3)}\n\n### Second aspect\n\n${para.repeat(2)}\n\n- Measure one\n- Measure two`;
+      return sseStream([{ response: out }, { response: "", usage: { prompt_tokens: 3000, completion_tokens: 900 } }]);
+    }
     if (sys.startsWith("You turn one project idea into a detailed project proposal")) {
       const idea = JSON.parse((input.messages[1].content.match(/<idea>\n([\s\S]*?)\n<\/idea>/) || [, "{}"])[1]);
       const p = { title: (idea.title || "Test") + " (proposal)", durationMonths: 18,

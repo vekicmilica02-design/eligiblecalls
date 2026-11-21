@@ -65,6 +65,10 @@ jobs:
         run: python ingest/eligibility_docs.py
         continue-on-error: true   # a failure keeps the previous eligibility file; the call data still publishes
 
+      - name: Read the application forms of the calls (Part B templates linked from the Portal topic pages)
+        run: python ingest/app_forms.py
+        continue-on-error: true   # a failure keeps the previous forms file; every call still gets a criteria-based or general structure
+
       - name: Commit if anything changed
         run: |
           git config user.name "eligiblecalls-bot"

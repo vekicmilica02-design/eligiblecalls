@@ -77,7 +77,11 @@ function demoAI(seen) {
       // One part of a full application: answers by question id for forms, plain text with a sub-heading otherwise.
       const ids = [...sys.matchAll(/^- \[(\w+)\]/gm)].map((m) => m[1]);
       const para = "This paragraph was written by the test model for the part asked. It names the river basins, the 40 datasets by M18 and the 120 officials trained by M24, and it marks unknown facts (to be confirmed). ";
-      const out = ids.length ? JSON.stringify({ answers: Object.fromEntries(ids.map((id) => [id, para + para + "\n\n- First point\n- Second point"])) }) : `### First aspect\n\n${para.repeat(3)}\n\n### Second aspect\n\n${para.repeat(2)}\n\n- Measure one\n- Measure two`;
+      // Text with what real models send despite the rules: the section's own title, narrow spaces, #### headings,
+      // *italics*, "* " bullets in one line and a pipe table (the platform cleans them before showing and exporting).
+      const title = (sys.match(/section (?:\S+ )?"([^"]+)"/) || [, ""])[1];
+      const messy = `### ${title}\n\nWe reduce emissions by 20\u202F% by month\u202F12 (\u2264\u202F0.05\u202Fkg CO\u2082\u202FkWh\u207B\u00B9), led by НИС а.д. Нови Сад. The models: * Co-creation model – stakeholders set requirements * Iterative model – prototypes are tested\n\n#### Key results\n\n- *Outcome*: **better** air quality (to be confirmed)\n\n| Need | Expected result | Measure |\n|---|---|---|\n| Low-carbon solutions | 30 bids | Bids received (M6) |\n| Readiness | 5 prototypes | Validation reports (M12) |\n\n${para.repeat(2)}`;
+      const out = ids.length ? JSON.stringify({ answers: Object.fromEntries(ids.map((id) => [id, para + para + "\n\n- First point\n- Second point"])) }) : messy;
       return sseStream([{ response: out }, { response: "", usage: { prompt_tokens: 3000, completion_tokens: 900 } }]);
     }
     if (sys.startsWith("You turn one project idea into a detailed project proposal")) {

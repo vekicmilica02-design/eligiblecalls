@@ -7,8 +7,9 @@
 import { nextDeadline, srRule, estTokens } from "../core.js";
 import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json } from "./http.js";
-import { loadIndex, callBlock, profileBlock, ideaForModel } from "./ideas.js";
-import { loadCriteria, loadGuide } from "./evaluate.js";
+import { callBlock, profileBlock, ideaForModel } from "./ideas.js";
+import { loadGuide } from "./evaluate.js";
+import { callData } from "./callfile.js";
 import { FIELD } from "../../site/org/schema.js";
 import { templateFor, TEMPLATES, tplOf, unitsOf, cleanFacts, participants, cleanPlan, checkDraft, ERASMUS_FIELDS, tidyText, toLatin, cleanTitle } from "../../site/org/templates.js";
 import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
@@ -80,11 +81,11 @@ export function cleanProposal(a, { maxPerProject }) {
 export async function makeProposal({ env, db, org, user, profile, ideaId, body, now, fetchImpl, waitUntil, url }) {
   const row = await db.prepare("SELECT * FROM project_ideas WHERE id = ? AND org_id = ?").bind(ideaId, org.id).first();
   if (!row) throw new HttpError(404, "not_found");
-  const tpl = await callTemplate(env, url, row.call_id);
-  if (tpl && !body.short) return await startDraft({ env, db, org, user, profile, row, tpl, body, now, fetchImpl, waitUntil, url });
+  const d = await callData(env, url, row.call_id, { crit: true, forms: true });
+  const { tpl, rubric } = await callSetup(env, url, row.call_id, d);
+  if (tpl && !body.short) return await startDraft({ env, db, org, user, profile, row, tpl, rubric, d, body, now, fetchImpl, waitUntil, url });
   const lang = body.lang === "sr" ? "sr" : body.lang === "en" ? "en" : row.lang;
-  const index = await loadIndex(env, url);
-  const c = index._byId.get(row.call_id);
+  const { index, c } = d;
   const match = row.match ? JSON.parse(row.match) : { score: 0, status: "potential" };
   const callText = c ? callBlock(index, c, profile.country, now, match).replace(/Call text \(excerpt\): .*/s, "Call text (excerpt): " + clip(c.x, 2400)) : `### ${row.call_id}\nTitle: ${row.call_title}\n(The call is no longer in the published data.)`;
   const maxPerProject = c && c.f ? c.f : null;
@@ -119,27 +120,26 @@ export async function getProposal(db, orgId, ideaId) {
 const GROQ_ROOM = 7000;   // input + output tokens per request, under 90% of Groq's free 8,000 tokens a minute
 // Application forms read by ingest/app_forms.py; without the file every call still gets a criteria-based or general structure.
 let FORMS = null;
-async function loadForms(env, url) {
+export async function loadForms(env, url) {
   if (FORMS) return FORMS;
   try { const r = await env.ASSETS.fetch(new URL("/org/forms.json", url)); if (r.ok) return (FORMS = await r.json()); } catch { /* no file */ }
   return { calls: {}, forms: {} };
 }
 export function _resetForms() { FORMS = null; }
-export async function callTemplate(env, url, callId) {
-  const [crit, forms, guide] = await Promise.all([loadCriteria(env, url).catch(() => null), loadForms(env, url), erasmusAction(callId) ? loadGuide(env, url).catch(() => null) : null]);
-  let programme = "";
-  try { const c = (await loadIndex(env, url))._byId.get(callId); programme = c ? c.p : ""; } catch { /* index unavailable */ }
-  const rubric = crit ? rubricFor({ id: callId, programme }, crit, guide) : null;
-  return templateFor(callId, crit, forms, rubric);
+// The call's template and award criteria, from the call's own data file (src/org/callfile.js).
+export async function callSetup(env, url, callId, d = null) {
+  d = d || await callData(env, url, callId, { crit: true, forms: true });
+  const guide = erasmusAction(callId) ? await loadGuide(env, url).catch(() => null) : null;
+  const rubric = rubricFor({ id: callId, programme: d.c ? d.c.p : "" }, d.crit, guide);
+  return { tpl: templateFor(callId, d.crit, d.forms, rubric), rubric };
 }
 const nameOfCountry = (index, c) => { const n = index && index.countryNames && index.countryNames[String(c || "").toUpperCase()]; return n ? n[0] : c || ""; };
 
 const CALL_X = "Call text (excerpt): ";
 const callSnapshot = (ctx) => { const t = ctx.callText(2400); const i = t.indexOf(CALL_X); return i >= 0 ? { head: t.slice(0, i), x: t.slice(i + CALL_X.length) } : { head: t, x: "" }; };
 const fromSnapshot = (s) => (n) => (s.x ? s.head + CALL_X + clip(s.x, n) : s.head);
-async function draftContext({ env, url, row, profile, now }) {
-  const index = await loadIndex(env, url);
-  const c = index._byId.get(row.call_id) || null;
+async function draftContext({ env, url, row, profile, now, d = null }) {
+  const { index, c } = d || await callData(env, url, row.call_id);
   const match = row.match ? JSON.parse(row.match) : { score: 0, status: "potential" };
   const callText = (n) => (c ? callBlock(index, c, profile.country, now, match).replace(/Call text \(excerpt\): .*/s, "Call text (excerpt): " + clip(c.x, n)) : `### ${row.call_id}\nTitle: ${row.call_title}`);
   return { index, c, callText, callMax: c && c.f ? c.f : null, cur: (c && c.cur) || "EUR" };
@@ -208,8 +208,8 @@ export const planText = (p, ps, full = false, max = 6000) => [
   p.activities.length ? `Activities: ${p.activities.map((a) => `${a.id} ${a.title} (${a.wp}, M${a.start}-M${a.end}, lead ${a.lead}${a.amount ? ", " + a.amount + " EUR" : ""})`).join("; ")}` : "",
 ].filter(Boolean).join("\n").slice(0, max);
 
-async function startDraft({ env, db, org, user, profile, row, tpl, body, now, fetchImpl, waitUntil, url }) {
-  const ctx = await draftContext({ env, url, row, profile, now });
+async function startDraft({ env, db, org, user, profile, row, tpl, rubric, d, body, now, fetchImpl, waitUntil, url }) {
+  const ctx = await draftContext({ env, url, row, profile, now, d });
   const rules = await rulesFor(env, url, tpl);
   const facts = cleanFacts(body.facts || { lang: body.lang }, tpl, rules, ctx.callMax);
   if (!body.facts && body.lang) facts.lang = body.lang === "sr" ? "sr" : "en";
@@ -227,6 +227,9 @@ async function startDraft({ env, db, org, user, profile, row, tpl, body, now, fe
     // The call as the section prompts quote it, kept with the draft: writing a part then needs no call index (parsing
     // it took about 50 ms of CPU on a fresh server instance, over the free plan's 10 ms per request).
     callText: callSnapshot(ctx),
+    // The award criteria the application was written to: the evaluation scores against them without reading the
+    // criteria data again.
+    ...(rubric ? { rubric } : {}),
     v: 2, template: tpl.key, ...(TEMPLATES[tpl.key] ? {} : { tpl }), lang: facts.lang, facts, participants: ps, plan, sections: {}, runs: 0, allowance: units.length * 2 + 4,
     at: now, model: r.model || null, title: plan.title,
     call: { id: row.call_id, title: ctx.c ? ctx.c.t : row.call_title, programme: ctx.c ? ctx.c.p : null, deadline: ctx.c ? (nextDeadline(ctx.c, now) || "").split("|")[0] : row.call_deadline, maxPerProject: ctx.callMax, currency: ctx.cur },

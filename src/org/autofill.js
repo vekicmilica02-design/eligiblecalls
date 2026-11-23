@@ -6,11 +6,13 @@
 // Every written value keeps its source (file name or page), the quote and the confidence in profile._meta.
 
 import { FIELD } from "../../site/org/schema.js";
+import { toLatin } from "../../site/org/templates.js";
 
 const isList = (k) => ["multi", "countries"].includes(FIELD[k] && FIELD[k].kind);
 const empty = (v) => v === undefined || v === null || v === "" || (Array.isArray(v) && !v.length);
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
-const norm = (v) => (typeof v === "string" ? v.trim().toLowerCase().replace(/\s+/g, " ") : v);
+// The same text in Cyrillic and in Latin script, or with other quotation marks, is the same value.
+const norm = (v) => (typeof v === "string" ? toLatin(v).trim().toLowerCase().replace(/[„“”"'’‘«»]/g, "").replace(/\s+/g, " ") : v);
 
 export const reliable = (e) => !!e && e.found === true && !e.note && (e.confidence === "high" || e.confidence === "medium");
 

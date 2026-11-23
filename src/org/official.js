@@ -13,7 +13,8 @@ import { complete, parseJsonObject } from "./ai.js";
 import { SR_STYLE } from "../core.js";
 import { HttpError, json } from "./http.js";
 import { matchKey } from "./extract.js";
-import { profileBlock, loadIndex } from "./ideas.js";
+import { profileBlock } from "./ideas.js";
+import { callData } from "./callfile.js";
 import { FIELD } from "../../site/org/schema.js";
 
 export const MAX_CONDITIONS = 10;
@@ -105,8 +106,7 @@ export async function officialRoute({ env, db, user, M, parts, body, now, org, r
   if (M === "POST" && !parts[3]) {
     await requireRole(db, org, user, "editor");
     const callId = String(body.callId || "").slice(0, 200);
-    let c = null;
-    try { c = (await loadIndex(env, url))._byId.get(callId) || null; } catch { c = null; }
+    const { c } = await callData(env, url, callId);
     if (!c) throw new HttpError(404, "not_found");
     const doc = await loadOfficialText(env, url, callId);
     if (!doc || !doc.text) throw new HttpError(409, "no_official_text");

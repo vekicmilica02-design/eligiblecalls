@@ -10,7 +10,8 @@
 
 import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json } from "./http.js";
-import { profileBlock, loadIndex, ideaForModel } from "./ideas.js";
+import { profileBlock, ideaForModel } from "./ideas.js";
+import { callData } from "./callfile.js";
 import { evalTexts, applyEvalTexts } from "../../site/org/content.js";
 import { translateTexts, textLang, needsSerbianFix } from "./translate.js";
 import { matchKey } from "./extract.js";
@@ -220,16 +221,16 @@ export function composeEvaluation(rubric, items) {
 export async function evaluateIdea({ env, db, org, user, profile, ideaId, body, now, fetchImpl, waitUntil, url }) {
   const row = await db.prepare("SELECT * FROM project_ideas WHERE id = ? AND org_id = ?").bind(ideaId, org.id).first();
   if (!row) throw new HttpError(404, "not_found");
-  const [crit, guide] = await Promise.all([loadCriteria(env, url), erasmusAction(row.call_id) ? loadGuide(env, url) : null]);
   let draft = null; try { draft = row.proposal ? JSON.parse(row.proposal) : null; } catch { draft = null; }
-  // The call's title and programme come with the application; the call index (slow to read on a fresh server
-  // instance) is read only when there is none.
-  let c = null;
+  // The call's title and programme and the award criteria come with the application (drafts started since the
+  // criteria are kept with them); otherwise they are read from the call's own data file (src/org/callfile.js).
   const dc = draft && draft.v === 2 && draft.call && draft.call.programme ? draft.call : null;
-  if (!dc) { try { c = (await loadIndex(env, url))._byId.get(row.call_id) || null; } catch { c = null; } }
+  let rubric = draft && draft.v === 2 && draft.rubric ? draft.rubric : null, d = null;
+  if (!rubric || !dc) d = await callData(env, url, row.call_id, { crit: true });
+  const c = d ? d.c : null;
   const call = { id: row.call_id, title: (dc && dc.title) || (c && c.t) || row.call_title || row.call_id, programme: (dc && dc.programme) || (c && c.p) || "" };
-  const rubric = rubricFor(call, crit, guide);
-  if (!rubric) throw new HttpError(409, "no_criteria", { url: (crit.calls[row.call_id] || {}).url || (c && c.u) || "" });
+  if (!rubric) rubric = rubricFor(call, d.crit, erasmusAction(row.call_id) ? await loadGuide(env, url) : null);
+  if (!rubric) throw new HttpError(409, "no_criteria", { url: (d.crit.calls[row.call_id] || {}).url || (c && c.u) || "" });
   const tpl = draft && draft.v === 2 ? tplOf(draft) : null;
   const units = tpl ? unitsOf(tpl, draft.plan, draft.facts.lang) : [];
   const written = units.filter((u) => unitText(draft.sections[u.key]).trim()).length;

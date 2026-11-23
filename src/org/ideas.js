@@ -13,7 +13,8 @@ import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json, randomId, utcDay } from "./http.js";
 import { FIELD } from "../../site/org/schema.js";
 import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
-import { loadCriteria, loadGuide } from "./evaluate.js";
+import { loadGuide } from "./evaluate.js";
+import { callData } from "./callfile.js";
 import { countryInList } from "../../site/org/rules.js";
 import { ideaTexts, applyIdeaTexts, evalTexts, applyEvalTexts } from "../../site/org/content.js";
 import { translateTexts, textLang, needsSerbianFix } from "./translate.js";
@@ -47,16 +48,8 @@ export async function loadIndex(env, url) {
   INDEX._byId = new Map(INDEX.calls.map((c) => [c.id, c]));
   return INDEX;
 }
-export function _resetIdeasIndex() { INDEX = null; ELIG = null; }
+export function _resetIdeasIndex() { INDEX = null; }
 
-// Official eligibility conditions read from the call documents (ingest/eligibility_docs.py). Not kept when unreadable,
-// so a later request tries again; without them only the call index decides.
-let ELIG = null;
-async function loadElig(env, url) {
-  if (ELIG) return ELIG;
-  try { const r = await env.ASSETS.fetch(new URL("/org/eligibility.json", url)); if (r.ok) return (ELIG = await r.json()); } catch { /* no data */ }
-  return { calls: {} };
-}
 // false when the call document's closed list of eligible countries leaves the organisation's country out.
 export function officialCountryOk(elig, callId, cc) {
   const e = elig && elig.calls ? elig.calls[callId] : null;
@@ -221,8 +214,7 @@ export async function explainFit({ env, db, org, user, profile, ideaId, body, no
   const row = await db.prepare("SELECT * FROM project_ideas WHERE id = ? AND org_id = ?").bind(ideaId, org.id).first();
   if (!row) throw new HttpError(404, "not_found");
   const idea = JSON.parse(row.idea);
-  const index = await loadIndex(env, url);
-  const c = index._byId.get(row.call_id);
+  const { index, c } = await callData(env, url, row.call_id);
   const call = c ? callBlock(index, c, profile.country, now, { score: (JSON.parse(row.match || "{}").score) || 0, status: (JSON.parse(row.match || "{}").status) || "potential" }) : `Title: ${row.call_title || row.call_id}`;
   // Written in the idea's own language, so the stored idea is in one language; the page shows its copy in the other.
   const lang = row.lang === "en" ? "en" : "sr";
@@ -281,12 +273,21 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
   const cands = (Array.isArray(body.candidates) ? body.candidates : []).slice(0, 20)
     .map((c) => ({ id: String((c && c.id) || ""), score: Math.max(0, Math.min(100, Math.round(+c.score || 0))), status: ["eligible", "potential", "insufficient"].includes(c && c.status) ? c.status : "potential", band: String((c && c.band) || "") }))
     .filter((c) => c.id);
-  const index = await loadIndex(env, url);
-  const elig = await loadElig(env, url);
+  // Each candidate's own data file (src/org/callfile.js), read in parallel: the full index is too slow to parse on a
+  // fresh server instance. The browser sends the candidates best first; files are read until enough are usable.
+  const data = new Map();
+  for (let i = 0; i < cands.length; i += MAX_CANDIDATES) {
+    const usable = (d) => d.c && nextDeadline(d.c, now) && (eligibilityFor(d.index, d.c, profile.country) || {}).status !== "N";
+    if ([...data.values()].filter(usable).length >= MAX_CANDIDATES) break;
+    const part = cands.slice(i, i + MAX_CANDIDATES);
+    (await Promise.all(part.map((x) => callData(env, url, x.id, { crit: true, elig: true })))).forEach((d, j) => data.set(part[j].id, d));
+  }
   const valid = [], noIdea = [];
   const skip = (cand, c, why) => noIdea.push({ callId: cand.id, title: c ? c.t : "", why });
   for (const cand of cands) {
-    const c = index._byId.get(cand.id);
+    const d = data.get(cand.id);
+    if (!d) { skip(cand, null, "too_many"); continue; }   // not read: enough usable calls before it
+    const { c, index, elig } = d;
     if (valid.some((v) => v.c.id === cand.id)) continue;
     if (!c) { skip(cand, null, "unknown_call"); continue; }
     if (!nextDeadline(c, now)) { skip(cand, c, "closed"); continue; }
@@ -295,7 +296,7 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
     // The call document lists the eligible countries and the organisation's is not among them (the Portal data may not say).
     if (officialCountryOk(elig, c.id, profile.country) === false) { skip(cand, c, "not_eligible"); continue; }
     if (valid.length >= MAX_CANDIDATES) { skip(cand, c, "too_many"); continue; }
-    valid.push({ c, cand });
+    valid.push({ c, cand, index });
   }
   if (!valid.length) throw new HttpError(400, "no_calls");
   const markUsed = await orgDailyLimit(env, db, org.id, now);
@@ -305,8 +306,8 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
   // Award criteria of each call, and the last below-threshold evaluation of an earlier idea for it.
   const rubrics = new Map(), previous = new Map();
   try {
-    const [crit, guide] = await Promise.all([loadCriteria(env, url), ids.some((x) => erasmusAction(x)) ? loadGuide(env, url) : null]);
-    for (const v of valid) { const rb = rubricFor({ id: v.c.id, programme: v.c.p }, crit, guide); if (rb) rubrics.set(v.c.id, rb); }
+    const guide = ids.some((x) => erasmusAction(x)) ? await loadGuide(env, url) : null;
+    for (const v of valid) { const rb = rubricFor({ id: v.c.id, programme: v.c.p }, data.get(v.c.id).crit, guide); if (rb) rubrics.set(v.c.id, rb); }
   } catch { /* criteria data unavailable: ideas are still generated from the call text */ }
   const marks = ids.map(() => "?").join(", ");
   const past = (await db.prepare(`SELECT call_id, idea, evaluations FROM project_ideas WHERE org_id = ? AND call_id IN (${marks}) AND evaluations IS NOT NULL`).bind(org.id, ...ids).all()).results || [];
@@ -328,7 +329,7 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
     const id = v.c.id;
     try {
       const extra = [criteriaBlock(rubrics.get(id)), previous.get(id) || ""].filter(Boolean);
-      const messages = ideaMessages({ profile: pb, blocks: [[callBlock(index, v.c, profile.country, now, v.cand), ...extra].join("\n\n")], lang, ids: [id] });
+      const messages = ideaMessages({ profile: pb, blocks: [[callBlock(v.index, v.c, profile.country, now, v.cand), ...extra].join("\n\n")], lang, ids: [id] });
       const r = await complete({ env, userId: user.id, messages, agent: "ideas", maxOut: IDEA_MAX_OUT, now, fetchImpl, waitUntil });
       if (!used) { used = true; await markUsed(); }
       if (r.model && !models.includes(r.model)) models.push(r.model);
@@ -404,10 +405,9 @@ export async function improveIdea({ env, db, org, user, profile, version, ideaId
   const row = await db.prepare("SELECT * FROM project_ideas WHERE id = ? AND org_id = ?").bind(ideaId, org.id).first();
   if (!row) throw new HttpError(404, "not_found");
   const idea = JSON.parse(row.idea), evs = row.evaluations ? JSON.parse(row.evaluations) : {};
-  const index = await loadIndex(env, url);
-  const c = index._byId.get(row.call_id);
+  const { index, c, crit } = await callData(env, url, row.call_id, { crit: true });
   if (!c || !nextDeadline(c, now)) throw new HttpError(409, "closed");
-  const [crit, guide] = await Promise.all([loadCriteria(env, url), erasmusAction(row.call_id) ? loadGuide(env, url) : null]);
+  const guide = erasmusAction(row.call_id) ? await loadGuide(env, url) : null;
   const rubric = rubricFor({ id: row.call_id, programme: c.p }, crit, guide);
   const all = Object.values(evs);
   const ev = (rubric && evs[rubric.key]) || (all.length ? all.reduce((a, b) => ((b.at || 0) > (a.at || 0) ? b : a)) : null);

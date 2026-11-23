@@ -1131,7 +1131,7 @@ afterRender.profile = (arg) => {
 // (Tesseract, Serbian Cyrillic + Serbian Latin + English), also in the browser; the file is never uploaded.
 // One part of a document is one model request. It must fit the smallest per-minute limit of the provider chain
 // (Groq free plan: 8,000 tokens with the answer) together with the instructions (about 1,200 tokens) and the
-// answer (1,500): parts are cut by estimated tokens, so Cyrillic text gets shorter parts than English.
+// answer (1,800): parts are cut by estimated tokens, so Cyrillic text gets shorter parts than English.
 const CHUNK = 14000, MAX_PARTS = 6, PART_TOKENS = 4200;
 const TESS = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
 const PAKO = "https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js";
@@ -1232,7 +1232,7 @@ function fillHTML(run) {
     ${r.conflicts.length ? `<h3>${esc(T("conflictsTitle"))}</h3><p class="fine">${esc(T("conflictsLede"))}</p><div class="tw"><table class="oi-t"><thead><tr><th>${esc(T("field"))}</th><th>${esc(T("current"))}</th><th>${esc(T("foundValue"))}</th><th></th></tr></thead><tbody>
       ${r.conflicts.map((c) => `<tr><td>${esc(fieldName(c.id))}</td><td>${esc(valueText(FIELD[c.id], c.current))}<div class="fine">${esc(T("prov." + (c.currentSource || "manual")))}</div></td><td>${esc(valueText(FIELD[c.id], c.proposed))}${quote(c.id)}</td>
         <td>${ed ? `<div class="oi-row"><button type="button" class="btn quiet" data-take="${c.id}" data-run="${run.id}">${esc(T("useFound"))}</button><button type="button" class="btn ghost" data-keep="${c.id}" data-run="${run.id}">${esc(T("keepCurrent"))}</button></div>` : ""}</td></tr>`).join("")}</tbody></table></div>` : ""}
-    ${r.notApplied.length ? `<details class="crit-full"><summary>${esc(T("notAppliedTitle", r.notApplied.length))}</summary><div class="tw"><table class="oi-t"><tbody>
+    ${r.notApplied.length ? `<details class="crit-full" open><summary>${esc(T("notAppliedTitle", r.notApplied.length))}</summary><div class="tw"><table class="oi-t"><tbody>
       ${r.notApplied.map((c) => `<tr><td>${esc(fieldName(c.id))}</td><td>${esc(valueText(FIELD[c.id], c.value))}<div class="fine">${esc(whyText(c.why))}</div></td><td>${quote(c.id)}</td><td>${ed ? `<button type="button" class="btn ghost" data-take="${c.id}" data-run="${run.id}">${esc(T("useAnyway"))}</button>` : ""}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
     <p><a class="btn quiet" href="#org/${id}/profile">${esc(T("reviewProfile"))} →</a> <span class="fine">${esc(T("autoNote"))}</span></p>
     <div role="status" class="fill-msg"></div></div>`;

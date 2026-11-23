@@ -9,6 +9,8 @@ import { GROQ_FREE } from "../src/providers.js";
 import { contextFrom } from "../site/org/schema.js";
 import { mockD1, mockAssets, sseStream, mockFetch } from "./mocks.js";
 import { readFileSync, existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { _resetIdeasIndex, verifyIdeas, conceptFit, rankScore } from "../src/org/ideas.js";
 import { rubricFor } from "../site/org/rubric.js";
 import { estTokens } from "../site/org/lang.js";
@@ -1204,6 +1206,24 @@ await t("full application: plan, then one unit at a time; tables and amounts by 
     assert.ok(JSON.parse(env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal).callText.head.includes("Title:"), "backfilled");
     env.DB._db.prepare("UPDATE project_ideas SET proposal = ? WHERE id = 'ih'").run(saved);
   }
+  assert.equal(d.rubric && d.rubric.key, "HE-RIA_IA", "the award criteria are kept with the draft");
+  { // with one data file per call (ingest/call_files.py), writing a part of an older draft reads no full data file
+    if (!existsSync(new URL("../site/org/call/_ready.json", import.meta.url))) execFileSync("python3", [fileURLToPath(new URL("../ingest/call_files.py", import.meta.url))]);
+    const { _resetCallFiles, callData } = await import("../src/org/callfile.js"); _resetCallFiles(); _resetIdeasIndex(); _resetForms();
+    const saved = env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal, d0 = JSON.parse(saved);
+    delete d0.callText; delete d0.sections.s32; env.DB._db.prepare("UPDATE project_ideas SET proposal = ? WHERE id = 'ih'").run(JSON.stringify(d0));
+    const seen = [], f0 = env.ASSETS.fetch;
+    env.ASSETS.fetch = (x) => { seen.push(new URL(x).pathname); return f0(x); };
+    try {
+      r = await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: "s32" } });
+      assert.equal(r.status, 200, JSON.stringify(r.j));
+      assert.ok(JSON.parse(env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal).callText.head.includes(he.t), "backfilled from the call file");
+      const cd = await callData(env, "https://x.test/", he.id, { crit: true, forms: true });
+      assert.equal(cd.c.id, he.id); assert.ok(cd.crit.calls[he.id] && cd.crit.frameworks[CRIT.calls[he.id].framework], "the framework the call points to");
+      assert.equal((await callData(env, "https://x.test/", "NOT-A-CALL")).c, null, "a call without a file is not in the data");
+      assert.deepEqual(seen.filter((x) => ["/data/index.json", "/org/criteria.json", "/org/forms.json", "/org/eligibility.json"].includes(x)), [], "no full data file read");
+    } finally { env.ASSETS.fetch = f0; env.DB._db.prepare("UPDATE project_ideas SET proposal = ? WHERE id = 'ih'").run(saved); }
+  }
   assert.equal((await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: "nope" } })).status, 400);
   assert.equal((await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: "s11" } })).j.cached, true);
   r = await call("PATCH", `/api/orgs/${o}/ideas/ih/proposal`, { cookie: u, body: { key: "s11", text: "My own objectives text." } });
@@ -1267,6 +1287,28 @@ await t("full application: plan, then one unit at a time; tables and amounts by 
     assert.ok(!cm.some((b) => b.h === 3 && /^Table 3\.1/.test(b.text)), "Horizon table numbers only in Horizon Part B");
     assert.ok(checkDraft(cd, {}).some((c) => c.key === "pages"));
   }
+});
+
+await t("statute read from a PDF: words broken at line ends, Cyrillic text, summaries with several quotes are saved", async () => {
+  const { planFill } = await import("../src/org/autofill.js");
+  const tax = JSON.parse(readFileSync(new URL("../site/data/taxonomy.json", import.meta.url), "utf8"));
+  const ctx = contextFrom(tax, 2026);
+  const src = "СТАТУТ УДРУЖЕЊА „МЛАДИ ЗА НОВИ САД“\nЧлан 1.\nУдружење „Млади за Нови Сад“ је добровољно, невладино и непрофитно удру-\nжење, основано ради подршке младима.\nЧлан 2.\nЦиљеви Удружења су:\n- подстицање активног учешћа младих у друштву;\n- унапређење неформалног образовања;\n- заштита животне средине и промоција одрживог развоја.\nЧлан 5.\nСедиште Удружења је у Новом Саду.";
+  const v = verifyFields({ fields: {
+    name: { value: "Млади за Нови Сад", evidence: "Удружење „Млади за Нови Сад“", confidence: "high" },
+    orgType: { value: "ngo", evidence: "добровољно, невладино и непрофитно удружење", confidence: "high" },
+    objectives: { value: "Подстицање активног учешћа младих, неформално образовање, заштита животне средине и одрживи развој.", evidence: "подстицање активног учешћа младих у друштву; ... унапређење неформалног образовања; ... заштита животне средине и промоција одрживог развоја.", confidence: "high" },
+    city: { value: "Нови Сад", evidence: "Седиште … у Новом Саду.", confidence: "high" },
+  } }, src, ctx);
+  assert.equal(v.fields.orgType.found, true, "a word broken at the line end is joined");
+  assert.equal(v.fields.objectives.found, true, "several quotes joined with ...");
+  assert.equal(v.fields.objectives.note, undefined);
+  assert.equal(v.fields.city.found, true, "a shortened quote");
+  assert.equal(v.fields.name.value, "Mladi za Novi Sad", "kept in Latin script");
+  assert.equal(verifyFields({ fields: { orgType: { value: "ngo", evidence: "невладино и непрофитно удружење које не постоји", confidence: "high" } } }, src, ctx).fields.orgType.found, false, "a quote not in the text");
+  const p = planFill({ name: "Mladi za Novi Sad", country: "RS" }, { kind: "document", sourceName: "statut.pdf", fields: v.fields });
+  assert.deepEqual(p.conflicts, [], "the same name in the other script is not a conflict");
+  assert.deepEqual(p.filled.map((f) => f.id).sort(), ["city", "objectives", "orgType"]);
 });
 
 console.log(`\n${pass} passed`);

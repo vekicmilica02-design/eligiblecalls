@@ -1,3 +1,4 @@
+import { expandQuery } from "../site/org/query.js";
 // Retrieval and prompt building for the chat assistant. Pure functions, no I/O.
 // The index is site/data/index.json, written by ingest/build.py.
 
@@ -229,12 +230,13 @@ export function cleanRequest(body) {
 }
 
 // Assemble the provider messages. The document goes into the last user turn.
-export function buildMessages(index, req, now, { limit = 8 } = {}) {
+export function buildMessages(index, req, now, { limit = 8, gloss = null } = {}) {
   prepare(index);
   const userText = req.messages.filter((m) => m.role === "user").map((m) => m.content).join("\n");
   const country = req.profile.country || detectCountry(index, userText + " " + (req.doc ? req.doc.text.slice(0, 3000) : ""));
   const mention = index.calls.filter((c) => userText.includes(c.id)).map((c) => c.id);
-  const query = [req.messages.slice(-1)[0].content, userText, req.doc ? req.doc.text.slice(0, 4000) : ""].join(" ");
+  // Serbian words also rank by their English equivalents from the glossary (site/org/query.js expandQuery).
+  const query = expandQuery([req.messages.slice(-1)[0].content, userText, req.doc ? req.doc.text.slice(0, 4000) : ""].join(" "), gloss);
   const hits = rank(index, { query, country, sectors: req.profile.sectors, applicants: req.profile.applicants, now, mention, limit });
   const sys = systemPrompt({ index, hits, now, country, profileText: req.profile.text, docName: req.doc && req.doc.name, lang: req.lang });
   const msgs = req.messages.map((m) => ({ ...m }));

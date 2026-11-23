@@ -1,7 +1,7 @@
-# Import audit — 2026-11-23T16:17:30.000Z
+# Import audit — 2026-11-23T18:17:29.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1197 rows, 1111 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-23 17:17 Brussels, deadlines counted at 17:00 Brussels): 408, of which forthcoming: 247
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-23 19:17 Brussels, deadlines counted at 17:00 Brussels): 408, of which forthcoming: 247
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -16,14 +16,14 @@
 - Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost): OK · listed 13, notFundingCall 0, read 13, pageUnavailable 0, closed 9, noDeadline 2, pastDeadline 0, published 2
 - Ministry of Tourism and Youth of the Republic of Serbia (Ministarstvo turizma i omladine): OK · listed 71, notFundingCall 61, read 10, pageUnavailable 0, closed 0, noDeadline 5, pastDeadline 4, published 1
 - Ministry for Human and Minority Rights and Social Dialogue of the Republic of Serbia: OK · listed 20, notFundingCall 15, read 5, pageUnavailable 0, closed 0, noDeadline 1, pastDeadline 4, published 0
-- Development Agency of Serbia (Razvojna agencija Srbije): OK · listed 3, notFundingCall 1, read 2, pageUnavailable 0, closed 0, noDeadline 1, pastDeadline 0, published 1
+- Development Agency of Serbia (Razvojna agencija Srbije): FAILED (RuntimeError: listing page https://ras.gov.rs/javni-pozivi answered None), kept last good data from 2026-11-23T16:18:30.000Z · listed 3, notFundingCall 1, read 2, pageUnavailable 0, closed 0, noDeadline 1, pastDeadline 0, published 1
 - Science Fund of the Republic of Serbia (Fond za nauku): OK · listed 6, notFundingCall 0, read 6, pageUnavailable 0, closed 0, noDeadline 0, pastDeadline 6, published 0
 
 - Dropped at build: 1
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
 - Published: 568
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 4 new, 0 changed, 0 closed
+- Changes since the previous import: 0 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 343

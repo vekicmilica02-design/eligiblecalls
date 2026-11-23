@@ -1,7 +1,7 @@
-# Import audit — 2026-11-23T10:17:38.000Z
+# Import audit — 2026-11-23T12:17:27.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1192 rows, 1106 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-23 11:17 Brussels, deadlines counted at 17:00 Brussels): 404, of which forthcoming: 243
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-23 13:17 Brussels, deadlines counted at 17:00 Brussels): 404, of which forthcoming: 243
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -19,11 +19,11 @@
 - Development Agency of Serbia (Razvojna agencija Srbije): OK · listed 3, notFundingCall 1, read 2, pageUnavailable 0, closed 0, noDeadline 1, pastDeadline 0, published 1
 - Science Fund of the Republic of Serbia (Fond za nauku): OK · listed 6, notFundingCall 0, read 6, pageUnavailable 0, closed 0, noDeadline 0, pastDeadline 6, published 0
 
-- Dropped at build: 0
+- Dropped at build: 1
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 565
+- Published: 564
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 2 new, 0 changed, 0 closed
+- Changes since the previous import: 0 new, 0 changed, 1 closed
 
 ## Calls by programme
 - HORIZON: 343
@@ -39,7 +39,6 @@
 - OTHER: 7
 - EUBA: 4
 - EURATOM: 4
-- RS-IFOND: 2
 - ISF: 2
 - I3: 2
 - JTM: 2
@@ -49,11 +48,12 @@
 - PARTNERSHIPS: 1
 - PPPA: 1
 - JUST: 1
+- RS-IFOND: 1
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4521
-- Y: 15616
+- C: 4478
+- Y: 15615
 - N: 4370
 - P: 353
 
@@ -71,3 +71,4 @@
 - EUBA-EFSA-2026-PLANTS-01
 
 ## Dropped
+- RS-IFOND-inovaciona-akademija: ['no upcoming deadline']

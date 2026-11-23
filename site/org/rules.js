@@ -53,7 +53,7 @@ export function setGlossary(g) {
   const idx = new Map();
   for (const e of (g && g.terms) || []) {
     const words = String(e.sr || "").trim().split(/\s+/).filter(Boolean);
-    if (!words.length || !e.en) continue;
+    if (!words.length || !e.en || e.searchOnly) continue;   // searchOnly: keyword search only (site/org/query.js)
     // each word slot: one or more alternatives (a|b|c), each exact or a beginning (ending in *)
     const entry = { words: words.map((w) => w.split("|").map((a) => (a.endsWith("*") ? { pre: a.slice(0, -1) } : { eq: a }))), en: String(e.en), not: e.not || [] };
     for (const k of new Set(words[0].split("|").map((a) => a.replace(/\*$/, "").slice(0, 3)))) {

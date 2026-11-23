@@ -178,6 +178,16 @@ select option { padding: 6px 14px; }
 .btn.big { padding: 13px 22px; font-size: 15px; }
 .btn.ext { background: var(--surface); color: var(--ink); border-color: var(--ink); }
 .btn.ext:hover { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+/* First-visit welcome (native <dialog>: focus stays inside, Escape closes, the page behind is inert) */
+dialog.welcome { width: min(460px, calc(100vw - 32px)); padding: 28px 28px 24px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); color: var(--ink); box-shadow: 0 18px 50px rgba(0, 0, 0, .22); }
+dialog.welcome::backdrop { background: rgba(10, 20, 15, .45); }
+dialog.welcome h2 { margin: 0 32px 10px 0; font-size: 22px; line-height: 1.25; }
+dialog.welcome p { margin: 0 0 20px; color: var(--ink-2); font-size: 15px; line-height: 1.55; }
+.welcome-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.welcome-x { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: 0; border-radius: var(--r); background: transparent; color: var(--ink-2); font-size: 24px; line-height: 1; cursor: pointer; }
+.welcome-x:hover, .welcome-x:focus-visible { background: var(--line); color: var(--ink); }
+@media (prefers-reduced-motion: no-preference) { dialog.welcome[open] { animation: welcome-in .18s ease-out; } }
+@keyframes welcome-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .btn.ext .arr { color: var(--green); }
 .btn.ext:hover .arr { color: inherit; }
 .btn .arr { font-size: 1.05em; line-height: 1; }
@@ -568,6 +578,15 @@ body.chat-open .chat-fab { display: none; }
 </header>
 <main id="app"><div class="wrap loading">Loading calls…</div></main>
 <button type="button" class="chat-fab" data-chat-open aria-label="Ask the assistant"><span aria-hidden="true">✦</span><span data-ci18n="open">Ask the assistant</span></button>
+<dialog class="welcome" id="welcome" aria-labelledby="welcomeTitle" aria-describedby="welcomeBody">
+  <button type="button" class="welcome-x" data-welcome="close" data-i18n-label="welcomeClose" aria-label="Close"><span aria-hidden="true">×</span></button>
+  <h2 id="welcomeTitle" data-i18n="welcomeTitle">Welcome to Eligible Calls</h2>
+  <p id="welcomeBody" data-i18n="welcomeBody"></p>
+  <div class="welcome-actions">
+    <a class="btn" href="#about" data-welcome="about" data-i18n="welcomeAbout">How the platform works</a>
+    <button type="button" class="btn quiet" data-welcome="close" data-i18n="welcomeStart">Start searching</button>
+  </div>
+</dialog>
 <aside class="chat-panel" id="chatPanel" hidden role="dialog" aria-labelledby="chatTitle">
   <div class="chat-head">
     <div><div class="eyebrow">AI</div><h2 id="chatTitle" data-ci18n="title">Project match assistant</h2></div>
@@ -604,6 +623,9 @@ body.chat-open .chat-fab { display: none; }
 const I18N = {
   en: {
     howTitle: "How the platform works",
+    welcomeTitle: "Welcome to Eligible Calls",
+    welcomeBody: "Search open European and national funding calls, see which ones your organisation can apply to, and draft the application. It takes two minutes to see how it works.",
+    welcomeAbout: "How the platform works", welcomeStart: "Start searching", welcomeClose: "Close",
     howBody: `<p>Eligible Calls is a directory of open European and national funding calls, plus a workspace that checks which of them fit your organisation. Anyone can search the calls; the workspace needs a sign-in.</p>
 <ol><li><b>Sign in with Google</b> under Profile and create your organisation.</li>
 <li><b>Fill in the profile:</b> type of organisation, country, sectors, experience and the other fields. You can upload documents (PDF, scans, Word files, images) and the platform reads them and fills in the fields, marking each value "auto-filled: please check".</li>
@@ -639,6 +661,7 @@ const I18N = {
     elShortY: "Eligible", elShortP: "Condition", elShortN: "Not eligible", elShortC: "Not in source",
     pickCountry: "Choose your country to see if you can apply.",
     results: "Open calls", nResults: (n) => n === 1 ? "1 call" : `${n} calls`,
+    alsoEn: "Also searched in English:",
     sortDeadline: "Deadline, soonest first", sortFunding: "Highest funding per project", sortLabel: "Sort",
     noResults: "No open calls match these filters", noResultsHint: "Remove a filter, or include calls marked “Not available from the source”.",
     details: "Details", official: "Official call page", officialShort: "Official page", save: "Save", saved: "Saved",
@@ -682,6 +705,9 @@ const I18N = {
   },
   sr: {
     howTitle: "Kako platforma funkcioniše",
+    welcomeTitle: "Dobro došli na Eligible Calls",
+    welcomeBody: "Pretražite otvorene evropske i nacionalne pozive za finansiranje, proverite na koje vaša organizacija može da konkuriše i napravite nacrt prijave. Za dva minuta saznajte kako sve funkcioniše.",
+    welcomeAbout: "Kako platforma funkcioniše", welcomeStart: "Počnite pretragu", welcomeClose: "Zatvori",
     howBody: `<p>Eligible Calls je pregled otvorenih evropskih i nacionalnih poziva za finansiranje, uz radni prostor koji proverava koji od njih odgovaraju vašoj organizaciji. Pozive može da pretražuje svako; za radni prostor je potrebna prijava.</p>
 <ol><li><b>Prijavite se preko Google naloga</b> u delu Profil i napravite svoju organizaciju.</li>
 <li><b>Popunite profil:</b> vrstu organizacije, državu, sektore, iskustvo i ostala polja. Možete otpremiti dokumente (PDF, skenirane dokumente, Word fajlove, slike), a platforma ih čita i popunjava polja, uz oznaku „automatski popunjeno: proverite“ za svaku vrednost.</li>
@@ -717,6 +743,7 @@ const I18N = {
     elShortY: "Da", elShortP: "Uz uslov", elShortN: "Ne", elShortC: "Nema podatka",
     pickCountry: "Izaberite zemlju da biste videli da li možete da konkurišete.",
     results: "Otvoreni pozivi", nResults: (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "poziv" : "poziva"}`,
+    alsoEn: "Pretraženo i na engleskom:",
     sortDeadline: "Rok, najbliži prvi", sortFunding: "Najveći iznos po grantu", sortLabel: "Redosled",
     noResults: "Nema otvorenih poziva za ove filtere", noResultsHint: "Uklonite neki filter ili uključite pozive označene sa „Nije dostupno u izvoru“.",
     details: "Detalji", official: "Zvanična stranica poziva", officialShort: "Zvanična stranica", save: "Sačuvaj", saved: "Sačuvano",
@@ -919,11 +946,52 @@ const eur = (v) => new Intl.NumberFormat(loc(), { style: "currency", currency: "
 const budgetLabel = (b) => `${eur(b.lo)} – ${eur(b.hi)}`;
 function bucketOf(c) { const n = nextDl(c); if (!n) return null; const d = daysUntil(n); return d <= 7 ? "week" : d <= 30 ? "month" : d <= 92 ? "quarter" : "later"; }
 function inBucket(c, id) { const b = bucketOf(c); if (!b) return false; const o = ["week", "month", "quarter", "later"]; return id === "later" ? b === "later" : o.indexOf(b) <= o.indexOf(id); }
+/* Serbian search words also find the calls' English text: each word or glossary phrase may be found as written or
+   by an English alternative (site/org/query.js, glossary site/org/glossary-sr-en.json). Words the glossary does not
+   know and that find few calls are translated by the server once (POST /api/query-en) and kept for every visitor.
+   Until the module has loaded, every word must occur as written. */
+let QX = null, QG = { key: "" }, QEN = {}, QASKED = new Set(), qenTimer = null;
+import("./org/query.js").then(async (m) => {
+  let idx = null; try { idx = m.parseGlossary(await getJSON("org/glossary-sr-en.json")); } catch (err) { /* no glossary: words as written, and the server translation */ }
+  QX = { m, idx }; QG = { key: "" };
+  if (lastRoute === "home" && F.q) { renderResults(); askQueryEn(); }
+}).catch(() => {});
+function qGroups(q) {
+  const key = q + "\u0000" + Object.keys(QEN).length;
+  if (QG.key !== key) QG = { key, groups: QX.m.queryGroups(q, QX.idx, { extra: QEN, plain: norm }) };
+  return QG.groups;
+}
+function qMatch(c, q) {
+  if (!QX) return norm(q).split(/\s+/).filter(Boolean).every((w) => hay(c).includes(w));
+  return QX.m.matchGroups(hay(c), qGroups(q));
+}
+const qAlsoEn = (q) => (QX && q ? QX.m.groupAlternatives(qGroups(q)) : []);
+// Ask the server for English of the query's words that the glossary does not know and that find fewer than 3 open calls.
+function askQueryEn() {
+  clearTimeout(qenTimer);
+  if (!QX || !F.q) return;
+  const q = F.q;
+  qenTimer = setTimeout(async () => {
+    if (F.q !== q) return;
+    const groups = qGroups(q);
+    const words = QX.m.unknownWords(groups, CALLS.filter(isOpen).map(hay)).filter((w) => w.length >= 4 && !QASKED.has(w));
+    if (!words.length) return;
+    words.forEach((w) => QASKED.add(w));
+    const typed = Object.fromEntries(QX.m.queryWords(q).map((w) => [w.folded, w.plain]));
+    try {
+      const r = await fetch("/api/query-en", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ words: words.map((w) => ({ w, s: typed[w] || w })) }) });
+      const j = r.ok ? await r.json() : {};
+      let added = false;
+      for (const [w, en] of Object.entries(j.en || {})) if (en && !QEN[w]) { QEN[w] = en; added = true; }
+      if (added && F.q === q && lastRoute === "home") renderResults();
+    } catch (err) { /* offline: the words stay as written */ }
+  }, 700);
+}
 const HAY = new Map();
 function hay(c) { if (!HAY.has(c.key)) HAY.set(c.key, norm([c.title, c.id, c.callId, c.callTitle, c.programmeName, (c.keywords || []).join(" "), (c.tags || []).join(" "), c.description, c.cascade ? c.cascade.project + " " + c.cascade.projectName : "", c.sectors.map((s) => IDX.sectors[s] ? IDX.sectors[s].en + " " + IDX.sectors[s].sr : s).join(" ")].join(" "))); return HAY.get(c.key); }
 function match(c, f, skip) {
   if (!isOpen(c)) return false;
-  if (f.q && !norm(f.q).split(/\s+/).filter(Boolean).every((w) => hay(c).includes(w))) return false;
+  if (f.q && !qMatch(c, f.q)) return false;
   const any = (arr, fn) => arr.length === 0 || arr.some(fn);
   if (skip !== "status" && !any(f.status, (s) => (c.status || "open") === s)) return false;
   if (skip !== "scope" && !any(f.scope || [], (s) => (c.scope || "eu") === s)) return false;
@@ -1151,9 +1219,9 @@ function renderHome() {
     <div class="soon-list">${soon.map((c) => { const n = nextDl(c); return `<a class="soon-item" href="#c-${c.key}"><div class="dateblock"><div class="d">${dlDay(n)}</div><div class="m">${esc(fmtDate(n, { month: "short", day: undefined, year: undefined }))}</div></div><div style="min-width:0"><div class="t">${esc(c.title)}</div><div class="p">${esc(progShort(c))} · ${leftSpan(n, "")}${F.country ? " · " + esc(nm(IDX.countries[F.country])) + ": " + esc(t("elShort" + elig(c, F.country).s)) : ""}</div></div></a>`; }).join("")}</div></section>` : ""}
   <div class="wrap results-wrap" id="results"><aside class="filters" id="filters" aria-label="${esc(t("filters"))}"></aside><div id="resultsCol" style="min-width:0"></div></div>`;
   const apply = () => refresh();
-  document.getElementById("builder").addEventListener("submit", (e) => { e.preventDefault(); clearTimeout(qTimer); F.q = document.getElementById("q").value.trim(); apply(); document.getElementById("results").scrollIntoView(); });
+  document.getElementById("builder").addEventListener("submit", (e) => { e.preventDefault(); clearTimeout(qTimer); F.q = document.getElementById("q").value.trim(); apply(); askQueryEn(); document.getElementById("results").scrollIntoView(); });
   let qTimer = 0;
-  document.getElementById("q").addEventListener("input", (e) => { clearTimeout(qTimer); const v = e.target.value.trim(); qTimer = setTimeout(() => { F.q = v; apply(); }, 220); });
+  document.getElementById("q").addEventListener("input", (e) => { clearTimeout(qTimer); const v = e.target.value.trim(); qTimer = setTimeout(() => { F.q = v; apply(); askQueryEn(); }, 220); });
   document.getElementById("bCountry").addEventListener("change", (e) => { F.country = e.target.value; store.set("country", F.country); renderHome(); });
   document.getElementById("bApp").addEventListener("change", (e) => { const g = IDX.applicantGroups[e.target.value]; F.applicants = g ? g.applicants.slice() : []; apply(); });
   document.getElementById("bSector").addEventListener("change", (e) => { const g = IDX.sectorGroups[e.target.value]; F.sectors = g ? g.sectors.slice() : []; apply(); });
@@ -1257,7 +1325,7 @@ function renderResults() {
   if (F.budget) chips.push(`<button type="button" class="af" data-rm="budget:">${esc(t("fFunding"))}: ${esc(budgetLabel(F.budget))}</button>`);
   const eTabs = F.country ? ["Y", "P", "C", "N"].map((s) => `<button type="button" data-el="${s}" aria-pressed="${F.elig.includes(s)}">${esc(t("elShort" + s))} <span class="mono">${CALLS.filter((c) => match(c, Object.assign({}, F, { elig: [s] }))).length}</span></button>`).join("") : "";
   col.innerHTML = `
-    <div class="toolbar"><div><h2>${esc(t(CALLS.some(isSoon) ? "resultsAll" : "results"))} <span class="cnt">${list.length}</span></h2><div class="meta" aria-live="polite">${esc(t("nResults", list.length))}${F.country ? " · " + esc(nm(IDX.countries[F.country])) : ""}</div></div>
+    <div class="toolbar"><div><h2>${esc(t(CALLS.some(isSoon) ? "resultsAll" : "results"))} <span class="cnt">${list.length}</span></h2><div class="meta" aria-live="polite">${esc(t("nResults", list.length))}${F.country ? " · " + esc(nm(IDX.countries[F.country])) : ""}</div>${(() => { const a = qAlsoEn(F.q); return a.length ? `<div class="meta qen">${esc(t("alsoEn"))} ${esc(a.slice(0, 8).join(", "))}</div>` : ""; })()}</div>
       <div class="toolbar-right"><button type="button" class="btn quiet mobile-filter-btn" id="openFilters">${esc(t("filters"))}${activeCount() ? ` (${activeCount()})` : ""}</button>
       <label class="vh" for="sort">${esc(t("sortLabel"))}</label><select id="sort"><option value="deadline">${esc(t("sortDeadline"))}</option><option value="funding">${esc(t("sortFunding"))}</option></select></div></div>
     ${eTabs ? `<div class="elig-tabs" role="group" aria-label="Eligibility">${eTabs}</div>` : ""}
@@ -1453,7 +1521,10 @@ function renderAbout() {
   <p>The assistant answers only from the calls on this site. It picks the calls closest to your description by keyword, then an open-source language model (Llama on Cloudflare Workers AI, or GPT-OSS on Groq when the first is busy) writes the answer. Your messages and any attached text are sent to that service to write the answer and are not stored by Eligible Calls. It runs within free daily limits, so it may pause until the next day. Its answers are guidance; the official call documents decide.</p>
   <p>${esc(t("remindersNote"))}</p>
   <h2 id="accounts">${esc(t("accTitle"))}</h2>${t("accBody")}</div>`;
-  if (location.hash === "#about" && sessionStorage.getItem("ec-scroll-accounts")) { sessionStorage.removeItem("ec-scroll-accounts"); setTimeout(() => { const a = document.getElementById("accounts"); if (a) a.scrollIntoView(); }, 60); }
+  // A link can ask for one part of this page: "ec-scroll-accounts" (Accounts and privacy) or "ec-scroll-about" = part id.
+  let part = null;
+  try { part = sessionStorage.getItem("ec-scroll-about") || (sessionStorage.getItem("ec-scroll-accounts") ? "accounts" : null); sessionStorage.removeItem("ec-scroll-about"); sessionStorage.removeItem("ec-scroll-accounts"); } catch (err) { /* storage blocked */ }
+  if (location.hash === "#about" && part) setTimeout(() => { const a = document.getElementById(part); if (a) { a.setAttribute("tabindex", "-1"); a.scrollIntoView(); a.focus({ preventScroll: true }); } }, 60);
 }
 
 /* ---------- project-match assistant ----------
@@ -1573,7 +1644,10 @@ function callDetails(id, country) {
 function searchCalls(q) {
   const words = norm(q).split(/\s+/).filter((w) => w.length > 2);
   if (!words.length) throw new Error("Give at least one search word longer than two letters.");
-  return CALLS.filter(isOpen).map((c) => { const h = norm([c.title, c.callTitle, c.description, c.conditions, (c.keywords || []).join(" "), (c.tags || []).join(" ")].join(" ")); return { c, s: words.reduce((a, w) => a + (h.split(w).length - 1), 0) }; })
+  // Serbian words also count by their English alternatives (glossary, site/org/query.js).
+  const alts = QX ? QX.m.queryGroups(q, QX.idx, { plain: norm }).flatMap((g) => g.alts.flatMap((a) => a.split(" "))) : [];
+  const all = [...new Set([...words, ...alts.filter((a) => a.length > 2)])];
+  return CALLS.filter(isOpen).map((c) => { const h = norm([c.title, c.callTitle, c.description, c.conditions, (c.keywords || []).join(" "), (c.tags || []).join(" ")].join(" ")); return { c, s: all.reduce((a, w) => a + (h.split(w).length - 1), 0) }; })
     .filter((x) => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 15).map((x) => ({ id: x.c.id, title: x.c.title, hits: x.s, nextDeadline: dlPlain(nextDl(x.c)) }));
 }
 
@@ -1842,6 +1916,7 @@ window.addEventListener("scroll", () => { if (lastRoute === "home") homeScroll =
 function applyLang() {
   document.documentElement.lang = lang === "sr" ? "sr-Latn" : "en";
   document.querySelectorAll("[data-i18n]").forEach((el) => (el.textContent = t(el.dataset.i18n)));
+  document.querySelectorAll("[data-i18n-label]").forEach((el) => el.setAttribute("aria-label", t(el.dataset.i18nLabel)));
   document.getElementById("footText").textContent = t("foot");
   if (META) {
     const ageH = Math.floor((Date.now() - Date.parse(META.generated)) / 36e5);
@@ -1880,7 +1955,28 @@ window.EC = {
 };
 lang = store.get("lang", "en") === "sr" ? "sr" : "en";
 syncThemeBtn();
-load().then(() => { applyLang(); updateSavedCount(); window.addEventListener("hashchange", route); route(); openSig = sigNow(); initChat(); })
+/* First visit: a short welcome that leads to "How the platform works" on the About page. Shown once per browser, only
+   on the home page (a visitor who came by a link to a call or another page is left to it), and not while another
+   window of the page is open. Closing it in any way (button, ×, Escape, a click outside) counts as seen. */
+function maybeWelcome() {
+  const d = document.getElementById("welcome");
+  if (!d || typeof d.showModal !== "function" || store.get("welcomed", false) || lastRoute !== "home" || location.hash.length > 1) return;
+  setTimeout(() => {
+    if (store.get("welcomed", false) || lastRoute !== "home" || location.hash.length > 1 || document.querySelector("dialog[open]") || !document.getElementById("chatPanel").hidden) return;
+    store.set("welcomed", true);
+    applyLang();
+    d.showModal();
+    d.querySelector('[data-welcome="about"]').focus();
+  }, 900);
+}
+function initWelcome() {
+  const d = document.getElementById("welcome"); if (!d) return;
+  d.querySelectorAll('[data-welcome="close"]').forEach((b) => b.addEventListener("click", () => d.close()));
+  d.querySelector('[data-welcome="about"]').addEventListener("click", () => { try { sessionStorage.setItem("ec-scroll-about", "how"); } catch (err) { /* storage blocked */ } d.close(); });
+  // A click on the backdrop (outside the dialog's box) closes it; clicks on its padding do not.
+  d.addEventListener("click", (e) => { if (e.target !== d) return; const r = d.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close(); });
+}
+load().then(() => { applyLang(); updateSavedCount(); window.addEventListener("hashchange", route); route(); openSig = sigNow(); initChat(); initWelcome(); maybeWelcome(); })
   .catch((err) => { document.getElementById("app").innerHTML = `<div class="wrap page"><h1>Could not load the data files</h1><p>${esc(err.message)}</p></div>`; });
 })();
 </script>

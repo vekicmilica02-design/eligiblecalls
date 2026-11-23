@@ -1,5 +1,6 @@
 // POST /api/chat handler. Shared by the Pages Function and the local test server.
 import { cleanRequest, buildMessages, estTokens, LIMITS } from "./core.js";
+import { parseGlossary } from "../site/org/query.js";
 import { workersAI, groq, groqModels, neurons, ProviderError } from "./providers.js";
 import { utcDay, nextReset, getUsage, addUsage, groqKey, groqTokens, visitorHit, visitorUndo, visitorHash } from "./budget.js";
 
@@ -11,7 +12,15 @@ async function loadIndex(env, url) {
   INDEX = await r.json();
   return INDEX;
 }
-export function _resetIndex() { INDEX = null; }
+// Serbian to English glossary (site/org/glossary-sr-en.json): Serbian words of the question also rank calls by their
+// English equivalents. Without it the question is ranked as written.
+let GLOSS;
+async function loadGloss(env, url) {
+  if (GLOSS !== undefined) return GLOSS;
+  try { const r = await env.ASSETS.fetch(new URL("/org/glossary-sr-en.json", url)); GLOSS = r.ok ? parseGlossary(await r.json()) : null; } catch { GLOSS = null; }
+  return GLOSS;
+}
+export function _resetIndex() { INDEX = null; GLOSS = undefined; }
 
 const num = (v, d) => (v !== undefined && v !== "" && !isNaN(+v) ? +v : d);
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
@@ -40,8 +49,8 @@ export async function handleChat({ request, env, waitUntil = (p) => p, now = Dat
 
   const db = env.DB || null;
   const day = utcDay(now);
-  const index = await loadIndex(env, request.url);
-  const built = buildMessages(index, req, now);
+  const [index, gloss] = await Promise.all([loadIndex(env, request.url), loadGloss(env, request.url)]);
+  const built = buildMessages(index, req, now, { gloss });
   const tokIn = estTokens(built.messages.map((m) => m.content).join("\n"));
   const maxOut = LIMITS.maxOutput;
 
@@ -62,7 +71,7 @@ export async function handleChat({ request, env, waitUntil = (p) => p, now = Dat
     let t = tokIn;
     for (const limit of [5, 3]) {
       if (t + o.maxOut <= 0.9 * o.tpm) return true;
-      o.built = buildMessages(index, req, now, { limit }); o.maxOut = Math.min(maxOut, 800);
+      o.built = buildMessages(index, req, now, { limit, gloss }); o.maxOut = Math.min(maxOut, 800);
       t = estTokens(o.built.messages.map((m) => m.content).join("\n"));
     }
     return t + o.maxOut <= 0.9 * o.tpm;

@@ -8,6 +8,7 @@ import { readFileSync, existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { handleChat, handleHealth } from "../src/chat.js";
 import { handleApi } from "../src/org/api.js";
+import { handleQueryEn } from "../src/queryen.js";
 import { mockD1, mockAI, mockFetch, sseStream, ROOT } from "./mocks.js";
 
 const SITE = path.join(ROOT, "site");
@@ -31,6 +32,13 @@ function demoAI(seen) {
   return { run: async (model, input) => {
     seen.push(input);
     const sys = input.messages[0].content;
+    if (sys.startsWith("You translate single search words")) {
+      // Search words: a few known words, others unknown.
+      const known = { pcelarstvo: "beekeeping, apiculture", vinarija: "winery, wine", zadruga: "cooperative" };
+      const words = JSON.parse(input.messages[1].content).map((x) => x.split(" ")[0]);
+      const text = JSON.stringify({ words: Object.fromEntries(words.map((w) => [w, known[w] || ""])) });
+      return sseStream([{ response: text }, { response: "", usage: { prompt_tokens: 200, completion_tokens: 30 } }]);
+    }
     if (sys.startsWith("You extract facts about one organisation")) {
       // Organisation extraction: propose the first line as the name and the first long sentence as the description, quoted.
       const src = (input.messages[1].content.match(/<source>\n([\s\S]*)\n<\/source>/) || [, ""])[1];
@@ -189,6 +197,7 @@ const server = http.createServer(async (req, res) => {
       let r;
       if (url.pathname === "/api/chat" && req.method === "POST") r = await handleChat({ request, env, now: nowFn(), fetchImpl: mockFetch() });
       else if (url.pathname === "/api/health") r = await handleHealth({ env, now: nowFn() });
+      else if (url.pathname === "/api/query-en" && req.method === "POST") r = await handleQueryEn({ request, env, now: nowFn(), fetchImpl: mockFetch() });
       else if (/^\/api\/(auth|orgs|admin|access)(\/|$)|^\/api\/me(\/|$)/.test(url.pathname)) r = await handleApi({ request, env, now: nowFn(), fetchImpl: googleStub });
       else r = new Response("not found", { status: 404 });
       const hs = Object.fromEntries([...r.headers].filter(([k]) => k !== "set-cookie"));

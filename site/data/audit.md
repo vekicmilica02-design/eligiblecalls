@@ -1,11 +1,11 @@
-# Import audit — 2026-11-23T22:17:26.000Z
+# Import audit — 2026-11-24T00:17:35.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1198 rows, 1111 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-23 23:17 Brussels, deadlines counted at 17:00 Brussels): 408, of which forthcoming: 247
+- Search results (types grant/cfp/cascade, status Open): 1196 rows, 1110 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-24 01:17 Brussels, deadlines counted at 17:00 Brussels): 408, of which forthcoming: 245
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 179, noFutureDeadline 69, noOrganiserLink 7, linkNotVerified 52, published 51
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 177, noFutureDeadline 69, noOrganiserLink 7, linkNotVerified 50, published 51
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 28, noFutureDeadline 2, linkNotVerified 1, published 25
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 22, horizonTopic 6, noFutureDeadline 15, linkNotVerified 0, published 1
@@ -23,7 +23,7 @@
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
 - Published: 572
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 2 new, 0 changed, 0 closed
+- Changes since the previous import: 0 new, 2 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 343
@@ -34,9 +34,9 @@
 - CREA: 19
 - EIT: 9
 - EDF: 9
-- CERV: 7
 - ESA: 7
 - OTHER: 7
+- CERV: 7
 - EUBA: 4
 - EURATOM: 4
 - ISF: 2
@@ -52,9 +52,9 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- C: 4566
 - Y: 15747
 - N: 4454
+- C: 4566
 - P: 401
 
 ## Calls with call-specific country rules

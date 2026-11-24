@@ -1,11 +1,11 @@
-# Import audit — 2026-11-24T12:17:28.000Z
+# Import audit — 2026-11-24T14:17:39.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1198 rows, 1112 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-24 13:17 Brussels, deadlines counted at 17:00 Brussels): 408, of which forthcoming: 245
+- Search results (types grant/cfp/cascade, status Open): 1199 rows, 1112 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-24 15:17 Brussels, deadlines counted at 17:00 Brussels): 408, of which forthcoming: 245
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 179, noFutureDeadline 69, noOrganiserLink 8, linkNotVerified 50, published 52
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 180, noFutureDeadline 69, noOrganiserLink 8, linkNotVerified 50, published 53
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 28, noFutureDeadline 2, linkNotVerified 1, published 25
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 22, horizonTopic 6, noFutureDeadline 15, linkNotVerified 0, published 1
@@ -21,12 +21,12 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 573
+- Published: 574
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
 - Changes since the previous import: 1 new, 0 changed, 0 closed
 
 ## Calls by programme
-- HORIZON: 343
+- HORIZON: 344
 - UKRI: 77
 - DIGITAL: 26
 - INTERREG: 25
@@ -54,7 +54,7 @@
 ## Eligibility answers (calls × countries)
 - Y: 15747
 - N: 4454
-- C: 4610
+- C: 4654
 - P: 401
 
 ## Calls with call-specific country rules

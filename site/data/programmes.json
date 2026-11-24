@@ -189,7 +189,7 @@
     ]
    },
    "note": "",
-   "openCalls": 344
+   "openCalls": 342
   },
   {
    "id": "EURATOM",
@@ -2196,7 +2196,7 @@
    "source": "UKRI Funding Finder (ukri.org)",
    "scope": "eu",
    "note": "Calls from UKRI Funding Finder (ukri.org). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 77
+   "openCalls": 74
   },
   {
    "id": "EIT",
@@ -2208,7 +2208,7 @@
    "source": "EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology)",
    "scope": "eu",
    "note": "Calls from EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 9
+   "openCalls": 10
   },
   {
    "id": "ESA",

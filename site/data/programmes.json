@@ -2235,18 +2235,6 @@
    "openCalls": 1
   },
   {
-   "id": "RS-MTO",
-   "name": "Ministry of Tourism and Youth of the Republic of Serbia (Ministarstvo turizma i omladine)",
-   "short": "Min. Tourism and Youth (RS)",
-   "summary": "",
-   "list": null,
-   "countries": null,
-   "source": "Ministry of Tourism and Youth of the Republic of Serbia (Ministarstvo turizma i omladine)",
-   "scope": "rs",
-   "note": "Calls from Ministry of Tourism and Youth of the Republic of Serbia (Ministarstvo turizma i omladine). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 0
-  },
-  {
    "id": "RS-RAS",
    "name": "Development Agency of Serbia (Razvojna agencija Srbije)",
    "short": "Development Agency (RS)",

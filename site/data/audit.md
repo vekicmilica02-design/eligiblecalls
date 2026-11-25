@@ -1,7 +1,7 @@
-# Import audit — 2026-11-25T12:17:37.000Z
+# Import audit — 2026-11-25T14:17:31.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1198 rows, 1111 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-25 13:17 Brussels, deadlines counted at 17:00 Brussels): 407, of which forthcoming: 245
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-25 15:17 Brussels, deadlines counted at 17:00 Brussels): 407, of which forthcoming: 245
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -9,7 +9,7 @@
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 26, noFutureDeadline 0, linkNotVerified 1, published 25
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 22, horizonTopic 6, noFutureDeadline 15, linkNotVerified 0, published 1
-- UKRI Funding Finder (ukri.org): OK · listed 133, inviteOnly 3, noFutureDeadline 57, published 73
+- UKRI Funding Finder (ukri.org): OK · listed 136, inviteOnly 3, noFutureDeadline 57, published 76
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 16, noFutureDeadline 0, linkNotVerified 0, published 11
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 - Erasmus+ Programme Guide (actions managed by the national agencies): OK · guideYear 2026, rounds 4, noFutureDeadline 4, pageUnavailable 0, published 0
@@ -21,13 +21,13 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 568
+- Published: 571
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 1 new, 1 changed, 1 closed
+- Changes since the previous import: 3 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 342
-- UKRI: 73
+- UKRI: 76
 - DIGITAL: 26
 - INTERREG: 25
 - ERASMUS: 23
@@ -51,10 +51,10 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- Y: 15690
-- N: 4323
+- Y: 15692
+- N: 4409
 - P: 412
-- C: 4567
+- C: 4611
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

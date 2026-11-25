@@ -30,7 +30,7 @@ const S = {
     missingTitle: "Missing information", missingNone: "Every field that counts for matching is filled in.", strengthsTitle: "Strengths seen in the profile",
     upcoming: "Upcoming deadlines of compatible calls", none: "None yet.", lastUpdate: (d, v) => `Profile version ${v}, saved ${d}.`, recentRuns: "Recent extractions",
     fillProfile: "Fill in the profile", openMatching: "See all matches",
-    save: "Save profile", saved: (v) => `Saved as version ${v}.`, unsaved: "Unsaved changes", conflict: "Someone else saved the profile in the meantime. Reload to see their version; your changes are kept in this form.", reload: "Reload",
+    save: "Save profile", saved: (v) => `Saved as version ${v}.`, unsaved: "Unsaved changes", conflict: "Someone else saved the profile in the meantime. Reload to see their version; your changes are kept in this form.", reload: "Reload", savedMerged: "Values saved meanwhile (from a document, a website or another member) were kept; your changes were added on top.", conflictBusy: "The profile is being changed right now (a document or website is still being read). Wait a moment and save again; your changes are kept in this form.",
     invalid: "Some fields are not valid; they are marked below.", viewerNote: "You can view this organisation. Only editors and owners can change it.",
     sections: { identity: "Identity", about: "Mission and activities", experience: "Experience", capacity: "Capacity and resources", partners: "Partnerships" },
     prov: { manual: "entered by hand", document: "from document", web: "from website" }, unverified: "auto-filled: please check", verifiedBy: "approved",
@@ -269,7 +269,7 @@ const S = {
     missingTitle: "Podaci koji nedostaju", missingNone: "Sva polja važna za proveru su popunjena.", strengthsTitle: "Prednosti uočene u profilu",
     upcoming: "Predstojeći rokovi kompatibilnih poziva", none: "Još nema.", lastUpdate: (d, v) => `Verzija profila ${v}, sačuvana ${d}.`, recentRuns: "Poslednja izdvajanja",
     fillProfile: "Popunite profil", openMatching: "Svi rezultati",
-    save: "Sačuvaj profil", saved: (v) => `Sačuvano kao verzija ${v}.`, unsaved: "Nesačuvane izmene", conflict: "Neko drugi je u međuvremenu sačuvao profil. Učitajte ponovo da biste videli njegovu verziju; vaše izmene ostaju u formularu.", reload: "Učitaj ponovo",
+    save: "Sačuvaj profil", saved: (v) => `Sačuvano kao verzija ${v}.`, unsaved: "Nesačuvane izmene", conflict: "Neko drugi je u međuvremenu sačuvao profil. Učitajte ponovo da biste videli njegovu verziju; vaše izmene ostaju u formularu.", reload: "Učitaj ponovo", savedMerged: "Podaci sačuvani u međuvremenu (iz dokumenta, sa veb-sajta ili od drugog člana) su zadržani, a vaše izmene su dodate.", conflictBusy: "Profil se upravo menja (dokument ili veb-sajt se još čita). Sačekajte trenutak i sačuvajte ponovo; vaše izmene ostaju u formularu.",
     invalid: "Neka polja nisu ispravna; označena su ispod.", viewerNote: "Možete da pregledate ovu organizaciju. Menjati je mogu samo urednici i vlasnici.",
     sections: { identity: "Osnovni podaci", about: "Misija i aktivnosti", experience: "Iskustvo", capacity: "Kapaciteti i resursi", partners: "Partnerstva" },
     prov: { manual: "uneto ručno", document: "iz dokumenta", web: "sa sajta" }, unverified: "automatski popunjeno: proverite", verifiedBy: "odobreno",
@@ -1094,35 +1094,50 @@ afterRender.profile = (arg) => {
   bindTr();
   if (!canEdit()) return;
   const msg = document.getElementById("oiSaveMsg");
-  // The form saves against the profile it was drawn from: if the profile changed meanwhile (another member, or a
-  // document read in the background), the server answers version_conflict instead of overwriting the newer values.
-  const drawn = ST.org;
+  // The form saves against the profile it was drawn from. Only the fields changed in the form are written: when the
+  // profile changed meanwhile (a document or website read in the background, or another member), the save is made
+  // again on top of the newer version, so neither side's values are lost. A field changed both here and there takes
+  // the value from this form, since saving it is the member's own decision.
+  let drawn = ST.org;
   form.addEventListener("input", (ev) => { msg.textContent = T("unsaved"); const box = ev.target.closest(".need"); if (box) box.classList.remove("need"); });
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
-    const org = drawn, old = org.profile, meta = { ...(old._meta || {}) }, next = {};
-    for (const f of FIELDS) {
-      const v = readField(f);
-      if (v !== null && v !== undefined && !(Array.isArray(v) && !v.length)) next[f.id] = v;
-      // A value changed by hand is the user's own statement.
-      if (JSON.stringify(v ?? null) !== JSON.stringify(old[f.id] ?? null)) { if (next[f.id] !== undefined) meta[f.id] = { source: "manual", verified: true, at: new Date().toISOString() }; else delete meta[f.id]; }
-    }
-    for (const k of Object.keys(meta)) if (next[k] === undefined) delete meta[k];
-    if (Object.keys(meta).length) next._meta = meta;
+    const btn = form.querySelector('[type="submit"]'); if (btn) btn.disabled = true;
+    const old = drawn.profile, mine = {};
+    for (const f of FIELDS) { const v = readField(f); if (JSON.stringify(v ?? null) !== JSON.stringify(old[f.id] ?? null)) mine[f.id] = v; }
+    const build = (base) => {
+      const next = {}, meta = { ...(base._meta || {}) };
+      for (const f of FIELDS) {
+        const v = f.id in mine ? mine[f.id] : base[f.id];
+        if (v !== null && v !== undefined && !(Array.isArray(v) && !v.length)) next[f.id] = v;
+        if (f.id in mine) { if (next[f.id] !== undefined) meta[f.id] = { source: "manual", verified: true, at: new Date().toISOString() }; else delete meta[f.id]; }
+      }
+      for (const k of Object.keys(meta)) if (next[k] === undefined) delete meta[k];
+      if (Object.keys(meta).length) next._meta = meta;
+      return next;
+    };
     form.querySelectorAll(".err").forEach((e) => (e.hidden = true));
+    const orgId = drawn.id;
+    let merged = false;
     try {
-      const r = await api("PUT", `/orgs/${org.id}/profile`, { profile: next, baseVersion: org.version });
-      await loadOrg(org.id, true); ST.me = undefined; await loadMe();
-      msg.textContent = T("saved", r.version);
+      let base = drawn, r;
+      for (let attempt = 0; ; attempt++) {
+        try { r = await api("PUT", `/orgs/${orgId}/profile`, { profile: build(base.profile), baseVersion: base.version }); break; }
+        catch (e) {
+          if (e.message !== "version_conflict" || attempt >= 2) throw e;
+          base = await loadOrg(orgId, true); merged = true;   // the newer version, with this form's changes on top
+        }
+      }
+      drawn = await loadOrg(orgId, true); ST.me = undefined; await loadMe();
+      msg.textContent = T("saved", r.version) + (merged ? " " + T("savedMerged") : "");
       redrawTr(); ensureEnglish(document.getElementById("oiTrMsg"));
     } catch (e) {
       if (e.message === "invalid" && e.data && e.data.fields) {
         for (const [k, code] of Object.entries(e.data.fields)) { const box = form.querySelector(`[data-f="${k}"] .err`); if (box) { box.hidden = false; box.textContent = code; } }
         msg.textContent = T("invalid");
-      } else if (e.message === "version_conflict") msg.innerHTML = `${esc(T("conflict"))} <a href="#org/${org.id}/profile" id="oiReload">${esc(T("reload"))}</a>`;
+      } else if (e.message === "version_conflict") msg.textContent = T("conflictBusy");
       else msg.textContent = errText(e);
-      const rl = document.getElementById("oiReload"); if (rl) rl.addEventListener("click", async (x) => { x.preventDefault(); await loadOrg(org.id, true); refresh(); });
-    }
+    } finally { if (btn) btn.disabled = false; }
   });
 };
 

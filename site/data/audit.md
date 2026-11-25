@@ -1,7 +1,7 @@
-# Import audit — 2026-11-25T14:17:31.000Z
+# Import audit — 2026-11-25T15:04:16.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1198 rows, 1111 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-25 15:17 Brussels, deadlines counted at 17:00 Brussels): 407, of which forthcoming: 245
+- Search results (types grant/cfp/cascade, status Open): 1206 rows, 1119 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-25 16:04 Brussels, deadlines counted at 17:00 Brussels): 415, of which forthcoming: 253
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -21,16 +21,16 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 571
+- Published: 579
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 3 new, 0 changed, 0 closed
+- Changes since the previous import: 8 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 342
 - UKRI: 76
+- ERASMUS: 31
 - DIGITAL: 26
 - INTERREG: 25
-- ERASMUS: 23
 - CREA: 19
 - EIT: 10
 - EDF: 9
@@ -51,9 +51,9 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- Y: 15692
+- Y: 15956
 - N: 4409
-- P: 412
+- P: 500
 - C: 4611
 
 ## Calls with call-specific country rules

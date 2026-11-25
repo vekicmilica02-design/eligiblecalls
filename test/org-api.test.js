@@ -1209,15 +1209,28 @@ await t("full application: plan, then one unit at a time; tables and amounts by 
   assert.equal(d.rubric && d.rubric.key, "HE-RIA_IA", "the award criteria are kept with the draft");
   { // with one data file per call (ingest/call_files.py), writing a part of an older draft reads no full data file
     if (!existsSync(new URL("../site/org/call/_ready.json", import.meta.url))) execFileSync("python3", [fileURLToPath(new URL("../ingest/call_files.py", import.meta.url))]);
-    const { _resetCallFiles, callData } = await import("../src/org/callfile.js"); _resetCallFiles(); _resetIdeasIndex(); _resetForms();
+    const { _resetCallFiles, callData, callFileName } = await import("../src/org/callfile.js"); _resetCallFiles(); _resetIdeasIndex(); _resetForms();
     const saved = env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal, d0 = JSON.parse(saved);
-    delete d0.callText; delete d0.sections.s32; env.DB._db.prepare("UPDATE project_ideas SET proposal = ? WHERE id = 'ih'").run(JSON.stringify(d0));
+    delete d0.callText; delete d0.doc; delete d0.sections.s32; env.DB._db.prepare("UPDATE project_ideas SET proposal = ? WHERE id = 'ih'").run(JSON.stringify(d0));
     const seen = [], f0 = env.ASSETS.fetch;
-    env.ASSETS.fetch = (x) => { seen.push(new URL(x).pathname); return f0(x); };
+    // The call's official text (ingest/call_content.py), as the refresh puts it in the call file.
+    const DOC = { kind: "topic", title: "Topic description (EU Funding & Tenders Portal)", url: "https://ec.europa.eu/x", sections: [
+      { h: "Expected Outcome", kind: "topic", t: "Projects are expected to contribute to faster detection of marine heatwaves." },
+      { h: "Scope", kind: "topic", t: "Proposals should deploy low-cost ocean sensors in at least two sea basins.\nThe work plan should include an open data platform for coastal authorities." } ] };
+    env.ASSETS.fetch = async (x) => {
+      const pth = new URL(x).pathname; seen.push(pth);
+      if (pth === "/org/call/" + callFileName(he.id)) { const f = await (await f0(x)).json(); return new Response(JSON.stringify({ ...f, doc: DOC })); }
+      return f0(x);
+    };
+    const nAi = aiSeen.length;
     try {
       r = await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: "s32" } });
       assert.equal(r.status, 200, JSON.stringify(r.j));
-      assert.ok(JSON.parse(env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal).callText.head.includes(he.t), "backfilled from the call file");
+      const stored = JSON.parse(env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal);
+      assert.ok(stored.callText.head.includes(he.t), "backfilled from the call file");
+      assert.equal(stored.doc.sections.length, 2, "the official text is kept with the draft");
+      const sent = aiSeen.slice(nAi).map((m) => m.messages.map((x) => x.content).join("\n")).join("\n");
+      assert.match(sent, /From the official topic description/); assert.match(sent, /low-cost ocean sensors/);
       const cd = await callData(env, "https://x.test/", he.id, { crit: true, forms: true });
       assert.equal(cd.c.id, he.id); assert.ok(cd.crit.calls[he.id] && cd.crit.frameworks[CRIT.calls[he.id].framework], "the framework the call points to");
       assert.equal((await callData(env, "https://x.test/", "NOT-A-CALL")).c, null, "a call without a file is not in the data");
@@ -1311,4 +1324,19 @@ await t("statute read from a PDF: words broken at line ends, Cyrillic text, summ
   assert.deepEqual(p.filled.map((f) => f.id).sort(), ["city", "objectives", "orgType"]);
 });
 
+await t("official call text: the passages a request needs, within its budget", async () => {
+  const { docExcerpt, withDoc, hasDoc } = await import("../src/org/calldoc.js");
+  const doc = { kind: "document", title: "Call document (CERV) V1.0", published: "2026-10-27", url: "https://x", sections: [
+    { h: "Objectives", kind: "objectives", t: "The call supports civil society organisations.\nProjects should train moderators of online communities.\nActivities can include exhibitions and debates." },
+    { h: "Available budget", kind: "budget", t: "The estimated available call budget is EUR 5 000 000." },
+    { h: "Legal and financial set-up", kind: "legal", t: "The funding rate is 90% of the eligible costs." }] };
+  assert.equal(hasDoc(null), false); assert.equal(hasDoc({ sections: [] }), false);
+  const e = docExcerpt(doc, 160, "funding rate eligible costs");
+  assert.ok(e.startsWith("[Objectives]\nThe call supports"), e);
+  assert.ok(e.includes("funding rate is 90%"), "the passage closest to the request");
+  assert.ok(e.length <= 160);
+  const w = withDoc("", doc, 600, "moderators");
+  assert.match(w, /^From the official call document \(Call document \(CERV\) V1\.0, 2026-10-27\):/);
+  assert.equal(withDoc("listing text", null, 5), "list…", "without a document: the listing, as before");
+});
 console.log(`\n${pass} passed`);

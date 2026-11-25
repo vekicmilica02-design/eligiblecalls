@@ -71,6 +71,12 @@ jobs:
         run: python ingest/app_forms.py
         continue-on-error: true   # a failure keeps the previous forms file; every call still gets a criteria-based or general structure
 
+      - name: Read what each call asks for from its call document or full topic description (site/org/doc)
+        # Objectives, priorities, activities, expected impact, budget, timetable, funding rate: used by the project
+        # generator, the application writer and the evaluation. Stops fetching after 20 minutes; goes on in the next run.
+        run: python ingest/call_content.py
+        continue-on-error: true   # a failure keeps the previous files
+
       - name: Write one small data file per call (site/org/call), read by the server instead of the full files
         # The free plan stops a request after 10 ms of CPU; parsing the full index takes about 50 ms on a fresh instance.
         run: python ingest/call_files.py

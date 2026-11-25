@@ -10,6 +10,7 @@ import { HttpError, json } from "./http.js";
 import { callBlock, profileBlock, ideaForModel } from "./ideas.js";
 import { loadGuide } from "./evaluate.js";
 import { callData } from "./callfile.js";
+import { withDoc, hasDoc } from "./calldoc.js";
 import { FIELD } from "../../site/org/schema.js";
 import { templateFor, TEMPLATES, tplOf, unitsOf, cleanFacts, participants, cleanPlan, checkDraft, ERASMUS_FIELDS, tidyText, toLatin, cleanTitle } from "../../site/org/templates.js";
 import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
@@ -87,7 +88,7 @@ export async function makeProposal({ env, db, org, user, profile, ideaId, body, 
   const lang = body.lang === "sr" ? "sr" : body.lang === "en" ? "en" : row.lang;
   const { index, c } = d;
   const match = row.match ? JSON.parse(row.match) : { score: 0, status: "potential" };
-  const callText = c ? callBlock(index, c, profile.country, now, match).replace(/Call text \(excerpt\): .*/s, "Call text (excerpt): " + clip(c.x, 2400)) : `### ${row.call_id}\nTitle: ${row.call_title}\n(The call is no longer in the published data.)`;
+  const callText = c ? callBlock(index, c, profile.country, now, match, d.doc, 3000, PLAN_FOCUS) : `### ${row.call_id}\nTitle: ${row.call_title}\n(The call is no longer in the published data.)`;
   const maxPerProject = c && c.f ? c.f : null;
   const messages = proposalMessages({ idea: ideaForModel(JSON.parse(row.idea)), call: callText, profile: profileBlock(profile), lang, maxPerProject, currency: c && c.cur });
   const r = await complete({ env, userId: user.id, messages, agent: "proposal", maxOut: 4500, now, fetchImpl, waitUntil });
@@ -135,14 +136,20 @@ export async function callSetup(env, url, callId, d = null) {
 }
 const nameOfCountry = (index, c) => { const n = index && index.countryNames && index.countryNames[String(c || "").toUpperCase()]; return n ? n[0] : c || ""; };
 
+// The call as the draft keeps it: the head of the call block and the listing's excerpt (callText), and the call's
+// official text (doc: the content of its call document or its full topic description, src/org/calldoc.js). Each part
+// is written with the passages of the official text closest to what that part asks.
 const CALL_X = "Call text (excerpt): ";
-const callSnapshot = (ctx) => { const t = ctx.callText(2400); const i = t.indexOf(CALL_X); return i >= 0 ? { head: t.slice(0, i), x: t.slice(i + CALL_X.length) } : { head: t, x: "" }; };
-const fromSnapshot = (s) => (n) => (s.x ? s.head + CALL_X + clip(s.x, n) : s.head);
+const PLAN_FOCUS = "objectives priorities scope activities that can be funded expected impact outcomes target groups budget funding rate duration deliverables";
+const callSnapshot = (ctx) => { const t = ctx.listText(2400); const i = t.indexOf(CALL_X); return i >= 0 ? { head: t.slice(0, i), x: t.slice(i + CALL_X.length) } : { head: t, x: "" }; };
+const fromSnapshot = (s, doc = null, focus = "") => (n) => (s.x || hasDoc(doc) ? s.head + CALL_X + withDoc(s.x, doc, n, focus) : s.head);
+// What a part asks, as words for choosing the passages of the official text.
+const unitFocus = (u) => [u.title, u.section, u.sub, u.part, ...(u.ask || []), ...(u.questions || []).map((q) => q.q)].filter(Boolean).join(" ");
 async function draftContext({ env, url, row, profile, now, d = null }) {
-  const { index, c } = d || await callData(env, url, row.call_id);
+  const { index, c, doc } = d || await callData(env, url, row.call_id);
   const match = row.match ? JSON.parse(row.match) : { score: 0, status: "potential" };
-  const callText = (n) => (c ? callBlock(index, c, profile.country, now, match).replace(/Call text \(excerpt\): .*/s, "Call text (excerpt): " + clip(c.x, n)) : `### ${row.call_id}\nTitle: ${row.call_title}`);
-  return { index, c, callText, callMax: c && c.f ? c.f : null, cur: (c && c.cur) || "EUR" };
+  const block = (n, withOfficial, focus = PLAN_FOCUS) => (c ? callBlock(index, c, profile.country, now, match, withOfficial ? doc : null, n, focus) : `### ${row.call_id}\nTitle: ${row.call_title}`);
+  return { index, c, doc: doc || null, callText: (n, focus) => block(n, true, focus), listText: (n) => block(n, false), callMax: c && c.f ? c.f : null, cur: (c && c.cur) || "EUR" };
 }
 const rulesFor = async (env, url, tpl) => {
   if (!tpl || tpl.programme !== "erasmus") return null;
@@ -217,7 +224,7 @@ async function startDraft({ env, db, org, user, profile, row, tpl, rubric, d, bo
   const ps = participants(profile, facts, tpl, rules).map((p) => ({ ...p, name: toLatin(p.name), country: nameOfCountry(ctx.index, p.country), type: p.applicant ? orgType(p.type) : p.type }));
   const idea = ideaForModel(JSON.parse(row.idea));
   for (const k of Object.keys(idea)) if (typeof idea[k] === "string") idea[k] = clip(idea[k], 600); else if (Array.isArray(idea[k])) idea[k] = idea[k].slice(0, 6).map((v) => (typeof v === "string" ? clip(v, 200) : v));
-  const messages = planMessages({ tpl, call: ctx.callText(1800), profile: clip(profileBlock(profile), 2200), idea, facts, ps, rules, callMax: ctx.callMax, cur: ctx.cur });
+  const messages = planMessages({ tpl, call: ctx.callText(hasDoc(ctx.doc) ? 3000 : 1800), profile: clip(profileBlock(profile), 2200), idea, facts, ps, rules, callMax: ctx.callMax, cur: ctx.cur });
   const r = await complete({ env, userId: user.id, messages, agent: "proposal", maxOut: Math.max(2400, GROQ_ROOM - estTokens(messages.map((m) => m.content).join("\n")) - 200), now, fetchImpl, waitUntil, prefer: "fast" });
   const plan = cleanPlan(parseJsonObject(r.text), { tpl, ps, duration: facts.durationMonths, amount: facts.amount });
   if (!plan || plan.incomplete) throw new HttpError(502, "ai_bad_answer", plan ? { incomplete: plan.incomplete } : {});
@@ -227,6 +234,7 @@ async function startDraft({ env, db, org, user, profile, row, tpl, rubric, d, bo
     // The call as the section prompts quote it, kept with the draft: writing a part then needs no call index (parsing
     // it took about 50 ms of CPU on a fresh server instance, over the free plan's 10 ms per request).
     callText: callSnapshot(ctx),
+    doc: ctx.doc,
     // The award criteria the application was written to: the evaluation scores against them without reading the
     // criteria data again.
     ...(rubric ? { rubric } : {}),
@@ -284,7 +292,7 @@ export function sectionMessages({ tpl, unit, draft, call, profile, others, planM
 // output fit; output is sized from the target length (Serbian takes more tokens per character).
 function fitRequest(build, unit, lang) {
   const out = Math.min(3300, Math.round(unit.target / (lang === "sr" ? 2.6 : 3.4)) + 500);
-  for (const [cn, pn, pl] of [[1800, 2800, 6000], [1200, 2000, 5000], [800, 1400, 4000], [500, 900, 3000]]) {
+  for (const [cn, pn, pl] of [[3200, 2800, 6000], [2200, 2400, 5500], [1500, 2000, 5000], [900, 1400, 4000], [500, 900, 3000]]) {
     const m = build(cn, pn, pl);
     if (estTokens(m.map((x) => x.content).join("\n")) + out <= GROQ_ROOM) return { messages: m, maxOut: out };
   }
@@ -336,13 +344,15 @@ export async function writeSection({ env, db, org, user, profile, ideaId, body, 
     revise = { current: tpl.kind === "form" ? JSON.stringify({ answers: cur.answers || {} }) : cur.text, comments };
   }
   // Drafts made before the call text was kept with them read the call index once and keep the text from then on.
-  let callText;
-  if (draft.callText) callText = fromSnapshot(draft.callText);
-  else {
-    const snap = callSnapshot(await draftContext({ env, url, row, profile, now }));
-    await db.prepare("UPDATE project_ideas SET proposal = json_set(proposal, '$.callText', json(?)) WHERE id = ? AND org_id = ?").bind(JSON.stringify(snap), row.id, org.id).run();
-    callText = fromSnapshot(snap);
+  // Drafts made before the call text or the official text was kept with them read the call's data file once and keep
+  // both from then on (doc: null when the call has none).
+  if (!draft.callText || draft.doc === undefined) {
+    const ctx = await draftContext({ env, url, row, profile, now });
+    if (!draft.callText) draft.callText = callSnapshot(ctx);
+    if (draft.doc === undefined) draft.doc = ctx.doc;
+    await db.prepare("UPDATE project_ideas SET proposal = json_set(proposal, '$.callText', json(?), '$.doc', json(?)) WHERE id = ? AND org_id = ?").bind(JSON.stringify(draft.callText), JSON.stringify(draft.doc), row.id, org.id).run();
   }
+  const callText = fromSnapshot(draft.callText, draft.doc, unitFocus(unit));
   const wide = ["s11", "s21", "rel1", "needs", "desc1"].includes(unit.id);
   let others = null;
   if (unit.summary) others = units.filter((u) => !u.summary && draft.sections[u.key]).map((u) => `[${u.section || u.title}] ${clip(draft.sections[u.key].text, 500)}`).join("\n").slice(0, 3500);

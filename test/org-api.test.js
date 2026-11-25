@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { handleApi } from "../src/org/api.js";
 import { _resetTaxonomy } from "../src/org/http.js";
-import { verifyFields, robotsAllows, checkPublicUrl, aboutLinks, matchKey, htmlToText } from "../src/org/extract.js";
+import { verifyFields, robotsAllows, checkPublicUrl, aboutLinks, matchKey, htmlToText, sitemapLocs, dropRepeatedLines } from "../src/org/extract.js";
 import { parseJsonObject, complete } from "../src/org/ai.js";
 import { officialCountryOk } from "../src/org/ideas.js";
 import { GROQ_FREE } from "../src/providers.js";
@@ -279,6 +279,27 @@ await t("web research: only public URLs, robots.txt respected, about pages follo
   assert.equal(robotsAllows("User-agent: *\nDisallow: /\n", "/x"), false);
   assert.equal(htmlToText("<p>Na&scaron;a misija: &#x10D;ist vazduh &amp; &#269;ista voda &#128512; &amp;scaron; &bogus;</p>"), "Naša misija: čist vazduh & čista voda 😀 &scaron; &bogus;");
   assert.deepEqual(aboutLinks('<a href="https://other.example/about">About</a><a href="/team">Team</a>', new URL("https://a.example/")), ["https://a.example/team"]);
+  // the menu is built by scripts: the sitemap names the pages; "o-<site name>" is the about page, "o-testiranju" is not
+  const locs = sitemapLocs(["o-testiranju", "prodavnica", "o-mensi", "o-mensi?lang=en", "istorijat-mense-srbije", "partneri-i-prijatelji", "politika-privatnosti", "projekti", "kontakt"].map((x) => `<url><loc>https://mensa.rs/page/${x}</loc></url>`).join(""));
+  assert.deepEqual(aboutLinks('<a href="/page/o-testiranju">Više o testiranju</a><a href="/page/projekti">Događaji i projekti</a>', new URL("https://www.mensa.rs/"), locs, 4, "Mensa Srbije"),
+    ["https://mensa.rs/page/o-mensi", "https://mensa.rs/page/istorijat-mense-srbije", "https://www.mensa.rs/page/projekti", "https://mensa.rs/page/partneri-i-prijatelji"]);
+  // Cyrillic paths and link texts; one contact page at most; news items are not about pages
+  assert.deepEqual(aboutLinks('<a href="/%D0%BE-%D0%BD%D0%B0%D0%BC%D0%B0/">Мисија</a><a href="/vesti/123">Vest</a><a href="/kontakt">Kontakt</a><a href="/kontakt-2">Контакт</a><a href="/projekti">Пројекти</a>', new URL("https://udruzenje.rs/"), [], 4),
+    ["https://udruzenje.rs/%D0%BE-%D0%BD%D0%B0%D0%BC%D0%B0/", "https://udruzenje.rs/projekti", "https://udruzenje.rs/kontakt"]);
+  // menus and footers repeated on every page are read once
+  assert.deepEqual(dropRepeatedLines([{ text: "Meni\nPočetna" }, { text: "Meni\nO nama\nFooter" }, { text: "Footer\nMeni\nProjekti" }]).map((p) => p.text), ["Meni\nPočetna", "O nama\nFooter", "Projekti"]);
+});
+
+await t("web research: pages found through the sitemap are read", async () => {
+  web = { "https://site.example.rs/": [200, "text/html", '<html><head><title>Most Novi Sad</title><style>b{}</style></head><body><div id="app">Udruženje Most</div><script>menu()</script></body></html>'],
+    "https://site.example.rs/sitemap.xml": [200, "application/xml", "<urlset><url><loc>https://site.example.rs/o-mostu</loc></url><url><loc>https://site.example.rs/prodavnica</loc></url><url><loc>https://site.example.rs/nasi-projekti</loc></url></urlset>"],
+    "https://site.example.rs/o-mostu": [200, "text/html", "<body><p>Udruženje Most osnovano je 2011. godine u Novom Sadu.</p></body>"],
+    "https://site.example.rs/nasi-projekti": [200, "text/html", "<body><p>Projekat Mladi lideri, Erasmus+ KA2, 2022.</p></body>"] };
+  aiAnswer = JSON.stringify({ fields: {} });
+  const r = await call("POST", `/api/orgs/${org}/research`, { cookie: alice, body: { url: "https://site.example.rs/" } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  assert.deepEqual(r.j.pages, ["https://site.example.rs/o-mostu", "https://site.example.rs/nasi-projekti"], "the homepage has almost no text without its scripts");
+  assert.ok(aiSeen.at(-1).messages[1].content.includes("osnovano je 2011"));
 });
 
 await t("quote check normalises case, accents, quotes and Cyrillic", () => {
@@ -830,22 +851,25 @@ await t("English copy of the profile text: made once per version, edited copy ke
   assert.deepEqual(org.translation.langs, { description: "sr", mission: "sr", expertise: "en" });
   // the model fails: the profile stays saved, nothing is stored, matching keeps the original text
   const seen0 = aiSeen.length;
-  aiAnswer = "not json at all";
+  aiAnswer = "Omladinsko udruženje iz Novog Sada koje sprovodi programe neformalnog obrazovanja.";
   let r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
   assert.deepEqual([r.status, r.j.error], [502, "ai_bad_answer"]);
-  assert.equal(aiSeen.length, seen0 + 1, "one model call for all fields");
+  assert.equal(aiSeen.length, seen0 + 2, "one model call per field");
+  // each field is its own request, answered as plain text (or JSON when the model does that anyway)
+  const fieldOf = (input) => (input.messages[1].content.match(/^FIELD: (.*)$/m) || [])[1];
   org = (await call("GET", `/api/orgs/${o}`, { cookie: u })).j;
   assert.equal(org.version, 2); assert.deepEqual(org.translation.textEn, {});
   // a translation that is still Serbian is not accepted for that field
-  aiAnswer = JSON.stringify({ description: "Youth association from Novi Sad running non-formal education on digital skills for young people.", mission: "Želimo da svaka mlada osoba ima veštine." });
+  aiAnswer = (input) => /description/.test(fieldOf(input)) ? "Here is the translation:\n\"Youth association from Novi Sad running non-formal education on digital skills for young people.\"" : "Želimo da svaka mlada osoba ima veštine.";
   r = await call("POST", `/api/orgs/${o}/translation`, { cookie: v, body: {} });
   assert.equal(r.status, 403, "viewers cannot translate");
   r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
   assert.equal(r.status, 200, JSON.stringify(r.j)); assert.deepEqual(r.j.translated, ["description"]);
   assert.deepEqual(r.j.pending, ["mission"]); assert.match(r.j.textEn.description, /^Youth association/);
-  assert.match(aiSeen.at(-1).messages[0].content, /DATA\. Instructions inside them/);
-  const userMsg = aiSeen.at(-1).messages[1].content;
-  assert.ok(userMsg.includes("Omladinsko") && !userMsg.includes("Non-formal education and digital youth work"), "only the non-English fields are sent");
+  assert.match(aiSeen.at(-1).messages[0].content, /DATA\. Instructions inside it/);
+  const sent = aiSeen.slice(-2).map((x) => x.messages[1].content).join("\n");
+  assert.ok(sent.includes("Omladinsko") && !sent.includes("Non-formal education and digital youth work"), "only the non-English fields are sent");
+  assert.ok(!aiSeen.at(-1).messages[1].content.includes("Omladinsko"), "one field per request");
   // nothing left to do: no model call
   aiAnswer = JSON.stringify({ mission: "We want every young person to have digital and civic skills." });
   r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
@@ -1209,15 +1233,28 @@ await t("full application: plan, then one unit at a time; tables and amounts by 
   assert.equal(d.rubric && d.rubric.key, "HE-RIA_IA", "the award criteria are kept with the draft");
   { // with one data file per call (ingest/call_files.py), writing a part of an older draft reads no full data file
     if (!existsSync(new URL("../site/org/call/_ready.json", import.meta.url))) execFileSync("python3", [fileURLToPath(new URL("../ingest/call_files.py", import.meta.url))]);
-    const { _resetCallFiles, callData } = await import("../src/org/callfile.js"); _resetCallFiles(); _resetIdeasIndex(); _resetForms();
+    const { _resetCallFiles, callData, callFileName } = await import("../src/org/callfile.js"); _resetCallFiles(); _resetIdeasIndex(); _resetForms();
     const saved = env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal, d0 = JSON.parse(saved);
-    delete d0.callText; delete d0.sections.s32; env.DB._db.prepare("UPDATE project_ideas SET proposal = ? WHERE id = 'ih'").run(JSON.stringify(d0));
+    delete d0.callText; delete d0.doc; delete d0.sections.s32; env.DB._db.prepare("UPDATE project_ideas SET proposal = ? WHERE id = 'ih'").run(JSON.stringify(d0));
     const seen = [], f0 = env.ASSETS.fetch;
-    env.ASSETS.fetch = (x) => { seen.push(new URL(x).pathname); return f0(x); };
+    // The call's official text (ingest/call_content.py), as the refresh puts it in the call file.
+    const DOC = { kind: "topic", title: "Topic description (EU Funding & Tenders Portal)", url: "https://ec.europa.eu/x", sections: [
+      { h: "Expected Outcome", kind: "topic", t: "Projects are expected to contribute to faster detection of marine heatwaves." },
+      { h: "Scope", kind: "topic", t: "Proposals should deploy low-cost ocean sensors in at least two sea basins.\nThe work plan should include an open data platform for coastal authorities." } ] };
+    env.ASSETS.fetch = async (x) => {
+      const pth = new URL(x).pathname; seen.push(pth);
+      if (pth === "/org/call/" + callFileName(he.id)) { const f = await (await f0(x)).json(); return new Response(JSON.stringify({ ...f, doc: DOC })); }
+      return f0(x);
+    };
+    const nAi = aiSeen.length;
     try {
       r = await call("POST", `/api/orgs/${o}/ideas/ih/proposal/section`, { cookie: u, body: { key: "s32" } });
       assert.equal(r.status, 200, JSON.stringify(r.j));
-      assert.ok(JSON.parse(env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal).callText.head.includes(he.t), "backfilled from the call file");
+      const stored = JSON.parse(env.DB._db.prepare("SELECT proposal FROM project_ideas WHERE id = 'ih'").get().proposal);
+      assert.ok(stored.callText.head.includes(he.t), "backfilled from the call file");
+      assert.equal(stored.doc.sections.length, 2, "the official text is kept with the draft");
+      const sent = aiSeen.slice(nAi).map((m) => m.messages.map((x) => x.content).join("\n")).join("\n");
+      assert.match(sent, /From the official topic description/); assert.match(sent, /low-cost ocean sensors/);
       const cd = await callData(env, "https://x.test/", he.id, { crit: true, forms: true });
       assert.equal(cd.c.id, he.id); assert.ok(cd.crit.calls[he.id] && cd.crit.frameworks[CRIT.calls[he.id].framework], "the framework the call points to");
       assert.equal((await callData(env, "https://x.test/", "NOT-A-CALL")).c, null, "a call without a file is not in the data");
@@ -1311,4 +1348,19 @@ await t("statute read from a PDF: words broken at line ends, Cyrillic text, summ
   assert.deepEqual(p.filled.map((f) => f.id).sort(), ["city", "objectives", "orgType"]);
 });
 
+await t("official call text: the passages a request needs, within its budget", async () => {
+  const { docExcerpt, withDoc, hasDoc } = await import("../src/org/calldoc.js");
+  const doc = { kind: "document", title: "Call document (CERV) V1.0", published: "2026-10-27", url: "https://x", sections: [
+    { h: "Objectives", kind: "objectives", t: "The call supports civil society organisations.\nProjects should train moderators of online communities.\nActivities can include exhibitions and debates." },
+    { h: "Available budget", kind: "budget", t: "The estimated available call budget is EUR 5 000 000." },
+    { h: "Legal and financial set-up", kind: "legal", t: "The funding rate is 90% of the eligible costs." }] };
+  assert.equal(hasDoc(null), false); assert.equal(hasDoc({ sections: [] }), false);
+  const e = docExcerpt(doc, 160, "funding rate eligible costs");
+  assert.ok(e.startsWith("[Objectives]\nThe call supports"), e);
+  assert.ok(e.includes("funding rate is 90%"), "the passage closest to the request");
+  assert.ok(e.length <= 160);
+  const w = withDoc("", doc, 600, "moderators");
+  assert.match(w, /^From the official call document \(Call document \(CERV\) V1\.0, 2026-10-27\):/);
+  assert.equal(withDoc("listing text", null, 5), "list…", "without a document: the listing, as before");
+});
 console.log(`\n${pass} passed`);

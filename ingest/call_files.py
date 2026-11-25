@@ -2,14 +2,15 @@
 
 Each file holds what the organisation features need about one call: the call's record from site/data/index.json, the
 country list its eligibility codes refer to, its award criteria (site/org/criteria.json, with the framework a Horizon
-Europe call points to), its application form (site/org/forms.json) and its official eligibility entry
-(site/org/eligibility.json).
+Europe call points to), its application form (site/org/forms.json), its official eligibility entry
+(site/org/eligibility.json) and the content of its call document or full topic description (site/org/doc, written by
+call_content.py).
 
 Why: the server functions run on Cloudflare's free plan, which stops a request after 10 ms of CPU. Parsing the full
 index (1.2 MB) takes about 50 ms on a fresh server instance, and the criteria and forms files (0.5 MB each) about 25 ms
 each, so writing, evaluating or explaining an application failed after every deploy. A call file is a few kilobytes.
 
-Run after build.py, award_criteria.py, eligibility_docs.py and app_forms.py. Files of calls no longer in the index are
+Run after build.py, award_criteria.py, eligibility_docs.py, app_forms.py and call_content.py. Files of calls no longer in the index are
 removed. A file is rewritten only when its content changed, so unchanged calls make no commit.
 """
 import json
@@ -60,6 +61,9 @@ def call_file(c, index, crit, forms, elig):
         names = fc.get("forms", [])
         files = {f: forms["forms"][f] for f in names if f in (forms.get("forms") or {})} if len(names) <= 4 else {}
         out["forms"] = {"calls": {cid: fc}, "forms": files}
+    doc = load(os.path.join("org", "doc", file_name(cid)))   # ingest/call_content.py
+    if doc and doc.get("sections"):
+        out["doc"] = {k: doc.get(k) for k in ("kind", "title", "version", "published", "url", "sections")}
     el = (elig.get("calls") or {}).get(cid) if elig else None
     if el:
         out["elig"] = {"calls": {cid: el}, "frameworks": elig.get("frameworks") or {}}

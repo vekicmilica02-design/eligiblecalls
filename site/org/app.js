@@ -24,7 +24,7 @@ const S = {
     linkSent: "Check your inbox: the link works once and expires in 20 minutes.", devLink: "Local development: e-mail is not sent. Use this link:",
     continueTitle: "Finish signing in", continueBtn: "Continue", linkInvalid: "This link is not valid any more (it was used, or it expired). Ask for a new one.",
     createTitle: "Create your organisation", createLede: "Start with the name. You can fill in the profile by hand, from documents, or from your website.", orgName: "Organisation name", create: "Create",
-    nav: { overview: "Overview", profile: "Organisation profile", documents: "Documents and sources", matching: "Eligibility matching", ideas: "Project ideas", evaluation: "Evaluation guidelines", reports: "Saved reports", settings: "Settings" },
+    nav: { overview: "Overview", profile: "Organisation profile", documents: "Documents and sources", matching: "Eligibility matching", ideas: "Project generator", evaluation: "Evaluation guidelines", reports: "Saved reports", settings: "Settings" },
     soon: "next phase", newOrg: "+ New organisation", signOut: "Sign out",
     complete: "Profile completeness", analysed: "Open calls analysed", high: "Highly compatible (70%+)", eligibleN: "Eligible on available information",
     missingTitle: "Missing information", missingNone: "Every field that counts for matching is filled in.", strengthsTitle: "Strengths seen in the profile",
@@ -36,7 +36,7 @@ const S = {
     prov: { manual: "entered by hand", document: "from document", web: "from website" }, unverified: "auto-filled: please check", verifiedBy: "approved",
     yes: "Yes", no: "No", unknown: "Not stated",
     docsTitle: "Documents and sources", docsLede: "Upload a statute, registration certificate, annual report or project document (also scanned, in Cyrillic or Latin script), or name your website. The text is read in your browser, with OCR for scans, and sent once to the AI model; the file itself is not stored. Values found with clear evidence fill empty profile fields automatically, each marked with its source. Values that differ from the profile are shown for you to decide.",
-    upload: "Choose a document or scan", reading: "Reading the document…", sending: (i, n) => `Analysing part ${i} of ${n}…`, jobOpen: "Review the values found", jobDocs: "Documents and sources", jobClose: "Close", jobBusy: "A document is still being read. Wait until it is finished, then upload the next one.", aiWait: (i, n, s) => `Part ${i} of ${n}: the AI service's per-minute limit is reached, trying again in ${s} s…`, scanned: "No text could be read from this file. Type the facts in the profile, or try another copy of the document.",
+    upload: "Choose a document or scan", reading: "Reading the document…", sending: (i, n) => `Analysing part ${i} of ${n}…`, jobOpen: "Review the values found", jobDocs: "Documents and sources", jobClose: "Close", taskOpen: "Open in the Project generator", taskDone: "Done.", taskResume: "Continuing the application from the next missing part…", jobBusy: "A document is still being read. Wait until it is finished, then upload the next one.", aiWait: (i, n, s) => `Part ${i} of ${n}: the AI service's per-minute limit is reached, trying again in ${s} s…`, scanned: "No text could be read from this file. Type the facts in the profile, or try another copy of the document.",
     tooLong: (n, max) => `The document is long: only the first ${max} parts (${n} characters) are analysed.`,
     aiLeft: (l, n, t) => `AI actions left today: ${l} of ${n} (renewed at ${t})`, partCached: (i, n) => `Part ${i} of ${n} was read before: no AI action used.`,
     docNeeds: (n, l) => `This document has ${n} parts and needs up to ${n} AI actions; you have ${l} left today. Parts read before need none.`,
@@ -81,7 +81,7 @@ const S = {
     retrieved: (d) => `retrieved ${d}`, repEval: "How this call is evaluated", critNotice: "Preliminary self-assessment aid. The work programme and the call's own documents prevail.",
     guide: (y, v) => `Programme Guide ${y}, ${v}`, guideNotice: "Preliminary self-assessment aid. Evaluators score against the official guide of the call year; the guide prevails.", maxPts: (m, n) => `max ${m} points · minimum ${n}`, totalMin: (n) => `Proposals need at least ${n} points in total and at least half of the maximum in each criterion.`,
     rounds: "Deadlines in this guide (national agencies)", optional: "if the national agency organises it", where: "Apply to the Erasmus+ national agency of your country.", na: "National agencies",
-    ideasTitle: "Project ideas", ideasLede: "Concepts for projects your organisation could develop, each linked to an open call listed on Eligible Calls. An AI model writes them from your saved profile and the calls you select; the calls, deadlines, eligibility and compatibility scores come from the platform's data and rules.",
+    ideasTitle: "Project generator", ideasLede: "Concepts for projects your organisation could develop, each linked to an open call listed on Eligible Calls. An AI model writes them from your saved profile and the calls you select; the calls, deadlines, eligibility and compatibility scores come from the platform's data and rules.",
     ideasAi: "AI-generated proposal: check it against the call documents before relying on it.", ideasPick: "Calls to build ideas on", ideasPickNote: (n) => `Your most compatible open calls: eligible or to verify, with a score of 50% or more. Up to ${n} can be used in one run.`,
     ideasNoCalls: "No open call reaches 50% compatibility with the profile yet. Complete the profile or look at the matching page.", ideasNeed: "To generate ideas the profile needs a name, organisation type, country, and a description, mission or objectives.",
     ideasGenerate: "Generate ideas", ideasRegenerate: "Generate new ideas", ideasBusy: "Writing one idea for each selected call… about 20 seconds per call.", ideasUse: "Each selected call uses 1 of your daily AI actions. Generating again replaces the earlier suggestions you did not save; saved ideas are kept.",
@@ -201,6 +201,7 @@ const S = {
       checks: "Checks done by the platform", unitMissing: "not written yet", edited: "edited by you", chars: (n) => `${n.toLocaleString("en-GB")} characters`,
       edit: "Edit", save: "Save", cancel: "Cancel", rewrite: "Write this part again", copy: "Copy", copied: "Copied.", saved: "Saved.", rewriteWarn: "Writing this part again replaces its text, including your edits. Continue?",
       formLimits: "The online form shows the character limit of each field; compare it with the length shown here.",
+      docBasis: "Written with the call's official document:", topicBasis: "Written with the topic's full description on the Portal:", topicPage: "EU Funding & Tenders Portal",
       declaration: "The Erasmus+ form asks the applicant to confirm that the application contains original content authored by the applicant organisation. Treat this text as a draft: rewrite it in your own words and check every statement.",
       heNote: "Part A (participants, budget table, ethics and security) is filled in directly on the Funding & Tenders Portal; this document is Part B.",
       doc: { acronym: "Acronym", call: "Call", template: "Template", duration: "Duration", months: "months", requested: "Requested EU contribution", lumpSum: "Lump sum",
@@ -251,7 +252,7 @@ const S = {
     admFree: "Free idea generations per user", admDaysDefault: "Default days of access (empty = until revoked)",
     admPlan: "Plan", admPlanId: "Code", admPlanName: "Name", admPlanPrice: "Price (as shown)", admPricePh: "e.g. 49 EUR per year", admPlanDesc: "Description", admAddPlan: "+ Add plan",
     admPay: "Payment instructions shown after a request (bank account, reference format)",
-    errors: { no_official_text: "There is no official text for an AI check of this call.", no_criteria: "The award criteria of this call are not in our data, so the idea cannot be evaluated here.", too_many_reports: "This organisation has reached 200 saved reports. Delete older ones first.", too_large: "This report is too large to save.", premium_required: "This needs premium access. See Premium access on the Project ideas page.", no_open_request: "There is no open access request. Request access first.", signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", not_below: "This idea is not below the threshold, so it is not revised.", revision_limit: "This idea has already been revised twice. Generate a new idea for the call instead.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
+    errors: { no_official_text: "There is no official text for an AI check of this call.", no_criteria: "The award criteria of this call are not in our data, so the idea cannot be evaluated here.", too_many_reports: "This organisation has reached 200 saved reports. Delete older ones first.", too_large: "This report is too large to save.", premium_required: "This needs premium access. See Premium access on the Project generator page.", no_open_request: "There is no open access request. Request access first.", signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", not_below: "This idea is not below the threshold, so it is not revised.", revision_limit: "This idea has already been revised twice. Generate a new idea for the call instead.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
   },
   sr: {
     title: "Analiza organizacije", lede: "Profil vaše organizacije, proveren u odnosu na sve otvorene pozive na Eligible Calls.",
@@ -263,7 +264,7 @@ const S = {
     linkSent: "Proverite poštu: link važi jednom i ističe za 20 minuta.", devLink: "Lokalni razvoj: e-mail se ne šalje. Koristite ovaj link:",
     continueTitle: "Završite prijavu", continueBtn: "Nastavi", linkInvalid: "Ovaj link više ne važi (već je iskorišćen ili je istekao). Zatražite novi.",
     createTitle: "Napravite organizaciju", createLede: "Počnite od naziva. Profil možete popuniti ručno, iz dokumenata ili sa veb-sajta.", orgName: "Naziv organizacije", create: "Napravi",
-    nav: { overview: "Pregled", profile: "Profil organizacije", documents: "Dokumenti i izvori", matching: "Provera podobnosti", ideas: "Projektne ideje", evaluation: "Kriterijumi ocenjivanja", reports: "Sačuvani izveštaji", settings: "Podešavanja" },
+    nav: { overview: "Pregled", profile: "Profil organizacije", documents: "Dokumenti i izvori", matching: "Provera podobnosti", ideas: "Generator projekata", evaluation: "Kriterijumi ocenjivanja", reports: "Sačuvani izveštaji", settings: "Podešavanja" },
     soon: "sledeća faza", newOrg: "+ Nova organizacija", signOut: "Odjava",
     complete: "Popunjenost profila", analysed: "Analiziranih otvorenih poziva", high: "Visoka kompatibilnost (70%+)", eligibleN: "Podobni prema dostupnim podacima",
     missingTitle: "Podaci koji nedostaju", missingNone: "Sva polja važna za proveru su popunjena.", strengthsTitle: "Prednosti uočene u profilu",
@@ -275,7 +276,7 @@ const S = {
     prov: { manual: "uneto ručno", document: "iz dokumenta", web: "sa sajta" }, unverified: "automatski popunjeno: proverite", verifiedBy: "odobreno",
     yes: "Da", no: "Ne", unknown: "Nije navedeno",
     docsTitle: "Dokumenti i izvori", docsLede: "Otpremite statut, rešenje o registraciji, godišnji izveštaj ili projektni dokument (i skeniran, na ćirilici ili latinici), ili navedite svoj sajt. Tekst se čita u vašem pregledaču, sa OCR-om za skenirane dokumente, i jednom šalje AI modelu; sama datoteka se ne čuva. Vrednosti sa jasnim dokazom automatski popunjavaju prazna polja profila, svaka označena izvorom. Vrednosti koje se razlikuju od profila prikazuju se da vi odlučite.",
-    upload: "Izaberite dokument ili sken", reading: "Čitanje dokumenta…", sending: (i, n) => `Analiza dela ${i} od ${n}…`, jobOpen: "Pregledajte pronađene podatke", jobDocs: "Dokumenti i izvori", jobClose: "Zatvori", jobBusy: "Dokument se još čita. Sačekajte da se završi, pa otpremite sledeći.", aiWait: (i, n, s) => `Deo ${i} od ${n}: dostignuto je ograničenje AI servisa po minutu, novi pokušaj za ${s} s…`, scanned: "Iz ove datoteke nije moguće pročitati tekst. Unesite podatke u profil ili pokušajte sa drugom kopijom dokumenta.",
+    upload: "Izaberite dokument ili sken", reading: "Čitanje dokumenta…", sending: (i, n) => `Analiza dela ${i} od ${n}…`, jobOpen: "Pregledajte pronađene podatke", jobDocs: "Dokumenti i izvori", jobClose: "Zatvori", taskOpen: "Otvori u Generatoru projekata", taskDone: "Gotovo.", taskResume: "Nastavlja se pisanje prijave od sledećeg nenapisanog dela…", jobBusy: "Dokument se još čita. Sačekajte da se završi, pa otpremite sledeći.", aiWait: (i, n, s) => `Deo ${i} od ${n}: dostignuto je ograničenje AI servisa po minutu, novi pokušaj za ${s} s…`, scanned: "Iz ove datoteke nije moguće pročitati tekst. Unesite podatke u profil ili pokušajte sa drugom kopijom dokumenta.",
     tooLong: (n, max) => `Dokument je dugačak: analizira se samo prvih ${max} delova (${n} znakova).`,
     aiLeft: (l, n, t) => `Preostale AI akcije danas: ${l} od ${n} (obnavljaju se u ${t})`, partCached: (i, n) => `Deo ${i} od ${n} je već pročitan: AI akcija nije potrošena.`,
     docNeeds: (n, l) => `Dokument ima ${n} delova i treba mu najviše ${n} AI akcija; danas vam je ostalo ${l}. Delovi koji su već pročitani ne troše akcije.`,
@@ -320,7 +321,7 @@ const S = {
     retrieved: (d) => `preuzeto ${d}`, repEval: "Kako se ovaj poziv ocenjuje", critNotice: "Pomoć za preliminarnu samoprocenu. Merodavni su program rada i dokumenta samog poziva.",
     guide: (y, v) => `Vodič kroz program ${y}, ${String(v).replace(/^Version (\d+) of /, "verzija $1 od ")}`, guideNotice: "Pomoć za preliminarnu samoprocenu. Ocenjivači boduju prema zvaničnom vodiču za godinu poziva; vodič je merodavan.", maxPts: (m, n) => `najviše ${m} bodova · najmanje ${n}`, totalMin: (n) => `Predlog mora imati najmanje ${n} bodova ukupno i najmanje polovinu maksimuma po svakom kriterijumu.`,
     rounds: "Rokovi u ovom vodiču (nacionalne agencije)", optional: "ako ga nacionalna agencija organizuje", where: "Prijava se podnosi Erasmus+ nacionalnoj agenciji vaše zemlje.", na: "Nacionalne agencije",
-    ideasTitle: "Projektne ideje", ideasLede: "Koncepti projekata koje vaša organizacija može da razvije, svaki vezan za otvoren poziv sa Eligible Calls. Piše ih AI model na osnovu sačuvanog profila i poziva koje izaberete; pozivi, rokovi, podobnost i ocene kompatibilnosti potiču iz podataka i pravila platforme.",
+    ideasTitle: "Generator projekata", ideasLede: "Koncepti projekata koje vaša organizacija može da razvije, svaki vezan za otvoren poziv sa Eligible Calls. Piše ih AI model na osnovu sačuvanog profila i poziva koje izaberete; pozivi, rokovi, podobnost i ocene kompatibilnosti potiču iz podataka i pravila platforme.",
     ideasAi: "Predlog koji je napisao AI: proverite ga u dokumentaciji poziva pre nego što se na njega oslonite.", ideasPick: "Pozivi za ideje", ideasPickNote: (n) => `Vaši najkompatibilniji otvoreni pozivi: podobni ili za proveru, sa ocenom od najmanje 50%. U jednom pokretanju može se koristiti najviše ${n}.`,
     ideasNoCalls: "Nijedan otvoren poziv još nema 50% kompatibilnosti sa profilom. Dopunite profil ili pogledajte stranicu provere podobnosti.", ideasNeed: "Za ideje profil mora imati naziv, vrstu organizacije, državu i opis, misiju ili ciljeve.",
     ideasGenerate: "Napravi ideje", ideasRegenerate: "Napravi nove ideje", ideasBusy: "Pišem po jednu ideju za svaki izabrani poziv… oko 20 sekundi po pozivu.", ideasUse: "Svaki izabrani poziv troši 1 od vaših dnevnih AI akcija. Novo generisanje zamenjuje ranije predloge koje niste sačuvali; sačuvane ideje ostaju.",
@@ -440,6 +441,7 @@ const S = {
       checks: "Provere koje radi platforma", unitMissing: "još nije napisano", edited: "izmenili ste", chars: (n) => `znakova: ${n.toLocaleString("sr-Latn-RS")}`,
       edit: "Izmeni", save: "Sačuvaj", cancel: "Otkaži", rewrite: "Napiši ovaj deo ponovo", copy: "Kopiraj", copied: "Kopirano.", saved: "Sačuvano.", rewriteWarn: "Ponovno pisanje ovog dela zamenjuje njegov tekst, uključujući vaše izmene. Nastaviti?",
       formLimits: "Onlajn obrazac prikazuje ograničenje broja znakova za svako polje; uporedite ga sa dužinom prikazanom ovde.",
+      docBasis: "Napisano na osnovu zvaničnog dokumenta poziva:", topicBasis: "Napisano na osnovu celog opisa teme na Portalu:", topicPage: "EU Funding & Tenders Portal",
       declaration: "Erasmus+ obrazac traži od podnosioca da potvrdi da prijava sadrži originalan sadržaj čiji je autor organizacija podnosilac. Ovaj tekst koristite kao nacrt: preradite ga svojim rečima i proverite svaku tvrdnju.",
       heNote: "Deo A (učesnici, tabela budžeta, etika i bezbednost) popunjava se direktno na portalu Funding & Tenders; ovaj dokument je Deo B.",
       doc: { acronym: "Akronim", call: "Poziv", template: "Obrazac", duration: "Trajanje", months: "meseci", requested: "Traženi doprinos EU", lumpSum: "Paušalni iznos",
@@ -490,7 +492,7 @@ const S = {
     admFree: "Besplatnih generisanja ideja po korisniku", admDaysDefault: "Podrazumevano dana pristupa (prazno = do opoziva)",
     admPlan: "Paket", admPlanId: "Šifra", admPlanName: "Naziv", admPlanPrice: "Cena (kako se prikazuje)", admPricePh: "npr. 49 EUR godišnje", admPlanDesc: "Opis", admAddPlan: "+ Dodaj paket",
     admPay: "Uputstvo za uplatu prikazano posle zahteva (račun, format poziva na broj)",
-    errors: { no_official_text: "Za ovaj poziv nema zvaničnog teksta za AI proveru.", no_criteria: "Kriterijumi za dodelu ovog poziva nisu u našim podacima, pa ideja ovde ne može da se oceni.", too_many_reports: "Organizacija je dostigla 200 sačuvanih izveštaja. Prvo obrišite starije.", too_large: "Izveštaj je prevelik za čuvanje.", premium_required: "Za ovo je potreban premium pristup. Pogledajte Premium pristup na strani Projektne ideje.", no_open_request: "Nema otvorenog zahteva za pristup. Prvo zatražite pristup.", signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera zaštite od botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", not_below: "Ova ideja nije ispod praga, pa se ne dorađuje.", revision_limit: "Ova ideja je već dva puta dorađena. Umesto toga generišite novu ideju za ovaj poziv.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran jer dolazi sa drugog sajta. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila dozvoljeni broj generisanja ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, vrsta organizacije, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
+    errors: { no_official_text: "Za ovaj poziv nema zvaničnog teksta za AI proveru.", no_criteria: "Kriterijumi za dodelu ovog poziva nisu u našim podacima, pa ideja ovde ne može da se oceni.", too_many_reports: "Organizacija je dostigla 200 sačuvanih izveštaja. Prvo obrišite starije.", too_large: "Izveštaj je prevelik za čuvanje.", premium_required: "Za ovo je potreban premium pristup. Pogledajte Premium pristup na strani Generator projekata.", no_open_request: "Nema otvorenog zahteva za pristup. Prvo zatražite pristup.", signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera zaštite od botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", not_below: "Ova ideja nije ispod praga, pa se ne dorađuje.", revision_limit: "Ova ideja je već dva puta dorađena. Umesto toga generišite novu ideju za ovaj poziv.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran jer dolazi sa drugog sajta. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila dozvoljeni broj generisanja ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, vrsta organizacije, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
   },
 };
 const T = (k, ...a) => { const v = k.split(".").reduce((o, x) => (o ? o[x] : undefined), S[L()]) ?? k.split(".").reduce((o, x) => (o ? o[x] : undefined), S.en); return typeof v === "function" ? v(...a) : v ?? k; };
@@ -590,6 +592,7 @@ const OP_ANIM = new Set(["uploading", "reading", "ocr", "analysing", "researchin
 const OP_TIMED = new Set(["generating", "analysing", "checking", "translating", "researching"]);
 function opState(el, state, detail = "", pct = null) {
   if (!el) return;
+  if (el.isTask) return el.say(state, detail, pct);   // long AI work: shown where it belongs (see TASKS)
   if (el._opTimer) { clearInterval(el._opTimer); el._opTimer = null; }
   if (state === "idle") { el.className = "op"; el.removeAttribute("aria-busy"); el.innerHTML = ""; return; }
   const busy = OP_BUSY.has(state), p = pct === null || pct === undefined || isNaN(pct) ? null : Math.max(0, Math.min(100, Math.round(pct)));
@@ -725,6 +728,7 @@ async function render(h) {
 function detailsKey(d, i) { const c = d.closest("[data-idea]"); return (c ? c.dataset.idea : "") + ":" + (d.id || d.dataset.ev || d.querySelector("summary") && d.querySelector("summary").textContent.replace(/[\d.,/%\s]+/g, " ").trim().slice(0, 40) || i); }
 let refreshing = null;
 function refresh() {
+  if (!/^#org(\/|$)/.test(location.hash)) return Promise.resolve();   // the member is on another part of the site
   if (refreshing) return refreshing;
   const y = scrollY, open = new Set([...app().querySelectorAll("details")].map((d, i) => (d.open ? detailsKey(d, i) : null)).filter(Boolean));
   ST.quiet = true;
@@ -1281,12 +1285,120 @@ function jobDraw() {
   const prog = document.getElementById("oiProg"), lbl = document.querySelector('label[for="oiFile"]');
   if (lbl) lbl.classList.toggle("busy", docJobBusy());
   if (j && prog && ST.org && ST.org.id === j.orgId) opState(prog, j.state, j.text, j.pct);
-  if (!j || docs) { box.hidden = true; return; }   // the Documents page shows the job in its own status line
+  // The Documents page shows the document in its own status line; a task whose place is on screen shows there.
+  const rows = [], ops = [];
+  if (j && !docs) {
+    rows.push(`<div class="ec-job-row"><div class="ec-job-h"><b>${esc(j.name)}</b><span class="fine">${esc(j.orgName)}</span>${j.done || j.err ? `<button type="button" class="linkbtn ec-job-x" data-jx aria-label="${esc(T("jobClose"))}">×</button>` : ""}</div>
+    <div class="op" data-jop="doc"></div>${j.done || j.err ? `<a href="#org/${esc(j.orgId)}/documents">${esc(T(j.done ? "jobOpen" : "jobDocs"))} →</a>` : ""}</div>`);
+    ops.push(["doc", j]);
+  }
+  for (const t of TASKS.values()) {
+    if (taskInPage(t)) continue;
+    rows.push(`<div class="ec-job-row"><div class="ec-job-h"><b>${esc(t.title)}</b><span class="fine">${esc(t.orgName)}</span>${t.end ? `<button type="button" class="linkbtn ec-job-x" data-tx="${esc(t.key)}" aria-label="${esc(T("jobClose"))}">×</button>` : ""}</div>
+    <div class="op" data-jop="${esc(t.key)}"></div>${t.end ? `<a href="#org/${esc(t.orgId)}/ideas" data-topen="${esc(t.key)}">${esc(T("taskOpen"))} →</a>` : ""}</div>`);
+    ops.push([t.key, t]);
+  }
+  if (!rows.length) { box.hidden = true; box.innerHTML = ""; return; }
   box.hidden = false;
-  box.innerHTML = `<div class="ec-job-h"><b>${esc(j.name)}</b><span class="fine">${esc(j.orgName)}</span>${j.done || j.err ? `<button type="button" class="linkbtn ec-job-x" data-jx aria-label="${esc(T("jobClose"))}">×</button>` : ""}</div>
-    <div class="op" data-jop></div>${j.done || j.err ? `<a href="#org/${esc(j.orgId)}/documents">${esc(T(j.done ? "jobOpen" : "jobDocs"))} →</a>` : ""}`;
-  opState(box.querySelector("[data-jop]"), j.state, j.text, j.pct);
+  box.innerHTML = rows.join("");
+  for (const [k, x] of ops) opState(box.querySelector(`[data-jop="${CSS.escape(k)}"]`), x.state, x.text, x.pct);
   const x = box.querySelector("[data-jx]"); if (x) x.addEventListener("click", () => { JOB.cur = null; jobDraw(); });
+  box.querySelectorAll("[data-tx]").forEach((b) => b.addEventListener("click", () => { TASKS.delete(b.dataset.tx); jobDraw(); }));
+  box.querySelectorAll("[data-topen]").forEach((a) => a.addEventListener("click", () => { const t = TASKS.get(a.dataset.topen); if (t) t.openIdea = true; }));
+}
+
+
+const orgName = () => (ST.org && ((ST.org.profile && ST.org.profile.name) || ST.org.name)) || "";
+const ideaTitle = (x) => { const it = (x.idea && (ideaIn(x, L()) || x.idea)) || {}; return it.title || x.callTitle || x.title || ""; };
+// Applications being written: kept in the browser so that writing goes on from the next missing part after the tab was
+// closed or reloaded (not after it stopped on an error: the member continues those with "Continue writing").
+const WRITING = {
+  all() { try { return JSON.parse(localStorage.getItem("konkursi.writing")) || {}; } catch { return {}; } },
+  set(id, v) { const a = this.all(); if (v) a[id] = v; else delete a[id]; try { localStorage.setItem("konkursi.writing", JSON.stringify(a)); } catch { /* storage blocked */ } },
+};
+function writeTask(x, fn, orgId = ST.org.id, orgNm = orgName(), title = ideaTitle(x)) {
+  const t = startTask("write:" + x.id, { orgId, orgName: orgNm, ideaId: x.id, title, place: () => { const c = ideaCardOf(orgId, x.id); return c && c.querySelector("[data-appmsg]"); } });
+  if (!t) return null;
+  WRITING.set(x.id, { orgId, orgName: orgNm, title, at: Date.now() });
+  t.okText = () => T("app.done");
+  t.failText = (e) => (e && e.stopText) || errText(e);
+  t.done = (tk) => { WRITING.set(x.id, null); delete ST.drafts[x.id]; if (tk.end === "ok") { tk.final = T("app.done"); ST.appOpen.add(x.id); } };
+  runTask(t, fn);
+  return t;
+}
+// On opening the site: applications whose writing was cut off by closing the tab in the last 12 hours go on.
+async function resumeWriting() {
+  const all = WRITING.all(), ids = Object.keys(all);
+  if (!ids.length) return;
+  const me = await loadMe();
+  if (!me.user) return;
+  for (const id of ids) {
+    const w = all[id];
+    if (!w || !w.orgId || Date.now() - (w.at || 0) > 12 * 3600e3 || !me.orgs.some((o) => o.id === w.orgId)) { WRITING.set(id, null); continue; }
+    writeTask({ id }, async (tk) => {
+      tk.say("generating", T("taskResume"));
+      const d = (await api("GET", `/orgs/${w.orgId}/ideas/${id}/proposal`)).proposal;
+      const tpl = d && d.v === 2 ? tplOf(d) : null;
+      if (!tpl) return true;
+      ST.drafts[id] = d;
+      return writeMissing(tk, { id }, tpl, d, w.orgId);
+    }, w.orgId, w.orgName || "", w.title || "");
+  }
+}
+/* ---------- AI work that keeps running while the member browses the site ---------- */
+// Generating project ideas, writing an application, evaluating and improving it run in this browser tab, one request
+// at a time. The site is one page, so moving to any other page of it (the search, the deadlines, another organisation)
+// does not stop them: progress shows in place when its page is open and in the small box on every other page.
+// Closing or reloading the tab stops them (the browser asks first); a stopped application is written further from
+// where it stopped the next time the site is opened (konkursi.writing).
+const TASKS = new Map();
+const tasksBusy = () => [...TASKS.values()].some((t) => !t.end);
+const taskGuard = (ev) => { if (tasksBusy()) { ev.preventDefault(); ev.returnValue = ""; } };
+window.addEventListener("beforeunload", taskGuard);
+const taskInPage = (t) => { const el = t.place && t.place(); return !!(el && el.isConnected); };
+// The idea card of a task, when its organisation's Project generator page is open.
+const ideaCardOf = (orgId, ideaId) => (ST.org && ST.org.id === orgId && /^#org\/[^/]+\/ideas/.test(location.hash) ? document.querySelector(`article.idea[data-idea="${CSS.escape(ideaId)}"]`) : null);
+function startTask(key, info) {
+  const cur = TASKS.get(key);
+  if (cur && !cur.end) return null;   // already running
+  const t = { key, state: "generating", text: "", pct: null, end: null, isTask: true, ...info };
+  t.say = (state, text = "", pct = null) => {
+    Object.assign(t, { state, text, pct });
+    const el = t.place && t.place();
+    if (el && el.isConnected) opState(el, state, text, pct);
+    jobDraw();
+  };
+  TASKS.set(key, t);
+  return t;
+}
+// Runs fn(task); when it ends, the page of its organisation is drawn again if it is open, otherwise the box keeps the
+// result with a link to it.
+async function runTask(t, fn) {
+  try { t.result = await fn(t); t.end = "ok"; }
+  catch (e) { t.end = "failed"; t.error = e; t.say("failed", t.failText ? t.failText(e) : errText(e)); }
+  t.done && t.done(t);
+  if (t.end === "ok") t.say("completed", t.okText ? t.okText(t.result) : T("taskDone"));
+  if (ST.org && ST.org.id === t.orgId && /^#org\/[^/]+\/ideas/.test(location.hash)) await refresh();
+  jobDraw();
+}
+// After the Project generator page is drawn: running tasks show their progress in place and keep their buttons
+// locked; finished ones show their result once and leave the box.
+function paintTasks() {
+  for (const t of [...TASKS.values()]) {
+    if (!ST.org || t.orgId !== ST.org.id) continue;
+    if (t.ideaId) {
+      const card = ideaCardOf(t.orgId, t.ideaId);
+      if (!card) continue;
+      if (!t.end) card.querySelectorAll('[data-act="appstart"],[data-act="appcont"],[data-act="appagain"],[data-act="evaluate"],[data-act="evimprove"]').forEach((b) => { b.disabled = true; });
+      if (t.openIdea) { t.openIdea = false; card.scrollIntoView({ block: "start" }); }
+    } else if (!t.end) { const g = document.getElementById("oiGen"); if (g) g.disabled = true; }
+    const el = t.place && t.place();
+    if (!el) continue;
+    if (t.end && t.final) { el.className = "fine ok"; el.textContent = t.final; }
+    else opState(el, t.state, t.text, t.pct);
+    if (t.end) TASKS.delete(t.key);
+  }
+  jobDraw();
 }
 window.addEventListener("hashchange", () => setTimeout(jobDraw, 0));
 async function runDocJob(f) {
@@ -1640,7 +1752,7 @@ afterRender.evaluation = () => {
   const a = document.getElementById("evAll"); if (a) a.addEventListener("change", () => { EF.all = a.checked; EF.shown = 20; refresh(); });
   const m = document.getElementById("evMore"); if (m) m.addEventListener("click", () => { EF.shown += 20; refresh(); });
 };
-/* ---------- project ideas ---------- */
+/* ---------- Project generator (project ideas) ---------- */
 const IDEA_CALLS = 6;
 // Calls offered for ideas: open, not failing a mandatory check, score 50% or more, most compatible first.
 const ideaCandidates = () => results().filter((r) => (r.status === "eligible" || r.status === "potential") && r.score >= 50).slice(0, 12);
@@ -2001,13 +2113,14 @@ function viewerHTML(x, tpl, d) {
   return `<div class="app-view">
     <div class="oi-row"><button type="button" class="btn" data-act="apppdf"><span class="pdf-ic" aria-hidden="true">PDF</span> ${esc(T("app.pdf"))}</button><button type="button" class="btn quiet" data-act="appdocx">${esc(T("app.docx"))}</button>${missing && can ? `<button type="button" class="btn quiet" data-act="appcont">${esc(T("app.cont"))}</button>` : ""}</div>
     <p class="note">${esc(tpl.kind === "partb" ? T("app.heNote") : T("app.declaration") + " " + T("app.formLimits"))}</p>
+    ${d.doc && (d.doc.sections || []).length ? `<p class="fine">${esc(T(d.doc.kind === "document" ? "app.docBasis" : "app.topicBasis"))} <a href="${esc(d.doc.url)}" target="_blank" rel="noopener">${esc(d.doc.kind === "document" ? (d.doc.title || "") + (d.doc.published ? ", " + d.doc.published : "") : T("app.topicPage"))} ↗</a></p>` : ""}
     <h4>${esc(T("app.checks"))}</h4><ul class="app-checks">${checks.map((c) => `<li class="chk-${c.level}">${esc(T("app.chk." + c.key, ...c.args.map(numArg)))}</li>`).join("")}</ul>
     ${tbcListHTML(d, units, can)}
     <div class="app-units">${units.map((u) => unitHTML(u, d, tpl, can)).join("")}</div>
   </div>`;
 }
-async function loadDraft(x) {
-  if (!ST.drafts[x.id]) ST.drafts[x.id] = (await api("GET", `/orgs/${ST.org.id}/ideas/${x.id}/proposal`)).proposal;
+async function loadDraft(x, orgId = ST.org.id) {
+  if (!ST.drafts[x.id]) ST.drafts[x.id] = (await api("GET", `/orgs/${orgId}/ideas/${x.id}/proposal`)).proposal;
   return ST.drafts[x.id];
 }
 // Writes the parts still missing, one request at a time. A per-minute limit of the free AI tier is waited out (up to four
@@ -2020,9 +2133,9 @@ function syncDraft(x, d, total) {
 // after a short wait, at most twice; the part is written once either way.
 const serverHiccup = (e) => !!e && (e.message === "server_error" || [500, 502, 503, 504].includes(e.status)) && !["ai_busy", "ai_unavailable", "ai_resting", "data_unavailable"].includes(e.message);
 async function retryWait(msg, state, pct) { for (let s = 6; s > 0; s -= 2) { opState(msg, state, T("app.serverRetry", s), pct); await sleep(2000); } }
-async function writeMissing(card, x, tpl, d) {
+async function writeMissing(msg, x, tpl, d, orgId = ST.org.id) {
   tpl = tplOf(d) || tpl;
-  const msg = card.querySelector("[data-appmsg]"), units = unitsOf(tpl, d.plan, d.facts.lang);
+  const units = unitsOf(tpl, d.plan, d.facts.lang);
   const todo = units.filter((u) => !(d.sections[u.key] && d.sections[u.key].text));
   let i = units.length - todo.length, hiccups = 0;
   for (const u of todo) {
@@ -2030,8 +2143,10 @@ async function writeMissing(card, x, tpl, d) {
     for (let attempt = 0; ; attempt++) {
       opState(msg, "generating", T("app.writing", i, units.length, unitTitle(u, d)), (100 * (i - 1)) / units.length);
       try {
-        const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal/section`, { key: u.key });
+        const r = await api("POST", `/orgs/${orgId}/ideas/${x.id}/proposal/section`, { key: u.key });
         d.sections[u.key] = r.section; syncDraft(x, d, units.length); hiccups = 0;
+        const card = msg.isTask && ideaCardOf(orgId, x.id), pw = card && card.querySelector('[data-act="appopen"] + .fine');
+        if (pw) pw.textContent = T("app.partsWritten", Object.values(d.sections).filter((s) => s && s.text).length);
         break;
       } catch (e) {
         if (e.message === "ai_busy" && attempt < 4) {
@@ -2039,12 +2154,11 @@ async function writeMissing(card, x, tpl, d) {
           continue;
         }
         if (serverHiccup(e) && (hiccups = (hiccups || 0) + 1) <= 2) { await retryWait(msg, "generating", (100 * (i - 1)) / units.length); continue; }
-        opState(msg, "failed", errText(e) + " " + T("app.stopped"));
-        return false;
+        e.stopText = errText(e) + " " + T("app.stopped");
+        throw e;
       }
     }
   }
-  opState(msg, "completed", T("app.done"));
   return true;
 }
 function drawApp(card, x, tpl) {
@@ -2063,7 +2177,7 @@ function drawApp(card, x, tpl) {
   body.querySelector('[data-act="apppdf"]').addEventListener("click", () => dl("pdf"));
   body.querySelector('[data-act="appdocx"]').addEventListener("click", () => dl("docx"));
   const cont = body.querySelector('[data-act="appcont"]');
-  if (cont) cont.addEventListener("click", async () => { cont.disabled = true; await writeMissing(card, x, tpl, d); drawApp(card, x, tpl); redrawEval(card, x); });
+  if (cont) cont.addEventListener("click", () => { if (writeTask(x, (tk) => writeMissing(tk, x, tpl, d, tk.orgId))) cont.disabled = true; });
   bindTbc(card, x, tpl, d, body);
   body.querySelectorAll(".app-unit").forEach((det) => {
     const key = det.dataset.unit, u = unitsOf(tpl, d.plan, d.facts.lang).find((y) => y.key === key), um = det.querySelector("[data-umsg]");
@@ -2151,20 +2265,25 @@ function bindApp(card, x) {
       ev.preventDefault();
       const ws = factsWarn(form, x, tpl);
       if (ws.length && !confirm(T("app.warnConfirm", ws.map((w) => "- " + T("app.warn." + w.key, ...w.args.map(numArg))).join("\n")))) return;
-      const btn = form.querySelector('[type="submit"]'); btn.disabled = true;
-      opState(msg, "generating", T("app.planning"));
-      try {
-        const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal`, { facts: readFacts(form), lang: L() });
+      const btn = form.querySelector('[type="submit"]');
+      const facts = readFacts(form), lang = L();
+      const t = writeTask(x, async (tk) => {
+        tk.say("generating", T("app.planning"));
+        const r = await api("POST", `/orgs/${tk.orgId}/ideas/${x.id}/proposal`, { facts, lang });
         ST.drafts[x.id] = r.proposal; x.proposal = { v: 2, at: r.proposal.at, template: r.proposal.template, written: 0, total: (r.units || []).length, hash: draftHash(r.proposal), tbc: 0 };
-        x.evaluations = {}; redrawEval(card, x);
-        ST.appOpen.add(x.id);
-        const head = box.querySelector('[data-act="appstart"]');
-        if (head) head.outerHTML = `<button type="button" class="btn pdf" data-act="appopen" aria-expanded="true">${esc(T("app.hide"))}</button><span class="fine">${esc(T("app.partsWritten", 0))}</span>`;
-        bindOpen();
-        body.innerHTML = "";
-        await writeMissing(card, x, tpl, ST.drafts[x.id]);
-        drawApp(card, x, tpl); redrawEval(card, x);
-      } catch (e) { opState(msg, "failed", errText(e)); btn.disabled = false; }
+        x.evaluations = {}; ST.appOpen.add(x.id);
+        const c = ideaCardOf(tk.orgId, x.id);
+        if (c) {
+          redrawEval(c, x);
+          const head = c.querySelector('[data-act="appstart"]');
+          if (head) head.outerHTML = `<button type="button" class="btn pdf" data-act="appopen" aria-expanded="true">${esc(T("app.hide"))}</button><span class="fine">${esc(T("app.partsWritten", 0))}</span>`;
+          bindOpen();
+          const b = c.querySelector("[data-appbody]"); if (b) b.innerHTML = "";
+        }
+        return writeMissing(tk, x, tpl, ST.drafts[x.id], tk.orgId);
+      });
+      if (!t) return;
+      btn.disabled = true;
     });
     form.scrollIntoView({ behavior: "smooth", block: "nearest" });
   };
@@ -2370,7 +2489,7 @@ async function secIdeas(arg) {
 }
 // Evaluates the full application one award criterion at a time (one request each, so the text fits the free AI tier's
 // per-minute limit); a per-minute limit is waited out. The server returns the whole evaluation with the last criterion.
-async function runEvaluation(x, m) {
+async function runEvaluation(x, m, orgId = ST.org.id) {
   const rb = ideaRubric(x), run = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const crits = rb && rb.criteria ? rb.criteria : [null];
   let r = null, cached = true;
@@ -2378,7 +2497,7 @@ async function runEvaluation(x, m) {
     const c = crits[i];
     for (let attempt = 0; ; attempt++) {
       opState(m, "analysing", c ? T("evCrit", i + 1, crits.length, crName(c.name)) : T("evBusy"), (100 * i) / crits.length);
-      try { r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/evaluate`, { lang: L(), run, ...(c ? { criterion: c.id } : {}) }); break; }
+      try { r = await api("POST", `/orgs/${orgId}/ideas/${x.id}/evaluate`, { lang: L(), run, ...(c ? { criterion: c.id } : {}) }); break; }
       catch (e) {
         if (e.message === "ai_busy" && attempt < 4) { for (let s = 30; s > 0; s -= 5) { opState(m, "analysing", T("app.busyWait", s), (100 * i) / crits.length); await sleep(5000); } continue; }
         if (serverHiccup(e) && attempt < 2) { await retryWait(m, "analysing", (100 * i) / crits.length); continue; }
@@ -2394,8 +2513,8 @@ async function runEvaluation(x, m) {
 }
 // Rewrites the parts behind the criteria that lost points with the evaluator's comments (the server reads the stored
 // evaluation), then the summary, then evaluates again.
-async function improveApplication(card, x, m) {
-  const d = await loadDraft(x), tpl = tplOf(d) || appTpl(x), before = ideaEval(x);
+async function improveApplication(x, m, orgId = ST.org.id) {
+  const d = await loadDraft(x, orgId), tpl = tplOf(d) || appTpl(x), before = ideaEval(x);
   const units = unitsOf(tpl, d.plan, d.facts.lang);
   const keys = new Set((before.criteria || []).filter((c) => c.score < c.max || (c.fixes || []).length).flatMap((c) => c.units || []));
   const todo = units.filter((u) => keys.has(u.key)).map((u) => [u, { improve: true }]);
@@ -2404,7 +2523,7 @@ async function improveApplication(card, x, m) {
     const [u, flags] = todo[i];
     for (let attempt = 0; ; attempt++) {
       opState(m, "generating", T("evImproving", i + 1, todo.length, unitTitle(u, d)), (100 * i) / (todo.length + 1));
-      try { const r = await api("POST", `/orgs/${ST.org.id}/ideas/${x.id}/proposal/section`, { key: u.key, ...flags }); d.sections[u.key] = r.section; break; }
+      try { const r = await api("POST", `/orgs/${orgId}/ideas/${x.id}/proposal/section`, { key: u.key, ...flags }); d.sections[u.key] = r.section; break; }
       catch (e) {
         if (e.message === "ai_busy" && attempt < 4) { for (let s = 30; s > 0; s -= 5) { opState(m, "generating", T("app.busyWait", s)); await sleep(5000); } continue; }
         if (serverHiccup(e) && attempt < 2) { await retryWait(m, "generating"); continue; }
@@ -2413,8 +2532,7 @@ async function improveApplication(card, x, m) {
     }
   }
   syncDraft(x, d);
-  if (ST.appOpen.has(x.id)) drawApp(card, x, tpl);
-  const after = await runEvaluation(x, m);
+  const after = await runEvaluation(x, m, orgId);
   return { before: before.total, after: after.total, max: after.max };
 }
 // Evaluation box of one idea card: switch between stored evaluations, evaluate, improve, redraw in place.
@@ -2430,22 +2548,27 @@ function bindEval(card, x) {
   const imp = box.querySelector('[data-act="evimprove"]'), im = box.querySelector("[data-evimsg]");
   if (sel) sel.addEventListener("change", () => { ST.evalSel[id] = sel.value; redrawEval(card, x); });
   const lock = (on) => { [btn, imp].forEach((b) => { if (b) b.disabled = on; }); };
-  if (btn) btn.addEventListener("click", async () => {
+  const orgId = ST.org.id, title = ideaTitle(x);
+  if (btn) btn.addEventListener("click", () => {
+    const t = startTask("eval:" + id, { orgId, orgName: orgName(), ideaId: id, title, place: () => { const c = ideaCardOf(orgId, id); return c && c.querySelector("[data-evmsg]"); } });
+    if (!t) return;
     lock(true);
-    try {
-      const ev = await runEvaluation(x, m); redrawEval(card, x);
-      const nm = card.querySelector("[data-evmsg]"); if (nm) { nm.className = "fine ok"; nm.textContent = T(ev._cached ? "evSame" : "evDone"); }
-    } catch (e) { opState(m, "failed", errText(e)); lock(false); }
+    t.okText = (ev) => T(ev._cached ? "evSame" : "evDone");
+    t.done = (tk) => { if (tk.end === "ok") tk.final = tk.okText(tk.result); };
+    runTask(t, (tk) => runEvaluation(x, tk, orgId));
   });
-  if (imp) imp.addEventListener("click", async () => {
+  if (imp) imp.addEventListener("click", () => {
+    const t = startTask("improve:" + id, { orgId, orgName: orgName(), ideaId: id, title, place: () => { const c = ideaCardOf(orgId, id); return c && (c.querySelector("[data-evimsg]") || c.querySelector("[data-evmsg]")); } });
+    if (!t) return;
     lock(true);
-    try {
-      const r = await improveApplication(card, x, im); redrawEval(card, x);
-      const nm = card.querySelector("[data-evmsg]"); if (nm) { nm.className = "fine ok"; nm.textContent = T("evImproved", ptsTxt(r.before), ptsTxt(r.after), ptsTxt(r.max)); }
-    } catch (e) { opState(im, "failed", errText(e) + (e && e.improveStop ? " " + T("evImproveStop") : "")); lock(false); }
+    t.okText = (r) => T("evImproved", ptsTxt(r.before), ptsTxt(r.after), ptsTxt(r.max));
+    t.failText = (e) => errText(e) + (e && e.improveStop ? " " + T("evImproveStop") : "");
+    t.done = (tk) => { delete ST.drafts[id]; if (tk.end === "ok") tk.final = tk.okText(tk.result); };
+    runTask(t, (tk) => improveApplication(x, tk, orgId));
   });
 }
-afterRender.ideas = (arg) => {
+afterRender.ideas = (arg) => { ideasAfter(arg); paintTasks(); };
+function ideasAfter(arg) {
   const org = ST.org;
   document.querySelectorAll('[data-act="explain"]').forEach((b) => b.addEventListener("click", async () => {
     const card = b.closest("[data-idea]"), x = (ST.ideas || []).find((i) => i.id === card.dataset.idea), m = card.querySelector("[data-exmsg]");
@@ -2462,23 +2585,36 @@ afterRender.ideas = (arg) => {
     const g = document.getElementById("oiGen"); if (g) g.disabled = !ST.ideaPick.size || !ideaReady(org.profile);
   }));
   const gen = document.getElementById("oiGen");
-  if (gen) gen.addEventListener("click", async () => {
-    const msg = document.getElementById("oiGenMsg");
+  if (gen) gen.addEventListener("click", () => {
     const cands = ideaCandidates().filter((r) => ST.ideaPick.has(r.callId)).map((r) => ({ id: r.callId, score: r.score, status: r.status, band: r.band }));
-    gen.disabled = true; opState(msg, "generating", T("ideasBusy"));
-    msg.insertAdjacentHTML("afterend", ideaSkeletons(cands.length));
-    const skel = msg.nextElementSibling;
-    try {
-      const r = await api("POST", `/orgs/${org.id}/ideas`, { candidates: cands, lang: L() });
-      const miss = (r.missing || []).map((x) => ({ title: x.title || x.callId, why: T("ideaWhy." + x.why) }));
-      ST.ideaNote = { ok: r.generated > 0 && !miss.length, text: r.generated ? T("ideasDone", r.generated, cands.length - miss.length) : T("ideasZero"), miss };
+    const orgId = org.id, lang = L();
+    // Placeholders under the status line while the ideas are written (drawn again when the page is opened again).
+    const place = () => {
+      const m = ST.org && ST.org.id === orgId ? document.getElementById("oiGenMsg") : null;
+      if (m && !(m.nextElementSibling && m.nextElementSibling.classList.contains("skel-list"))) m.insertAdjacentHTML("afterend", ideaSkeletons(cands.length));
+      return m;
+    };
+    const t = startTask("gen:" + orgId, { orgId, orgName: orgName(), title: T("nav.ideas"), place });
+    if (!t) return;
+    gen.disabled = true;
+    t.failText = (e) => errText(e);
+    t.okText = (r) => (r.generated ? T("ideasDone", r.generated, cands.length - (r.missing || []).length) : T("ideasZero"));
+    t.done = (tk) => {
+      document.querySelectorAll("#oiGenMsg + .skel-list").forEach((x) => x.remove());
+      if (tk.end !== "ok") return;
+      const r = tk.result, miss = (r.missing || []).map((x) => ({ title: x.title || x.callId, why: T("ideaWhy." + x.why) }));
+      tk.note = { ok: r.generated > 0 && !miss.length, text: tk.okText(r), miss };
+    };
+    runTask(t, async (tk) => {
+      tk.say("generating", T("ideasBusy"));
+      const r = await api("POST", `/orgs/${orgId}/ideas`, { candidates: cands, lang });
       await loadMe(true);
-      const fresh = (r.ideas || []).filter((x) => x.batchId === r.batchId).map((x) => x.id);
-      ST.lastIdeaNote = null;
-      refresh();
-    } catch (e) { gen.disabled = false; opState(msg, "failed", errText(e)); }
-    finally { if (skel && skel.classList.contains("skel-list")) skel.remove(); }
+      return r;
+    });
   });
+  // A finished generation shows its note once on this page.
+  const gt = TASKS.get("gen:" + org.id);
+  if (gt && gt.end === "ok" && gt.note) { ST.ideaNote = gt.note; TASKS.delete(gt.key); }
   if (ST.ideaNote) {
     const m = document.getElementById("oiGenMsg"), n = ST.ideaNote;
     ST.lastIdeaNote = n;
@@ -2539,7 +2675,7 @@ afterRender.ideas = (arg) => {
   if (ST.evalNote && evMsg && ST.evalNote.text) { evMsg.className = ST.evalNote.ok ? "note ok" : "note warn"; evMsg.textContent = ST.evalNote.text; }
   ST.evalNote = null;
   autoTranslate();
-};
+}
 /* ---------- saved reports ---------- */
 // The live assessment of a saved report's call, if the call is still published.
 const liveOf = (key) => { const c = EC.BYKEY[key]; return c ? assess(matchProfile(), c, assessOpts()) : null; };
@@ -2704,3 +2840,4 @@ afterRender.settings = () => {
 
 window.ECOrg = { render };
 window.dispatchEvent(new Event("ecorg-ready"));
+resumeWriting().catch(() => { /* signed out or offline: nothing resumes */ });

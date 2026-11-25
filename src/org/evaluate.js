@@ -12,6 +12,7 @@ import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json } from "./http.js";
 import { profileBlock, ideaForModel } from "./ideas.js";
 import { callData } from "./callfile.js";
+import { docExcerpt } from "./calldoc.js";
 import { evalTexts, applyEvalTexts } from "../../site/org/content.js";
 import { translateTexts, textLang, needsSerbianFix } from "./translate.js";
 import { matchKey } from "./extract.js";
@@ -157,7 +158,7 @@ export function scoreEvaluation(rubric, answer) {
 // for the criteria in order; the scores, the total and the pass/fail decision are computed here when the last one is in.
 const GROQ_ROOM = 7000;
 const CRIT_OUT = 1300;
-export function criterionMessages({ rubric, c, call, profile, plan, parts, lang, docMax = 2500 }) {
+export function criterionMessages({ rubric, c, call, profile, plan, parts, lang, docMax = 2500, callDoc = "" }) {
   const language = lang === "sr" ? "Serbian (Latin script)" : "English";
   const step = rubric.half ? "half points allowed" : "whole numbers";
   const system = [
@@ -176,7 +177,7 @@ export function criterionMessages({ rubric, c, call, profile, plan, parts, lang,
     ...(rubric.notes && rubric.notes.length ? ["", "SCORING RULES IN THE DOCUMENTATION", ...rubric.notes.map((n) => "- " + n)] : []),
     ...(rubric.docText ? ["", "AWARD CRITERIA SECTION OF THE CALL DOCUMENT (excerpt)", "<documentation>", clip(rubric.docText, docMax), "</documentation>"] : []),
   ].join("\n");
-  const user = `CALL\nTitle: ${call.title}\nProgramme: ${call.programme || "?"}\nIdentifier: ${call.id}\n\nORGANISATION PROFILE\n<profile>\n${profile}\n</profile>\n\nPLAN OF THE APPLICATION\n<plan>\n${plan}\n</plan>\n\nTHE PARTS OF THE APPLICATION THAT ANSWER THIS CRITERION\n<application>\n${parts}\n</application>\n\nReturn the JSON object.`;
+  const user = `CALL\nTitle: ${call.title}\nProgramme: ${call.programme || "?"}\nIdentifier: ${call.id}\n${callDoc ? `\nWHAT THE CALL ASKS FOR (official text, the passages closest to this criterion)\n<call>\n${callDoc}\n</call>\n` : ""}\nORGANISATION PROFILE\n<profile>\n${profile}\n</profile>\n\nPLAN OF THE APPLICATION\n<plan>\n${plan}\n</plan>\n\nTHE PARTS OF THE APPLICATION THAT ANSWER THIS CRITERION\n<application>\n${parts}\n</application>\n\nReturn the JSON object.`;
   return [{ role: "system", content: system }, { role: "user", content: user }];
 }
 const unitText = (s) => String((s && (s.text || Object.values(s.answers || {}).join("\n\n"))) || "");
@@ -226,7 +227,9 @@ export async function evaluateIdea({ env, db, org, user, profile, ideaId, body, 
   // criteria are kept with them); otherwise they are read from the call's own data file (src/org/callfile.js).
   const dc = draft && draft.v === 2 && draft.call && draft.call.programme ? draft.call : null;
   let rubric = draft && draft.v === 2 && draft.rubric ? draft.rubric : null, d = null;
-  if (!rubric || !dc) d = await callData(env, url, row.call_id, { crit: true });
+  if (!rubric || !dc || (draft && draft.v === 2 && draft.doc === undefined)) d = await callData(env, url, row.call_id, { crit: true });
+  // The call's official text (src/org/calldoc.js): kept with drafts started since it is read, otherwise from the data file.
+  const callDoc = draft && draft.doc !== undefined ? draft.doc : d ? d.doc : null;
   const c = d ? d.c : null;
   const call = { id: row.call_id, title: (dc && dc.title) || (c && c.t) || row.call_title || row.call_id, programme: (dc && dc.programme) || (c && c.p) || "" };
   if (!rubric) rubric = rubricFor(call, d.crit, erasmusAction(row.call_id) ? await loadGuide(env, url) : null);
@@ -274,7 +277,8 @@ export async function evaluateIdea({ env, db, org, user, profile, ideaId, body, 
   if (!cr) throw new HttpError(400, "bad_criterion");
   const plan = planText(draft.plan, draft.participants, false, 3000);
   const keys = map[cr.id];
-  const messages = fitCriterion((pb, pr, pl, dm) => criterionMessages({ rubric, c: cr, call, profile: clip(profileText, pr), plan: plan.slice(0, pl), parts: partsText(keys, draft, units, pb), lang, docMax: dm }));
+  const focus = [cr.name, ...(cr.aspects || [])].join(" ");
+  const messages = fitCriterion((pb, pr, pl, dm) => criterionMessages({ rubric, c: cr, call, profile: clip(profileText, pr), plan: plan.slice(0, pl), parts: partsText(keys, draft, units, pb), lang, docMax: dm, callDoc: docExcerpt(callDoc, Math.round(dm * 0.8), focus) }));
   const inputHash = textHash(messages.map((m) => m.content).join("\n"));
   const run = String(body.run || "").slice(0, 40) || String(now);
   let st = parts[rubric.key];

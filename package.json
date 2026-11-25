@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node test/chat.test.js && node test/query.test.js && node test/org-rules.test.js && node test/org-api.test.js && python3 test/erasmus_na_test.py && python3 test/award_criteria_test.py && python3 test/eligibility_docs_test.py && python3 test/app_forms_test.py && python3 test/eralearn_test.py && python3 test/fetch_state_test.py && python3 test/rs_sources_test.py",
+    "test": "node test/chat.test.js && node test/query.test.js && node test/org-rules.test.js && node test/org-api.test.js && python3 test/erasmus_na_test.py && python3 test/award_criteria_test.py && python3 test/eligibility_docs_test.py && python3 test/call_content_test.py && python3 test/app_forms_test.py && python3 test/eralearn_test.py && python3 test/fetch_state_test.py && python3 test/rs_sources_test.py",
     "dev": "node test/server.js"
   }
 }

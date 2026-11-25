@@ -15,6 +15,7 @@ import { FIELD } from "../../site/org/schema.js";
 import { rubricFor, erasmusAction } from "../../site/org/rubric.js";
 import { loadGuide } from "./evaluate.js";
 import { callData } from "./callfile.js";
+import { withDoc, hasDoc } from "./calldoc.js";
 import { countryInList } from "../../site/org/rules.js";
 import { ideaTexts, applyIdeaTexts, evalTexts, applyEvalTexts } from "../../site/org/content.js";
 import { translateTexts, textLang, needsSerbianFix } from "./translate.js";
@@ -82,7 +83,9 @@ export function profileReady(p) {
   return missing;
 }
 
-export function callBlock(index, c, country, now, cand) {
+// doc: the call's official text (src/org/calldoc.js); its parts closest to focus join the listing's excerpt, within n
+// characters (the idea request has room for about 1,500 with the answer in Groq's per-minute limit).
+export function callBlock(index, c, country, now, cand, doc = null, n = 1100, focus = "") {
   const dl = nextDeadline(c, now);
   const el = eligibilityFor(index, c, country);
   const cur = c.cur ? " " + c.cur : "";
@@ -91,7 +94,7 @@ export function callBlock(index, c, country, now, cand) {
     `Partnership: ${c.pt || "unspecified"}`, `Sectors: ${(c.s || []).join(", ")}`, `Applicants: ${(c.a || []).join(", ")}`, `Funding: ${fund}`,
     `Eligibility for ${country}: ${el ? el.status : "?"}${el && el.reason ? " (" + clip(el.reason, 160) + ")" : ""}`,
     `Rule-based compatibility with this organisation: ${cand.score}% (${cand.status})`,
-    `Call text (excerpt): ${clip(c.x, 1100)}`].join("\n");
+    `Call text (excerpt): ${withDoc(c.x, doc, n, focus || c.t)}`].join("\n");
 }
 
 // The award criteria the idea will later be evaluated against (the same rubric as src/org/evaluate.js), in short form.
@@ -214,8 +217,8 @@ export async function explainFit({ env, db, org, user, profile, ideaId, body, no
   const row = await db.prepare("SELECT * FROM project_ideas WHERE id = ? AND org_id = ?").bind(ideaId, org.id).first();
   if (!row) throw new HttpError(404, "not_found");
   const idea = JSON.parse(row.idea);
-  const { index, c } = await callData(env, url, row.call_id);
-  const call = c ? callBlock(index, c, profile.country, now, { score: (JSON.parse(row.match || "{}").score) || 0, status: (JSON.parse(row.match || "{}").status) || "potential" }) : `Title: ${row.call_title || row.call_id}`;
+  const { index, c, doc } = await callData(env, url, row.call_id);
+  const call = c ? callBlock(index, c, profile.country, now, { score: (JSON.parse(row.match || "{}").score) || 0, status: (JSON.parse(row.match || "{}").status) || "potential" }, doc, 1100, (idea.title || "") + " " + (idea.summary || "")) : `Title: ${row.call_title || row.call_id}`;
   // Written in the idea's own language, so the stored idea is in one language; the page shows its copy in the other.
   const lang = row.lang === "en" ? "en" : "sr";
   const r = await complete({ env, userId: user.id, messages: explanationMessages({ idea: ideaForModel(idea), call, profile: profileBlock(profile), lang }), agent: "fit", maxOut: 900, now, fetchImpl, waitUntil });
@@ -287,7 +290,7 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
   for (const cand of cands) {
     const d = data.get(cand.id);
     if (!d) { skip(cand, null, "too_many"); continue; }   // not read: enough usable calls before it
-    const { c, index, elig } = d;
+    const { c, index, elig, doc } = d;
     if (valid.some((v) => v.c.id === cand.id)) continue;
     if (!c) { skip(cand, null, "unknown_call"); continue; }
     if (!nextDeadline(c, now)) { skip(cand, c, "closed"); continue; }
@@ -296,7 +299,7 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
     // The call document lists the eligible countries and the organisation's is not among them (the Portal data may not say).
     if (officialCountryOk(elig, c.id, profile.country) === false) { skip(cand, c, "not_eligible"); continue; }
     if (valid.length >= MAX_CANDIDATES) { skip(cand, c, "too_many"); continue; }
-    valid.push({ c, cand, index });
+    valid.push({ c, cand, index, doc });
   }
   if (!valid.length) throw new HttpError(400, "no_calls");
   const markUsed = await orgDailyLimit(env, db, org.id, now);
@@ -329,7 +332,7 @@ export async function generateIdeas({ env, db, org, user, profile, version, body
     const id = v.c.id;
     try {
       const extra = [criteriaBlock(rubrics.get(id)), previous.get(id) || ""].filter(Boolean);
-      const messages = ideaMessages({ profile: pb, blocks: [[callBlock(v.index, v.c, profile.country, now, v.cand), ...extra].join("\n\n")], lang, ids: [id] });
+      const messages = ideaMessages({ profile: pb, blocks: [[callBlock(v.index, v.c, profile.country, now, v.cand, v.doc, hasDoc(v.doc) ? 1500 : 1100, v.c.t + " objectives priorities activities expected impact"), ...extra].join("\n\n")], lang, ids: [id] });
       const r = await complete({ env, userId: user.id, messages, agent: "ideas", maxOut: IDEA_MAX_OUT, now, fetchImpl, waitUntil });
       if (!used) { used = true; await markUsed(); }
       if (r.model && !models.includes(r.model)) models.push(r.model);
@@ -405,7 +408,7 @@ export async function improveIdea({ env, db, org, user, profile, version, ideaId
   const row = await db.prepare("SELECT * FROM project_ideas WHERE id = ? AND org_id = ?").bind(ideaId, org.id).first();
   if (!row) throw new HttpError(404, "not_found");
   const idea = JSON.parse(row.idea), evs = row.evaluations ? JSON.parse(row.evaluations) : {};
-  const { index, c, crit } = await callData(env, url, row.call_id, { crit: true });
+  const { index, c, crit, doc } = await callData(env, url, row.call_id, { crit: true });
   if (!c || !nextDeadline(c, now)) throw new HttpError(409, "closed");
   const guide = erasmusAction(row.call_id) ? await loadGuide(env, url) : null;
   const rubric = rubricFor({ id: row.call_id, programme: c.p }, crit, guide);
@@ -415,7 +418,7 @@ export async function improveIdea({ env, db, org, user, profile, version, ideaId
   if ((idea.revisions || 0) >= MAX_REVISIONS) throw new HttpError(409, "revision_limit", { max: MAX_REVISIONS });
   const lang = body.lang === "sr" ? "sr" : body.lang === "en" ? "en" : row.lang;
   const match = row.match ? JSON.parse(row.match) : { score: 0, status: "potential" };
-  const call = { id: row.call_id, block: callBlock(index, c, profile.country, now, match) };
+  const call = { id: row.call_id, block: callBlock(index, c, profile.country, now, match, doc, 1100, (idea.title || "") + " " + (idea.summary || "")) };
   const messages = improveMessages({ idea: ideaForModel(idea), ev, call, criteria: criteriaBlock(rubric), profile: profileBlock(profile), lang });
   const r = await complete({ env, userId: user.id, messages, agent: "improve", maxOut: IDEA_MAX_OUT, now, fetchImpl, waitUntil });
   const got = verifyIdeas(parseJsonObject(r.text), new Set([row.call_id]));

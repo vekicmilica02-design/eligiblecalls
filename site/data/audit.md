@@ -1,7 +1,7 @@
-# Import audit — 2026-11-25T18:17:35.000Z
+# Import audit — 2026-11-25T20:17:26.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1204 rows, 1117 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-25 19:17 Brussels, deadlines counted at 17:00 Brussels): 415, of which forthcoming: 254
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-25 21:17 Brussels, deadlines counted at 17:00 Brussels): 415, of which forthcoming: 254
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -23,7 +23,7 @@
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
 - Published: 577
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 1 new, 0 changed, 3 closed
+- Changes since the previous import: 0 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 342

@@ -8,9 +8,11 @@ import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, cleanValue
 import { complete, parseJsonObject } from "./ai.js";
 import { HttpError, json, randomId, taxonomy } from "./http.js";
 import { toLatin } from "../../site/org/templates.js";
+import { estTokens } from "../../site/org/lang.js";
 
 export const CHUNK_CHARS = 14000;   // one model request; fits every provider of the chain
 export const MAX_PARTS = 6;         // per document (about 84,000 characters)
+const WEB_TOKENS = 4000;            // the pages of one website read in one request (with the instructions and the answer, under 7,200)
 const EXTRACTABLE = FIELDS.map((f) => f.id);
 
 export function normText(s) {
@@ -207,8 +209,10 @@ const ENTITY = { nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nd
   scaron: "š", Scaron: "Š", zcaron: "ž", Zcaron: "Ž", ccaron: "č", Ccaron: "Č", cacute: "ć", Cacute: "Ć", dstrok: "đ", Dstrok: "Đ",
   eacute: "é", Eacute: "É", egrave: "è", agrave: "à", aacute: "á", uuml: "ü", Uuml: "Ü", ouml: "ö", Ouml: "Ö", auml: "ä", Auml: "Ä", szlig: "ß", ccedil: "ç" };
 const codePoint = (n, raw) => (n > 0 && n <= 0x10ffff && !(n >= 0xd800 && n <= 0xdfff) ? String.fromCodePoint(n) : raw);
-export function htmlToText(h) {
-  const s = String(h).slice(0, 200000)
+export function htmlToText(h, max = 200000) {
+  h = String(h);
+  const body = h.search(/<body[\s>]/i);   // the head (styles, scripts, metadata) holds no text worth reading
+  const s = (body > 0 ? h.slice(body) : h).slice(0, max)
     .replace(/<(script|style|noscript|svg|template)[\s\S]*?<\/\1>/gi, " ")
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<(br|p|div|li|h[1-6]|tr|section|article)[^>]*>/gi, "\n")
@@ -218,16 +222,90 @@ export function htmlToText(h) {
     .replace(/&([a-z]+[0-9]*);/gi, (m, n) => (ENTITY[n] !== undefined ? ENTITY[n] : m));
   return s.split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n");
 }
-const ABOUT = /about|who-we-are|mission|o-nama|onama|o_nama|misija|vizija|statut|istorijat|history|projekti|projects|nasi-projekti|our-work|team|tim/i;
-export function aboutLinks(h, base) {
-  const out = [];
-  for (const m of String(h).slice(0, 200000).matchAll(/<a\s[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]{0,200}?)<\/a>/gi)) {
-    let u; try { u = new URL(m[1], base); } catch { continue; }
-    if (u.hostname !== base.hostname || u.href === base.href) continue;
-    if (/\.(pdf|docx?|jpe?g|png|zip)$/i.test(u.pathname)) continue;
-    if (ABOUT.test(u.pathname) || ABOUT.test(m[2].replace(/<[^>]+>/g, " "))) { u.hash = ""; if (!out.includes(u.href)) out.push(u.href); }
+// Pages of an organisation's site worth reading, ranked by what they usually state. Paths and link texts are compared
+// in Latin script without diacritics, so "/о-нама", "/o-nama" and a link "О нама" are the same; "o-<name>" pages
+// ("/page/o-mensi" on mensa.rs) count as about pages when the word after "o" is the site's own name (from its address
+// or title); "/o-testiranju" ("about testing") does not.
+const LINK_RANK = [
+  [10, /\b(o nama|o nam|about|about us|who we are|ko smo|misija|mission|vizija|vision|statut|o udruzenju|o organizaciji|o fondaciji|o centru|o savezu|o drustvu)\b/],
+  [7, /\b(istorijat|istorija|history|nasa prica|our story|osnivanje)\b/],
+  [6, /\b(projekti|projekat|projects?|our work|nas rad|aktivnosti|activities|programi|programs?|delatnost|sta radimo|what we do|usluge|services)\b/],
+  [5, /\b(partneri|partners?|donatori|donors?|saradnja|cooperation|mreza|network|clanice|members)\b/],
+  [4, /\b(tim|team|ljudi|people|organi|upravni odbor|board|skupstina|clanstvo|membership|sekcije|odseci|klubovi)\b/],
+  [3, /\b(dokumenta|dokumenti|documents|izvestaji|izvestaj|reports?|godisnji)\b/],
+  [2, /\b(kontakt|contact|impressum)\b/],
+];
+const ANY_RANK = new RegExp(LINK_RANK.map(([, re]) => re.source).join("|"));
+const LINK_SKIP = /\b(login|prijava|registracija|korpa|cart|checkout|shop|prodavnica|privacy|privatnost|politika|uslovi|terms|cookie|kolacic|galerija|gallery|tag|category|kategorija|feed|search|pretraga|wp admin|wp content|wp json|cene|cenovnik|placanje|placanja|kupovin)\b/;
+// Most paths are plain ASCII: lower case is enough, and the full Latin-script key (slower) is made only for the rest.
+const linkKey = (s) => {
+  s = String(s);
+  if (/^[\x20-\x7e]*$/.test(s) && !s.includes("%")) return s.toLowerCase().replace(/[^a-z0-9]+/g, " ");
+  let d = s; try { d = decodeURIComponent(s); } catch { /* keep as is */ }
+  return matchKey(d.replace(/[-_/.+]+/g, " "));
+};
+const nameWords = (base, title) => [...new Set(linkKey(base.hostname.replace(/^www\./, "").split(".").slice(0, -1).join(" ") + " " + (title || "")).split(" ").filter((w) => w.length >= 4))];
+function aboutSelf(s, names) {
+  const m = s.match(/^o ([a-z]{3,})/);
+  return !!m && names.some((n) => n.slice(0, 4) === m[1].slice(0, 4));
+}
+function linkScore(u, label, names = []) {
+  const path = linkKey(u.pathname), text = linkKey(label || "");
+  if (!path.trim() || LINK_SKIP.test(path) || LINK_SKIP.test(text)) return 0;
+  let best = 0;
+  const segs = u.pathname.split("/").filter(Boolean).map(linkKey);
+  if (segs.some((x) => aboutSelf(x, names)) || aboutSelf(text.trim(), names)) best = 10;
+  else for (const [score, re] of LINK_RANK) if (re.test(path) || re.test(text)) { best = score; break; }
+  if (!best) return 0;
+  const depth = u.pathname.split("/").filter(Boolean).length;
+  return best - Math.max(0, depth - 2) - (u.search ? 1 : 0);
+}
+const sameSite = (a, b) => a.hostname.replace(/^www\./, "") === b.hostname.replace(/^www\./, "");
+// Candidate pages from the homepage's links and, when given, the site's sitemap; best first, at most `n`.
+export function aboutLinks(h, base, sitemapUrls = [], n = 2, title = "") {
+  const cand = new Map(), names = nameWords(base, title);
+  const add = (href, label, bonus = 0) => {
+    let u; try { u = new URL(href, base); } catch { return; }
+    if (!/^https?:$/.test(u.protocol) || !sameSite(u, base)) return;
+    u.hash = "";
+    if (u.href === base.href || /\.(pdf|docx?|xlsx?|jpe?g|png|gif|webp|zip|xml|rss)$/i.test(u.pathname)) return;
+    const base0 = linkScore(u, label, names);
+    if (base0 <= 0) return;
+    const sc = base0 + bonus;
+    const key = u.origin.replace("://www.", "://") + u.pathname.replace(/\/$/, "");   // ?lang=en and similar: the same page
+    if (!cand.has(key) || cand.get(key).sc < sc) cand.set(key, { href: u.href, sc });   // the address without a query wins a tie
+  };
+  // Bounded work (the free plan allows 10 ms of CPU per request): the first 300 links of the page and 600 sitemap
+  // addresses, without the language variants (?lang=...) of the same page.
+  let k = 0;
+  for (const m of String(h).slice(0, 150000).matchAll(/<a\s[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]{0,200}?)<\/a>/gi)) { if (++k > 300) break; add(m[1], m[2].replace(/<[^>]+>/g, " "), 0.5); }
+  const host = base.hostname.replace(/^www\./, "");
+  let n2 = 0;
+  for (const loc of sitemapUrls) {
+    if (loc.includes("?") || !loc.includes(host)) continue;
+    if (++n2 > 600) break;
+    const key = linkKey(loc.slice(loc.indexOf("/", 8)));   // the path; a full check only for paths that can rank
+    if (ANY_RANK.test(key) || /(^| )o [a-z]{3}/.test(key)) add(loc, "");
   }
-  return out.slice(0, 2);
+  const ranked = [...cand.values()].sort((a, b) => b.sc - a.sc);
+  const out = []; let contacts = 0;
+  for (const c of ranked) {
+    if (out.length >= n) break;
+    if (/kontakt|contact/.test(linkKey(c.href)) && contacts++) continue;
+    out.push(c.href);
+  }
+  return out;
+}
+// Page addresses listed in a sitemap (one level; a sitemap index gives the addresses of its sitemaps).
+export function sitemapLocs(xml) {
+  return [...String(xml).slice(0, 300000).matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)].map((m) => m[1].replace(/&amp;/g, "&")).slice(0, 2000);
+}
+// Lines that repeat on several pages of one site (menus, footers, cookie notices) are kept only on the first page.
+export function dropRepeatedLines(pages) {
+  const seen = new Map();
+  for (const p of pages) for (const l of new Set(p.text.split("\n"))) seen.set(l, (seen.get(l) || 0) + 1);
+  const kept = new Set();
+  return pages.map((p) => ({ ...p, text: p.text.split("\n").filter((l) => { if (seen.get(l) < 2 || l.length > 200) return true; if (kept.has(l)) return false; kept.add(l); return true; }).join("\n") }));
 }
 
 export function robotsAllows(txt, path) {
@@ -259,7 +337,7 @@ function robotsChecker(fetchImpl) {
   };
 }
 
-async function fetchPage(u, fetchImpl, allowed = null) {
+async function fetchPage(u, fetchImpl, allowed = null, max = 120000) {
   let cur = u;
   for (let hop = 0; hop < 3; hop++) {
     if (allowed && !(await allowed(cur))) throw new HttpError(403, "robots_disallow");
@@ -274,7 +352,7 @@ async function fetchPage(u, fetchImpl, allowed = null) {
     if (/pdf/i.test(type)) throw new HttpError(415, "pdf_upload_instead");
     if (!/text\/html|text\/plain|application\/xhtml/i.test(type)) throw new HttpError(415, "unsupported_type");
     const body = (await r.text()).slice(0, 400000);
-    return { url: cur, html: body, text: /html/i.test(type) ? htmlToText(body) : body.slice(0, 200000) };
+    return { url: cur, html: body, text: /html/i.test(type) ? htmlToText(body, max) : body.slice(0, max) };
   }
   throw new HttpError(502, "too_many_redirects");
 }
@@ -284,19 +362,43 @@ export async function researchUrl({ env, db, org, user, body, now, fetchImpl, wa
   if (!start) throw new HttpError(400, "url_invalid");
   const allowed = robotsChecker(fetchImpl);
   const first = await fetchPage(start, fetchImpl, allowed);
-  const pages = [{ url: first.url.href, text: first.text }];
-  for (const link of aboutLinks(first.html, first.url)) {
+  // Many sites build their menu with scripts, so the homepage HTML links few pages: the sitemap names them all.
+  let locs = [];
+  try {
+    const sm = new URL("/sitemap.xml", first.url);
+    if (await allowed(sm)) {
+      const r0 = await fetchImpl(sm.href, { headers: { "user-agent": "EligibleCallsBot/1.0" }, signal: AbortSignal.timeout ? AbortSignal.timeout(6000) : undefined });
+      if (r0.ok) {
+        locs = sitemapLocs(await r0.text());
+        const child = locs.find((l) => /\.xml(\?|$)/i.test(l) && /page|post|sitemap-?\d|stran/i.test(l)) || (locs.every((l) => /\.xml(\?|$)/i.test(l)) ? locs[0] : null);
+        if (child) { const cu = checkPublicUrl(child); if (cu && sameSite(cu, first.url) && (await allowed(cu))) { const r1 = await fetchImpl(cu.href, { headers: { "user-agent": "EligibleCallsBot/1.0" } }); if (r1.ok) locs = sitemapLocs(await r1.text()); } }
+      }
+    }
+  } catch { /* no sitemap */ }
+  let pages = [{ url: first.url.href, text: first.text }];
+  const title0 = (first.html.match(/<title[^>]*>([^<]{1,160})/i) || [])[1] || "";
+  for (const link of aboutLinks(first.html, first.url, locs, 4, title0)) {
     const lu = checkPublicUrl(link);
     if (!lu || !(await allowed(lu))) continue;
-    try { const p = await fetchPage(lu, fetchImpl, allowed); pages.push({ url: p.url.href, text: p.text }); } catch { /* skip pages that fail */ }
+    try { const p = await fetchPage(lu, fetchImpl, allowed, 80000); if (!pages.some((x) => x.url === p.url.href)) pages.push({ url: p.url.href, text: p.text }); } catch { /* skip pages that fail */ }
   }
-  const per = Math.floor(CHUNK_CHARS / pages.length);
-  const sources = pages.map((p) => ({ url: p.url, text: p.text.slice(0, per) })).filter((p) => p.text.length > 40);
+  pages = dropRepeatedLines(pages);
+  // One model request: the pages share the room of a document part by estimated tokens (Cyrillic counts more per
+  // character); a short page leaves its unused share to the others.
+  const sources = [];
+  let room = WEB_TOKENS, left = pages.filter((p) => p.text.length > 40);
+  for (const [i, p] of left.entries()) {
+    const share = Math.floor(room / (left.length - i));
+    let t = p.text.slice(0, CHUNK_CHARS);
+    for (let k = 0, e; k < 6 && (e = estTokens(t)) > share; k++) t = t.slice(0, Math.floor((t.length * share) / e * 0.97));
+    room -= estTokens(t);
+    if (t.length > 40) sources.push({ url: p.url, text: t });
+  }
   if (!sources.length) throw new HttpError(422, "page_empty");
   const text = sources.map((p) => `### PAGE ${p.url}\n${p.text}`).join("\n\n");
   const tax = await taxonomy(env, url);
   const ctx = contextFrom(tax, new Date(now).getUTCFullYear());
-  const r = await complete({ env, userId: user.id, messages: extractionMessages(tax, `public web pages of the organisation (${sources.map((s) => s.url).join(", ")})`, text), agent: "research", maxOut: 1500, now, fetchImpl, waitUntil, cacheOrg: org.id, fresh: body.fresh === true });
+  const r = await complete({ env, userId: user.id, messages: extractionMessages(tax, `public web pages of the organisation (${sources.map((s) => s.url).join(", ")})`, text), agent: "research", maxOut: 1800, now, fetchImpl, waitUntil, cacheOrg: org.id, fresh: body.fresh === true });
   const answer = parseJsonObject(r.text);
   if (!answer) throw new HttpError(502, "ai_bad_answer");
   const v = verifyFields(answer, text, ctx, sources);

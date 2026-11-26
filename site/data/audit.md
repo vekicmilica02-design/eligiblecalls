@@ -1,7 +1,7 @@
-# Import audit — 2026-11-26T00:17:26.000Z
+# Import audit — 2026-11-26T02:17:38.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1221 rows, 1134 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-26 01:17 Brussels, deadlines counted at 17:00 Brussels): 431, of which forthcoming: 249
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-26 03:17 Brussels, deadlines counted at 17:00 Brussels): 431, of which forthcoming: 249
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -9,7 +9,7 @@
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 26, noFutureDeadline 0, linkNotVerified 1, published 25
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 22, horizonTopic 6, noFutureDeadline 15, linkNotVerified 0, published 1
-- UKRI Funding Finder (ukri.org): OK · listed 134, inviteOnly 3, noFutureDeadline 56, published 75
+- UKRI Funding Finder (ukri.org): OK · listed 135, inviteOnly 3, noFutureDeadline 57, published 75
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 16, noFutureDeadline 0, linkNotVerified 0, published 11
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 - Erasmus+ Programme Guide (actions managed by the national agencies): OK · guideYear 2026, rounds 4, noFutureDeadline 4, pageUnavailable 0, published 0
@@ -23,7 +23,7 @@
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
 - Published: 595
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 18 new, 9 changed, 0 closed
+- Changes since the previous import: 0 new, 0 changed, 0 closed
 
 ## Calls by programme
 - HORIZON: 343

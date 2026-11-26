@@ -189,7 +189,7 @@
     ]
    },
    "note": "",
-   "openCalls": 343
+   "openCalls": 342
   },
   {
    "id": "EURATOM",
@@ -1909,7 +1909,7 @@
     ]
    },
    "note": "",
-   "openCalls": 33
+   "openCalls": 50
   },
   {
    "id": "JUST",
@@ -2196,7 +2196,7 @@
    "source": "UKRI Funding Finder (ukri.org)",
    "scope": "eu",
    "note": "Calls from UKRI Funding Finder (ukri.org). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 77
+   "openCalls": 76
   },
   {
    "id": "EIT",
@@ -2221,18 +2221,6 @@
    "scope": "eu",
    "note": "Calls from ESA Business Applications funding (business.esa.int). Eligible countries are taken from the source where it states them; otherwise check each call.",
    "openCalls": 7
-  },
-  {
-   "id": "RS-IFOND",
-   "name": "Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost)",
-   "short": "Innovation Fund (RS)",
-   "summary": "",
-   "list": null,
-   "countries": null,
-   "source": "Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost)",
-   "scope": "rs",
-   "note": "Calls from Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost). Eligible countries are taken from the source where it states them; otherwise check each call.",
-   "openCalls": 1
   },
   {
    "id": "RS-RAS",

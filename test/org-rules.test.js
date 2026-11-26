@@ -469,4 +469,18 @@ t("a fuller profile text does not lower the thematic match; the closest calls re
   assert.ok(b >= 3, `full profile has calls at 70%+: ${b}`);
   assert.ok(b >= a * 0.7, `full profile ${b} vs short ${a}: more text must not sink the scores`);
 });
+await import("../site/org/datatext.js");
+t("Serbian page: texts the importer writes in English have a Serbian form; quotes from the source stay as they are", () => {
+  const { data, prog, critSum, critNote } = globalThis.ECsr;
+  assert.equal(data("Associated to Horizon Europe."), "Pridružena programu Horizont Evropa.");
+  const r = data('The eligible countries are not stated in the Portal data for this call. The Portal data says: "Eligible countries described in section 6 of the call document." This programme has no published list of participating countries. Check the eligible countries in the call document.');
+  assert.match(r, /^Podobne zemlje nisu navedene u podacima portala/); assert.match(r, /„Eligible countries described in section 6 of the call document\.“/); assert.match(r, /Podobne zemlje proverite u dokumentu poziva\.$/);
+  assert.match(data("Run by Innovate UK. The organiser sets the rules; Eligible Calls reads this call from UKRI Funding Finder (ukri.org)."), /^Poziv vodi Innovate UK\. Pravila određuje organizator/);
+  assert.match(data("The call document (Call document (EMFAF) V1.0) lists the eligible countries: EU Member States. This country is not on the list."), /države članice EU\. Ova zemlja nije na spisku\.$/);
+  assert.equal(data("A sentence nobody translated."), "A sentence nobody translated.");
+  assert.equal(prog({ id: "HORIZON", name: "Horizon Europe", short: "Horizon Europe", summary: "EU framework programme for research and innovation." }).summary, "Okvirni program EU za istraživanje i inovacije.");
+  assert.equal(critSum("Overall threshold: 12 points."), "Ukupni prag: 12 bodova.");
+  assert.equal(critSum("Individual thresholds per criterion: 6/10 and 6/10 points."), "Pojedinačni pragovi po kriterijumu: 6/10 i 6/10 bodova.");
+  assert.equal(critNote("are described in Annex D of the Work Programme General Annexes."), "Opisani su u aneksu D Opštih aneksa programa rada.");
+});
 console.log(`${pass} passed`);

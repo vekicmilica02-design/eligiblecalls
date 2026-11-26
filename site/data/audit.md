@@ -1,7 +1,7 @@
-# Import audit — 2026-11-26T02:17:38.000Z
+# Import audit — 2026-11-26T04:17:38.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1221 rows, 1134 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-26 03:17 Brussels, deadlines counted at 17:00 Brussels): 431, of which forthcoming: 249
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-26 05:17 Brussels, deadlines counted at 17:00 Brussels): 431, of which forthcoming: 249
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -9,7 +9,7 @@
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 26, noFutureDeadline 0, linkNotVerified 1, published 25
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 22, horizonTopic 6, noFutureDeadline 15, linkNotVerified 0, published 1
-- UKRI Funding Finder (ukri.org): OK · listed 135, inviteOnly 3, noFutureDeadline 57, published 75
+- UKRI Funding Finder (ukri.org): OK · listed 134, inviteOnly 3, noFutureDeadline 56, published 75
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 16, noFutureDeadline 0, linkNotVerified 0, published 11
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 - Erasmus+ Programme Guide (actions managed by the national agencies): OK · guideYear 2026, rounds 4, noFutureDeadline 4, pageUnavailable 0, published 0

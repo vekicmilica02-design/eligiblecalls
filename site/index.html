@@ -684,7 +684,7 @@ const I18N = {
     srcNoneX: "The source does not state the eligible countries for this call in structured form.", refLbl: "Reference",
     verifX: (how) => `Listed as open by the source · deadline after the import · call page checked: ${how}`,
     notes: "Call-specific conditions", conditionsH: "Conditions (official text)", descriptionH: "Description (official text)", excerpt: "Excerpt. The full text is on the official call page.",
-    keyFacts: "Key facts", topicId: "Topic / call ID", callLbl: "Call", programme: "Programme", toa: "Type of action", opens: "Opening date", deadlinesH: "Deadlines", model: "Submission",
+    keyFacts: "Key facts", topicId: "Topic / call ID", callLbl: "Call", programme: "Programme", toa: "Type of action", opens: "Opening date", deadlinesH: "Deadlines", model: "Submission", placeLbl: "Place of action", "dm_single-stage": "Single stage", "dm_two-stage": "Two stages", "dm_multiple cut-off": "Several cut-off dates", trBtn: "Translate into English", trNote: "Machine translation of the official text. The original is authoritative.", trOrig: "Show original", trTr: "Show translation", trWorking: "Translating…", trFail: "The translation could not be made right now.", trTitle: "Machine translation. Original: ",
     fundingH: "Funding", minMax: "EU contribution per project", expected: "Expected number of grants",
     classified: "Sector and applicant tags are assigned by Eligible Calls from the programme structure and call text. They help you search; they are not official eligibility criteria.",
     eligAll: "Eligibility by country", countryUnknown: "Not available from the source",
@@ -766,7 +766,7 @@ const I18N = {
     srcNoneX: "Izvor ne navodi zemlje koje ispunjavaju uslove za ovaj poziv u strukturisanom obliku.", refLbl: "Oznaka",
     verifX: (how) => `Izvor ga navodi kao otvoren · rok je posle preuzimanja · stranica poziva proverena: ${how}`,
     notes: "Posebni uslovi poziva", conditionsH: "Uslovi (zvanični tekst, na jeziku izvora)", descriptionH: "Opis (zvanični tekst, na jeziku izvora)", excerpt: "Izvod. Ceo tekst je na zvaničnoj stranici poziva.",
-    keyFacts: "Osnovni podaci", topicId: "Oznaka teme / poziva", callLbl: "Poziv", programme: "Program", toa: "Vrsta aktivnosti", opens: "Otvaranje", deadlinesH: "Rokovi", model: "Podnošenje",
+    keyFacts: "Osnovni podaci", topicId: "Oznaka teme / poziva", callLbl: "Poziv", programme: "Program", toa: "Vrsta aktivnosti", opens: "Otvaranje", deadlinesH: "Rokovi", model: "Podnošenje", placeLbl: "Mesto realizacije", "dm_single-stage": "Jednofazno", "dm_two-stage": "Dvofazno", "dm_multiple cut-off": "Više rokova", trBtn: "Prevedi na srpski", trNote: "Mašinski prevod zvaničnog teksta. Merodavan je original.", trOrig: "Prikaži original", trTr: "Prikaži prevod", trWorking: "Prevodim…", trFail: "Prevod trenutno nije mogao da se napravi.", trTitle: "Mašinski prevod. Original: ",
     fundingH: "Finansiranje", minMax: "Doprinos EU po projektu", expected: "Očekivani broj grantova",
     classified: "Oznake oblasti i vrste podnosioca dodeljuje Eligible Calls na osnovu strukture programa i teksta poziva. Služe pretrazi; nisu zvanični uslovi.",
     eligAll: "Podobnost po zemljama", countryUnknown: "Nije dostupno u izvoru",
@@ -904,6 +904,87 @@ function timeText(iso) {
 
 /* ---------- eligibility ---------- */
 const ELCLS = { Y: "yes", P: "partial", N: "no", C: "unknown" };
+// Texts from the sources (call titles, call names, divisions, notes the importer could not render, official texts)
+// in the page language. Templates mark them with trs() (short: translated at once) or data-tr="b" (official text:
+// translated when the visitor asks, or at once when a kept translation exists). POST /api/translate-text keeps every
+// translation for all visitors, so each text is translated once.
+const trs = (s) => `<span data-tr="s">${esc(s)}</span>`;
+const TRX = { mem: new Map(), busy: false, again: false };
+async function trPost(mode, texts) {
+  try {
+    const r = await fetch("api/translate-text", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ lang, mode, texts }) });
+    return r.ok ? await r.json() : null;
+  } catch (err) { return null; }
+}
+// An official text in pieces of at most 7,000 characters, cut at paragraph breaks (the server takes 8,000).
+function trPieces(s) {
+  const out = []; let cur = "";
+  for (const p of String(s).split(/(?<=\n\n)/)) {
+    if (cur && cur.length + p.length > 7000) { out.push(cur); cur = ""; }
+    cur += p; while (cur.length > 7000) { out.push(cur.slice(0, 7000)); cur = cur.slice(7000); }
+  }
+  if (cur.trim()) out.push(cur);
+  return out.map((x) => x.trim()).filter(Boolean);
+}
+function trShort(el, text) { el.textContent = text; el.dataset.trL = lang; el.classList.add("tr-m"); el.title = t("trTitle") + el.dataset.trO.slice(0, 300); }
+function trBlock(el, text) {
+  el.textContent = text; el.dataset.trL = lang; el.dataset.trT = text;
+  const old = el.previousElementSibling && el.previousElementSibling.classList.contains("tr-bar") ? el.previousElementSibling : null;
+  const bar = old || document.createElement("p");
+  bar.className = "fine tr-bar"; bar.innerHTML = `${esc(t("trNote"))} <button type="button" class="linkbtn">${esc(t("trOrig"))}</button>`;
+  if (!old) el.before(bar);
+  const b = bar.querySelector("button");
+  b.addEventListener("click", () => { const orig = el.textContent !== el.dataset.trO; el.textContent = orig ? el.dataset.trO : el.dataset.trT; b.textContent = t(orig ? "trTr" : "trOrig"); });
+}
+async function trBlockRun(el, bar) {
+  const pieces = trPieces(el.dataset.trO), outs = [];
+  bar.innerHTML = `<span class="ec-loader" aria-hidden="true"></span> ${esc(t("trWorking"))}`;
+  for (const p of pieces) { const r = await trPost("long", [p]); const x = r && r.tr && r.tr[0]; if (!x) { bar.innerHTML = esc(t("trFail")) + ` <button type="button" class="linkbtn">${esc(t("trBtn"))}</button>`; bar.querySelector("button").addEventListener("click", () => trBlockRun(el, bar)); return; } outs.push(x); }
+  const text = outs.join("\n\n"); TRX.mem.set(lang + "\n" + el.dataset.trO, text); trBlock(el, text);
+}
+async function trScan() {
+  if (!window.ECsr) return;
+  if (TRX.busy) { TRX.again = true; return; }
+  TRX.busy = true;
+  try {
+    const short = [], blocks = [];
+    for (const el of document.querySelectorAll("#app [data-tr], #chatLog [data-tr]")) {
+      if (el.dataset.trL === lang || el.dataset.trSkip === lang) continue;
+      if (el.dataset.trO === undefined) el.dataset.trO = el.textContent;
+      const o = el.dataset.trO;
+      if (!window.ECsr.needsTr(o, lang)) { el.dataset.trSkip = lang; continue; }
+      const m = TRX.mem.get(lang + "\n" + o);
+      if (m) { if (el.dataset.tr === "b") trBlock(el, m); else trShort(el, m); continue; }
+      (el.dataset.tr === "b" ? blocks : short).push(el);
+    }
+    // Short texts: batches of at most 25 texts and 4,000 characters.
+    const todo = [...new Set(short.map((el) => el.dataset.trO.replace(/\s+/g, " ").trim()))];
+    for (let i = 0; i < todo.length;) {
+      const batch = []; let n = 0;
+      while (i < todo.length && batch.length < 25 && (n + todo[i].length <= 4000 || !batch.length)) { n += todo[i].length; batch.push(todo[i++]); }
+      const r = await trPost("short", batch);
+      if (!r || !r.tr) break;
+      batch.forEach((x, j) => { if (r.tr[j]) TRX.mem.set(lang + "\n" + x, r.tr[j]); });
+      if (r.limited || r.unavailable) break;
+    }
+    for (const el of short) { const x = TRX.mem.get(lang + "\n" + el.dataset.trO.replace(/\s+/g, " ").trim()); if (x) { TRX.mem.set(lang + "\n" + el.dataset.trO, x); trShort(el, x); } else el.dataset.trSkip = lang; }
+    // Official texts: shown translated when a kept translation exists; otherwise a button asks for one.
+    for (const el of blocks) {
+      const pieces = trPieces(el.dataset.trO);
+      const r = await trPost("lookup", pieces);
+      if (r && r.tr && r.tr.length === pieces.length && r.tr.every(Boolean)) { const x = r.tr.join("\n\n"); TRX.mem.set(lang + "\n" + el.dataset.trO, x); trBlock(el, x); continue; }
+      if (el.dataset.trBtn === lang) continue;
+      el.dataset.trBtn = lang;
+      const bar = document.createElement("p"); bar.className = "fine tr-bar";
+      bar.innerHTML = `<button type="button" class="btn quiet">${esc(t("trBtn"))}</button>`;
+      el.before(bar);
+      bar.querySelector("button").addEventListener("click", () => trBlockRun(el, bar));
+    }
+  } finally { TRX.busy = false; if (TRX.again) { TRX.again = false; setTimeout(trScan, 50); } }
+}
+let trTimer = null;
+const trSoon = () => { clearTimeout(trTimer); trTimer = setTimeout(trScan, 250); };
+new MutationObserver(trSoon).observe(document.getElementById("app"), { childList: true, subtree: true });
 // Texts the importer writes in English (reasons, notes, programme summaries) in the page language (org/datatext.js).
 const dt = (s) => (lang === "sr" && window.ECsr ? window.ECsr.data(s) : s);
 const pgx = (p) => (p && lang === "sr" && window.ECsr ? window.ECsr.prog(p) : p);
@@ -1099,8 +1180,8 @@ function card(c) {
     <div class="card-main">
       <div class="card-kicker"><a href="#p-${esc(c.programme)}">${esc(progShort(c))}</a><span class="sep" aria-hidden="true"></span><span class="mono">${c.cascade ? esc(t("organiser")) + ": " + esc(c.cascade.project || "") : esc(c.id)}</span>${scopeBadge(c)}${typeBadge(c)}${newBadge(c)}</div>
       ${isSoon(c) ? `<div class="cc-soon">${esc(c.opens ? t("opensOn", fmtDate(c.opens, { year: undefined, month: "short" })) : t("stSoon"))}</div>` : ""}
-      <h3><a href="#c-${c.key}">${esc(c.title)}</a></h3>
-      ${(c.cascade ? c.cascade.projectName : c.callTitle) && (c.cascade ? c.cascade.projectName : c.callTitle) !== c.title ? `<div class="body">${esc(c.cascade ? c.cascade.projectName : c.callTitle)}</div>` : ""}
+      <h3><a href="#c-${c.key}">${trs(c.title)}</a></h3>
+      ${(c.cascade ? c.cascade.projectName : c.callTitle) && (c.cascade ? c.cascade.projectName : c.callTitle) !== c.title ? `<div class="body">${trs(c.cascade ? c.cascade.projectName : c.callTitle)}</div>` : ""}
       <ul class="meta-line">
         <li title="${esc(t("funding"))}">${ICON.money}<span>${esc(fundingText(c))}</span></li>
         <li title="${esc(t("type"))}">${ICON.type}<span>${esc(nm(IDX.types[c.type]))}</span></li>
@@ -1223,7 +1304,7 @@ function renderHome() {
     <button type="button" class="hero-ask" data-chat-open><span aria-hidden="true">✦</span> <span data-ci18n="heroAsk">${esc(ct("heroAsk"))}</span></button>
   </div></section>
   ${soon.length ? `<section class="soon wrap"><div class="soon-head"><h2>${esc(t("closingSoon"))}</h2><a href="#deadlines">${esc(t("seeAll"))}</a></div>
-    <div class="soon-list">${soon.map((c) => { const n = nextDl(c); return `<a class="soon-item" href="#c-${c.key}"><div class="dateblock"><div class="d">${dlDay(n)}</div><div class="m">${esc(fmtDate(n, { month: "short", day: undefined, year: undefined }))}</div></div><div style="min-width:0"><div class="t">${esc(c.title)}</div><div class="p">${esc(progShort(c))} · ${leftSpan(n, "")}${F.country ? " · " + esc(nm(IDX.countries[F.country])) + ": " + esc(t("elShort" + elig(c, F.country).s)) : ""}</div></div></a>`; }).join("")}</div></section>` : ""}
+    <div class="soon-list">${soon.map((c) => { const n = nextDl(c); return `<a class="soon-item" href="#c-${c.key}"><div class="dateblock"><div class="d">${dlDay(n)}</div><div class="m">${esc(fmtDate(n, { month: "short", day: undefined, year: undefined }))}</div></div><div style="min-width:0"><div class="t">${trs(c.title)}</div><div class="p">${esc(progShort(c))} · ${leftSpan(n, "")}${F.country ? " · " + esc(nm(IDX.countries[F.country])) + ": " + esc(t("elShort" + elig(c, F.country).s)) : ""}</div></div></a>`; }).join("")}</div></section>` : ""}
   <div class="wrap results-wrap" id="results"><aside class="filters" id="filters" aria-label="${esc(t("filters"))}"></aside><div id="resultsCol" style="min-width:0"></div></div>`;
   const apply = () => refresh();
   document.getElementById("builder").addEventListener("submit", (e) => { e.preventDefault(); clearTimeout(qTimer); F.q = document.getElementById("q").value.trim(); apply(); askQueryEn(); document.getElementById("results").scrollIntoView(); });
@@ -1360,7 +1441,7 @@ function countryGroupsHTML(getStatus) {
   return `<div class="country-groups">${["Y", "P", "C", "N"].filter((s) => groups[s].length).map((s) => {
     const items = groups[s].sort((a, b) => nm(a.c).localeCompare(nm(b.c)));
     const withNotes = s === "P" || s === "N";
-    return `<div><div class="lbl ${ELCLS[s]}"><span class="stamp ${ELCLS[s]}" style="padding:0 6px"><span class="dot"></span>${esc(t("el" + s))}</span> ${items.length}</div>${withNotes ? `<ul style="margin:0;padding-left:18px">${items.map((x) => `<li><b>${esc(nm(x.c))}</b>${x.note ? ": " + esc(x.note) : ""}</li>`).join("")}</ul>` : `<div style="font-size:14px">${items.map((x) => esc(nm(x.c))).join(", ")}</div>`}</div>`;
+    return `<div><div class="lbl ${ELCLS[s]}"><span class="stamp ${ELCLS[s]}" style="padding:0 6px"><span class="dot"></span>${esc(t("el" + s))}</span> ${items.length}</div>${withNotes ? `<ul style="margin:0;padding-left:18px">${items.map((x) => `<li><b>${esc(nm(x.c))}</b>${x.note ? ": " + trs(x.note) : ""}</li>`).join("")}</ul>` : `<div style="font-size:14px">${items.map((x) => esc(nm(x.c))).join(", ")}</div>`}</div>`;
   }).join("")}</div>`;
 }
 function renderDetail(key) {
@@ -1375,23 +1456,23 @@ function renderDetail(key) {
     <div class="detail">
       <article style="min-width:0">
         <div class="card-top"><div class="card-ref mono">${esc(c.id)} · <a href="#p-${esc(c.programme)}">${esc(progName(c))}</a></div><div class="badges">${typeBadge(c)}${isSoon(c) ? `<span class="badge soon">${esc(c.opens ? t("opensOn", fmtDate(c.opens)) : t("stSoon"))}</span>` : `<span class="badge s-active">${esc(t("stOpenNow"))}</span>`}</div></div>
-        <h1>${esc(c.title)}</h1>
-        <div class="fine">${esc(c.cascade ? t("organiser") + ": " + c.cascade.project + " (" + c.cascade.projectName + ")" : c.callTitle)}</div>
+        <h1>${trs(c.title)}</h1>
+        <div class="fine">${c.cascade ? esc(t("organiser") + ": " + c.cascade.project + " (" + c.cascade.projectName + ")") : trs(c.callTitle || "")}</div>
         <div class="answer ${e ? ELCLS[e.s] : "unknown"}">
           <div class="q">${esc(t("canApply"))} <select id="dCountry" class="inline-country" aria-label="${esc(t("fCountry"))}">${countryOptions(cc, true)}</select> ${esc(t("canApply2"))}</div>
-          ${e ? `<div class="a">${esc(t("el" + e.s))}</div>${e.note ? `<div class="why">${esc(e.note)}</div>` : ""}<div class="src">${esc(t("sourceLbl"))}: ${src}</div>` : `<div class="why">${esc(t("pickCountry"))}</div>`}
+          ${e ? `<div class="a">${esc(t("el" + e.s))}</div>${e.note ? `<div class="why">${trs(e.note)}</div>` : ""}<div class="src">${esc(t("sourceLbl"))}: ${src}</div>` : `<div class="why">${esc(t("pickCountry"))}</div>`}
         </div>
-        ${c.notes.length ? `<section><h2>${esc(t("notes"))}</h2><ul class="notes">${c.notes.map((n) => `<li>${esc(dt(n))}</li>`).join("")}</ul></section>` : ""}
+        ${c.notes.length ? `<section><h2>${esc(t("notes"))}</h2><ul class="notes">${c.notes.map((n) => `<li>${trs(dt(n))}</li>`).join("")}</ul></section>` : ""}
         <section><h2>${esc(t("keyFacts"))}</h2><dl class="kv" style="grid-template-columns:150px minmax(0,1fr)">
           <dt>${esc(c.kind === "1" ? t("topicId") : t("refLbl"))}</dt><dd class="mono">${esc(c.id)}</dd>
-          ${c.callId ? `<dt>${esc(t("callLbl"))}</dt><dd><span class="mono">${esc(c.callId)}</span>${c.callTitle ? " · " + esc(c.callTitle) : ""}</dd>` : ""}
-          <dt>${esc(t("programme"))}</dt><dd>${esc(progName(c))}${c.division.length ? " · " + esc(c.division.join(", ")) : ""}</dd>
-          ${c.typesOfAction.length ? `<dt>${esc(t("toa"))}</dt><dd>${esc(c.typesOfAction.join("; "))}</dd>` : ""}
-          ${c.place ? `<dt>Place of action</dt><dd>${esc(c.place.join(", "))}</dd>` : ""}
+          ${c.callId ? `<dt>${esc(t("callLbl"))}</dt><dd><span class="mono">${esc(c.callId)}</span>${c.callTitle ? " · " + trs(c.callTitle) : ""}</dd>` : ""}
+          <dt>${esc(t("programme"))}</dt><dd>${esc(progName(c))}${c.division.length ? " · " + trs(c.division.join(", ")) : ""}</dd>
+          ${c.typesOfAction.length ? `<dt>${esc(t("toa"))}</dt><dd>${trs(c.typesOfAction.join("; "))}</dd>` : ""}
+          ${c.place ? `<dt>${esc(t("placeLbl"))}</dt><dd>${esc(c.place.join(", "))}</dd>` : ""}
           ${c.opens ? `<dt>${esc(t("opens"))}</dt><dd>${esc(fmtDate(c.opens))}</dd>` : ""}
-          ${c.deadlineModel ? `<dt>${esc(t("model"))}</dt><dd>${esc(c.deadlineModel)}</dd>` : ""}
+          ${c.deadlineModel ? `<dt>${esc(t("model"))}</dt><dd>${esc(t("dm_" + c.deadlineModel) !== "dm_" + c.deadlineModel ? t("dm_" + c.deadlineModel) : c.deadlineModel)}</dd>` : ""}
           <dt>${esc(t("deadlinesH"))}</dt><dd><ul class="deadline-list">${c.deadlines.map((d) => `<li class="${msLeft(d) <= 0 ? "past" : d === nextDl(c) ? "next" : ""}">${esc(fmtDate(d))}, ${esc(timeText(d))}${d === nextDl(c) ? " · " + leftSpan(d, "") : ""}</li>`).join("")}</ul><span class="fine">${esc(timeNoteFor(c))}</span></dd>
-          <dt>${esc(t("partnership"))}</dt><dd>${esc(nm(IDX.partnership[c.partnership]))}${c.partnershipNote ? `<div class="fine">${esc(dt(c.partnershipNote))}</div>` : ""}</dd>
+          <dt>${esc(t("partnership"))}</dt><dd>${esc(nm(IDX.partnership[c.partnership]))}${c.partnershipNote ? `<div class="fine">${trs(dt(c.partnershipNote))}</div>` : ""}</dd>
         </dl></section>
         <section><h2>${esc(t("fundingH"))}</h2><dl class="kv" style="grid-template-columns:150px minmax(0,1fr)">
           ${f.topicBudget ? `<dt>${esc(t("topicBudget"))}</dt><dd>${esc(money(f.topicBudget, f.currency))}</dd>` : ""}
@@ -1400,11 +1481,11 @@ function renderDetail(key) {
           ${f.callBudget ? `<dt>${esc(t("callBudget"))}</dt><dd>${esc(money(f.callBudget, f.currency))}</dd>` : ""}
           ${!f.topicBudget && !f.callBudget ? `<dt>${esc(t("funding"))}</dt><dd>${esc(t("notStated"))}</dd>` : ""}
         </dl></section>
-        ${c.conditions ? `<section><h2>${esc(t("conditionsH"))}</h2><div class="official-text">${esc(c.conditions)}</div>${c.conditionsTruncated ? `<p class="fine">${esc(t("excerpt"))}</p>` : ""}</section>` : ""}
-        ${c.description ? `<section><h2>${esc(t("descriptionH"))}</h2><div class="official-text">${esc(c.description)}</div>${c.descriptionTruncated || c.cascade ? `<p class="fine">${esc(t("excerpt"))}</p>` : ""}</section>` : ""}
-        ${c.cascade && c.cascade.info ? `<section><h2>${esc(t("organiser"))}</h2><div class="official-text">${esc(c.cascade.info)}</div><p class="fine">${esc(t("parentTopic"))}: ${esc(c.cascade.project)} · ${esc(c.cascade.topic)}</p></section>` : ""}
+        ${c.conditions ? `<section><h2>${esc(t("conditionsH"))}</h2><div class="official-text" data-tr="b">${esc(c.conditions)}</div>${c.conditionsTruncated ? `<p class="fine">${esc(t("excerpt"))}</p>` : ""}</section>` : ""}
+        ${c.description ? `<section><h2>${esc(t("descriptionH"))}</h2><div class="official-text" data-tr="b">${esc(c.description)}</div>${c.descriptionTruncated || c.cascade ? `<p class="fine">${esc(t("excerpt"))}</p>` : ""}</section>` : ""}
+        ${c.cascade && c.cascade.info ? `<section><h2>${esc(t("organiser"))}</h2><div class="official-text" data-tr="b">${esc(c.cascade.info)}</div><p class="fine">${esc(t("parentTopic"))}: ${esc(c.cascade.project)} · ${esc(c.cascade.topic)}</p></section>` : ""}
         <section><h2>${esc(t("eligAll"))}</h2>${countryGroupsHTML((id) => elig(c, id))}</section>
-        <section><h2>${esc(t("sectors"))}</h2><div class="tags">${tagList(c.sectors, IDX.sectors, "", 99)}${tagList(c.applicants, IDX.applicants, "app", 99)}</div><p class="fine">${esc(t("classified"))} ${esc(dt(c.applicantNote))}</p></section>
+        <section><h2>${esc(t("sectors"))}</h2><div class="tags">${tagList(c.sectors, IDX.sectors, "", 99)}${tagList(c.applicants, IDX.applicants, "app", 99)}</div><p class="fine">${esc(t("classified"))} ${trs(dt(c.applicantNote))}</p></section>
       </article>
       <div class="side">
         <div class="panel official">
@@ -1463,7 +1544,7 @@ function renderDeadlines() {
   const months = {}; list.forEach((c) => { const k = nextDl(c).slice(0, 7); (months[k] = months[k] || []).push(c); });
   app.innerHTML = `<div class="wrap page"><h1>${esc(t("dlTitle"))}</h1><p class="lede">${esc(t("dlLede"))}</p>
     <div class="seg" role="group">${[["d7", "dl7"], ["d14", "dl14"], ["d30", "dl30"], ["all", "dlAll"]].map(([k, l]) => `<button type="button" data-w="${k}" aria-pressed="${dlWindow === k}">${esc(t(l))}</button>`).join("")}</div>
-    <div class="agenda">${Object.keys(months).length ? Object.entries(months).map(([k, arr]) => `<section><h2>${esc(fmtDate(k + "-01", { day: undefined }))}</h2><div class="agenda-list">${arr.map((c) => { const n = nextDl(c); return `<a class="agenda-item" href="#c-${c.key}"><div class="dateblock"><div class="d"${daysUntil(n) > 14 ? ' style="color:var(--ink)"' : ""}>${dlDay(n)}</div><div class="m">${esc(fmtDate(n, { month: "short", day: undefined, year: undefined }))}</div></div><div style="min-width:0"><div class="t">${esc(c.title)}</div><div class="p">${esc(progShort(c))} · ${esc(c.id)} · ${shortTime(n) ? esc(shortTime(n)) + " · " : ""}${leftSpan(n, "")}</div></div>${F.country ? stampHTML(c, F.country, true) : ""}</a>`; }).join("")}</div></section>`).join("") : `<p class="empty">${esc(t("noneInWindow"))}</p>`}</div>
+    <div class="agenda">${Object.keys(months).length ? Object.entries(months).map(([k, arr]) => `<section><h2>${esc(fmtDate(k + "-01", { day: undefined }))}</h2><div class="agenda-list">${arr.map((c) => { const n = nextDl(c); return `<a class="agenda-item" href="#c-${c.key}"><div class="dateblock"><div class="d"${daysUntil(n) > 14 ? ' style="color:var(--ink)"' : ""}>${dlDay(n)}</div><div class="m">${esc(fmtDate(n, { month: "short", day: undefined, year: undefined }))}</div></div><div style="min-width:0"><div class="t">${trs(c.title)}</div><div class="p">${esc(progShort(c))} · ${esc(c.id)} · ${shortTime(n) ? esc(shortTime(n)) + " · " : ""}${leftSpan(n, "")}</div></div>${F.country ? stampHTML(c, F.country, true) : ""}</a>`; }).join("")}</div></section>`).join("") : `<p class="empty">${esc(t("noneInWindow"))}</p>`}</div>
     <p class="fine" style="margin-top:20px">${esc(t("remindersNote"))}</p></div>`;
   app.querySelectorAll("[data-w]").forEach((b) => b.addEventListener("click", () => { dlWindow = b.dataset.w; renderDeadlines(); }));
 }
@@ -1473,7 +1554,7 @@ async function renderUpdates() {
   if (!CHANGES) { app.innerHTML = `<div class="wrap page"><h1>${esc(t("updTitle"))}</h1><p class="loading">…</p></div>`; try { CHANGES = await getJSON("data/changes.json"); } catch (err) { CHANGES = { events: [] }; } if (lastRoute !== "updates") return; }
   const ev = CHANGES.events || [];
   const groups = []; ev.forEach((e) => { const g = groups[groups.length - 1]; if (g && g.at === e.at) g.items.push(e); else groups.push({ at: e.at, items: [e] }); });
-  const link = (e) => { const c = CALLS.find((x) => x.id === e.id); return c && isOpen(c) ? `<a href="#c-${c.key}">${esc(e.title)}</a>` : esc(e.title); };
+  const link = (e) => { const c = CALLS.find((x) => x.id === e.id); return c && isOpen(c) ? `<a href="#c-${c.key}">${trs(e.title)}</a>` : trs(e.title); };
   const detail = (e) => {
     if (e.kind === "new") return `${esc(t("updNext"))}: ${esc(fmtDate(e.nextDeadline))}, ${esc(cardTime(e.nextDeadline))}`;
     if (e.kind === "closed") return esc(e.reason === "deadline passed" ? t("updPassed") : t("updDelisted"));
@@ -2030,7 +2111,7 @@ function progsInLang() {
   return P_SR.o;
 }
 window.EC = {
-  get lang() { return lang; }, t, esc, nm, fmtDate, nextDl, isOpen, leftText, money, loadScript, keyOf, turnstileInto, route,
+  get lang() { return lang; }, t, esc, nm, trs, fmtDate, nextDl, isOpen, leftText, money, loadScript, keyOf, turnstileInto, route,
   PDFJS, PDFJS_WORKER, MAMMOTH,
   get CALLS() { return CALLS; }, get TAX() { return TAX; }, get META() { return META; }, get P() { return progsInLang(); }, get BYKEY() { return BYKEY; },
 };

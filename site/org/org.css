@@ -424,3 +424,15 @@ mark.tbc[data-tbcmark] { cursor: pointer; }
 mark.tbc.flash { animation: tbcflash 1.6s ease-out 1; }
 @keyframes tbcflash { 0%, 40% { box-shadow: 0 0 0 4px #ff9f1c; } 100% { box-shadow: 0 0 0 0 transparent; } }
 @media (prefers-reduced-motion: reduce) { mark.tbc.flash { animation: none; outline: 3px solid #ff9f1c; } }
+/* profile assistant (Profile page) */
+.as { margin-bottom: 18px; }
+.as-src { display: grid; gap: 6px; }
+.as-doc { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 14px; }
+.as-chips { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.as-ask-form { align-items: end; }
+.as-list { display: grid; gap: 12px; }
+.as-item { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; min-width: 0; }
+.as-ask { margin: 0; }
+.as-free p { margin: 0 0 8px; }
+.as-q ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+.as textarea { width: 100%; min-height: 180px; }

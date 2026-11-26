@@ -63,6 +63,9 @@ export function detectLang(text) {
   const words = s.toLowerCase().split(/[^\p{L}]+/u).filter(Boolean);
   let sr = 0, en = 0;
   for (const w of words) { if (SR_WORDS.has(w)) sr++; if (EN_WORDS.has(w)) en++; }
+  // An English text that keeps Serbian names ("Udruženje građana ... from Čačak") is English: its function words decide
+  // before the diacritics do.
+  if (en >= 3 && en > 2 * sr) return { lang: "en", script: "latn" };
   if (dia >= 2 || (dia >= 1 && sr >= 1) || (sr >= 2 && sr > en)) return { lang: "sr", script: "latn" };
   if (en >= 2 || (en >= 1 && words.length <= 8)) return { lang: "en", script: "latn" };
   if (words.length >= 6) return { lang: "other", script: null };

@@ -1429,6 +1429,17 @@ await t("profile assistant: a question for each empty field, answered from statu
   assert.equal(r.j.quotes[0].source, "statut.pdf"); assert.equal(r.j.quotes[1].source, "https://mladi-ns.example.org/o-nama");
   assert.equal(r.j.supported, true);
   assert.deepEqual(r.j.sources.map((x) => x.kind), ["document", "web", "web"]);
+  const asId = env.DB._db.prepare("SELECT id FROM users WHERE email = 'asist@example.org'").get().id;
+  assert.equal((env.DB._db.prepare("SELECT count FROM ai_usage WHERE user_id = ?").get(asId) || { count: 0 }).count, 0, "an answer for an empty field uses no AI action");
+  // labels translated by the model are read too
+  aiAnswer = `**DOVOLJNO:** da\n**ODGOVOR:**\n${long}\n**CITATI:**\n- Мисија Удружења је да сваки млади човек у Војводини има приступ квалитетном неформалном образовању.\n**NEDOSTAJE:** ništa`;
+  r = await call("POST", `/api/orgs/${o}/assistant`, { cookie: u, body: { field: "objectives", passages, lang: "sr", useWebsite: false } });
+  assert.equal(r.status, 200, JSON.stringify(r.j)); assert.equal(r.j.enough, true); assert.equal(r.j.quotes[0].found, true); assert.equal(r.j.gaps, "");
+  // the organisation's daily number of field answers
+  const keepLimit = env.ORG_ASSIST_PER_DAY; env.ORG_ASSIST_PER_DAY = "2";
+  r = await call("POST", `/api/orgs/${o}/assistant`, { cookie: u, body: { field: "expertise", passages, lang: "sr", useWebsite: false } });
+  env.ORG_ASSIST_PER_DAY = keepLimit;
+  assert.deepEqual([r.status, r.j.error], [429, "assist_limit"]);
   const sys = seen.messages[0].content, usr = seen.messages[1].content;
   assert.match(sys, /ONLY the SOURCES/); assert.match(sys, /Serbian \(Latin script\)/); assert.match(sys, /ekavian/); assert.match(sys, /mission \(why the organisation exists/);
   assert.ok(usr.includes("Мисија Удружења") && usr.includes("medijske pismenosti"), "statute passages and website text are both sent");
@@ -1439,7 +1450,7 @@ await t("profile assistant: a question for each empty field, answered from statu
   assert.equal(r.j.enough, false); assert.equal(r.j.answer, ""); assert.match(r.j.gaps, /zaposlenih/);
   // an answer in the wrong form from every provider: refused, no AI action used
   aiAnswer = "Sure! Here is a mission statement.";
-  r = await call("POST", `/api/orgs/${o}/assistant`, { cookie: u, body: { field: "objectives", passages, lang: "sr", useWebsite: false } });
+  r = await call("POST", `/api/orgs/${o}/assistant`, { cookie: u, body: { field: "objectives", passages, lang: "sr", useWebsite: false, fresh: true } });
   assert.deepEqual([r.status, r.j.error], [502, "ai_bad_answer"]);
   // no document and no website: nothing to answer from
   await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { name: "Mladi za Novi Sad", orgType: "ngo", country: "RS" }, baseVersion: 2 } });

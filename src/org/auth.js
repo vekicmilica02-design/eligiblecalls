@@ -7,7 +7,7 @@
 import { HttpError, json, randomToken, randomId, sha256, verifyTurnstile, bump, utcDay, cookie } from "./http.js";
 import { sendEmail, mailText } from "./email.js";
 
-export const TERMS_VERSION = "2026-11-14";
+export const TERMS_VERSION = "2026-11-26";   // 26 Nov 2026: operator line names the partnership with NEC
 const LINK_MINUTES = 20;
 const SESSION_DAYS = 30;
 const COOKIE = "ec_session";

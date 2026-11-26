@@ -7,6 +7,8 @@
 // Provider order: Workers AI, then Cerebras (only when CEREBRAS_API_KEY is set), then the Groq chain. With
 // prefer: "fast" (evaluations) Cerebras and Groq come first and Workers AI last.
 //
+// accept: optional check of an answer; a refused answer moves on to the next provider (see below).
+//
 // charge: false (the parts of a full application after its plan, src/org/proposal.js) asks the model without using one of
 // the user's daily AI actions; the site's provider budgets still apply.
 //
@@ -57,7 +59,7 @@ async function reserveUser(env, userId, now, limit) {
 const provKey = (o) => (o.provider === "groq" ? groqKey(o.model) : o.provider === "cerebras" ? "cerebras:" + o.model : "workers-ai");
 const releaseUser = (env, userId, now) => env.DB.prepare("UPDATE ai_usage SET count = MAX(0, count - 1) WHERE day = ? AND user_id = ?").bind(utcDay(now), userId).run();
 
-export async function complete({ env, userId, messages, agent = "other", maxOut = 1500, now = Date.now(), fetchImpl = fetch, waitUntil = (p) => p, cacheOrg = null, fresh = false, prefer = null, charge = true }) {
+export async function complete({ env, userId, messages, agent = "other", maxOut = 1500, now = Date.now(), fetchImpl = fetch, waitUntil = (p) => p, cacheOrg = null, fresh = false, prefer = null, charge = true, accept = null }) {
   const db = env.DB;
   const day = utcDay(now);
   const tokIn = estTokens(messages.map((m) => m.content).join("\n"));
@@ -104,6 +106,9 @@ export async function complete({ env, userId, messages, agent = "other", maxOut 
       await addUsage(db, day, "agent:" + agent, used, u.in + u.out).catch(() => {});
       // An empty answer is a provider failure: the next provider is asked instead of returning nothing.
       if (!text.trim()) throw new ProviderError("empty", 0, "empty answer");
+      // accept(text): the caller's check of the answer (complete, valid, right language). An answer it refuses is a
+      // failure of that provider, so the next one is asked instead of the request failing.
+      if (accept && !accept(text)) throw new ProviderError("bad_answer", 0, "answer refused by the caller's check, " + text.length + " chars");
       return { text, provider: run.provider, model: run.model, keep: () => (key ? cachePut(db, cacheOrg, key, agent, text, run.model, now, days) : Promise.resolve()) };
     } catch (e) {
       errs.push(e);
@@ -117,6 +122,7 @@ export async function complete({ env, userId, messages, agent = "other", maxOut 
   if (charge) await releaseUser(env, userId, now).catch(() => {});   // nothing answered: the action is not used
   // A per-minute limit anywhere in the chain is reported as such (the request can be repeated shortly), even when a
   // later provider failed for another reason: the last error alone hid it.
+  if (errs.length && errs.every((e) => e instanceof ProviderError && e.code === "bad_answer")) throw new HttpError(502, "ai_bad_answer");
   throw new HttpError(503, errs.some((e) => e instanceof ProviderError && e.code === "busy") ? "ai_busy" : "ai_unavailable");
 }
 

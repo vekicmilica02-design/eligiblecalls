@@ -92,7 +92,7 @@ function weakEvidence(f, value, evidence) {
 // Text read from a PDF breaks words at line ends ("udru-\nženje"); the model quotes the whole word, so quotes are looked
 // for in the text with such breaks joined. Quotes joined with "..." (several points of a summary, or one
 // quote shortened) are found when every piece is.
-const joinBreaks = (s) => String(s || "").replace(/(\p{L})[-\u00ad\u2010\u2011]\s*\n\s*(\p{Ll})/gu, "$1$2");
+export const joinBreaks = (s) => String(s || "").replace(/(\p{L})[-\u00ad\u2010\u2011]\s*\n\s*(\p{Ll})/gu, "$1$2");
 export function quoteIn(hays, evidence) {
   const pieces = String(evidence || "").split(/\.{3,}|…|\[\s*\.*\s*\]/).map(matchKey).filter((x) => x.replace(/removed/g, "").trim().length >= 4);
   if (!pieces.length) return false;
@@ -247,7 +247,7 @@ export function robotsAllows(txt, path) {
 
 // robots.txt of every site the reader reaches, read once per site: a redirect to another site is checked against that
 // site's own rules, not the first site's.
-function robotsChecker(fetchImpl) {
+export function robotsChecker(fetchImpl) {
   const cache = new Map();
   return async (u) => {
     if (!cache.has(u.origin)) {
@@ -259,7 +259,7 @@ function robotsChecker(fetchImpl) {
   };
 }
 
-async function fetchPage(u, fetchImpl, allowed = null) {
+export async function fetchPage(u, fetchImpl, allowed = null) {
   let cur = u;
   for (let hop = 0; hop < 3; hop++) {
     if (allowed && !(await allowed(cur))) throw new HttpError(403, "robots_disallow");

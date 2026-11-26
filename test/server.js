@@ -39,6 +39,22 @@ function demoAI(seen) {
       const text = JSON.stringify({ words: Object.fromEntries(words.map((w) => [w, known[w] || ""])) });
       return sseStream([{ response: text }, { response: "", usage: { prompt_tokens: 200, completion_tokens: 30 } }]);
     }
+    if (sys.startsWith("You translate one field")) {
+      // Profile translation: a marked English copy of the text.
+      const src = (input.messages[1].content.match(/<text>\n([\s\S]*)\n<\/text>/) || [, ""])[1];
+      const en = "This English copy was made by the test model and stands for the translation of the field. ";
+      return sseStream([{ response: en.repeat(Math.max(1, Math.round(src.length / en.length))) }, { response: "", usage: { prompt_tokens: 400, completion_tokens: 200 } }]);
+    }
+    if (sys.startsWith("You write one part of an organisation's profile")) {
+      // Profile assistant: a text built from the first source sentences, quoting them.
+      const src = (input.messages[1].content.match(/<sources>\n([\s\S]*)\n<\/sources>/) || [, ""])[1];
+      const sents = src.replace(/### SOURCE: [^\n]*\n/g, "").split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter((x) => x.length > 40).slice(0, 4);
+      const sr = /Serbian/.test(sys.split("Write the ANSWER in")[1] || "");
+      const lead = sr ? "Naša organizacija, prema statutu i veb-sajtu, deluje na sledeći način. " : "According to our statute and website, our organisation works as follows. ";
+      const body = sents.length ? lead + sents.join(" ") + "\n\n" + (sr ? "Ovaj tekst je napisao test model na osnovu izvora i služi samo za proveru stranice; u pravom radu ovde stoji opis od 120 do 250 reči. " : "This text was written by the test model from the sources and only serves to check the page; in real use a description of 120 to 250 words stands here. ").repeat(3) : "";
+      const text = sents.length ? `ENOUGH: yes\nANSWER:\n${body}\nQUOTES:\n${sents.slice(0, 2).map((x) => "- " + x).join("\n")}\n- A quote that is not in the sources at all.\nGAPS: none` : "ENOUGH: no\nANSWER:\nQUOTES:\nGAPS: The sources say nothing on this.";
+      return sseStream([{ response: text }, { response: "", usage: { prompt_tokens: 2500, completion_tokens: 500 } }]);
+    }
     if (sys.startsWith("You extract facts about one organisation")) {
       // Organisation extraction: propose the first line as the name and the first long sentence as the description, quoted.
       const src = (input.messages[1].content.match(/<source>\n([\s\S]*)\n<\/source>/) || [, ""])[1];

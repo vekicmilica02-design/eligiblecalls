@@ -16,6 +16,7 @@ import { planFill } from "./autofill.js";
 import { reportsRoute } from "./reports.js";
 import { officialRoute } from "./official.js";
 import { translationRoute, loadTranslations, translationView } from "./translate.js";
+import { assistantRoute } from "./assistant.js";
 
 export const ROLES = { viewer: 1, editor: 2, owner: 3 };
 
@@ -80,7 +81,7 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
     const parts = url.pathname.replace(/^\/api\//, "").split("/").filter(Boolean).map(decodeURIComponent);
     const M = request.method;
     const db = env.DB;
-    const body = ["POST", "PUT", "PATCH"].includes(M) ? await readJson(request, parts[2] === "extract" ? 140000 : 64000) : {};
+    const body = ["POST", "PUT", "PATCH"].includes(M) ? await readJson(request, parts[2] === "extract" ? 140000 : parts[2] === "assistant" ? 90000 : 64000) : {};
 
     // ----- sign-in -----
     if (parts[0] === "auth") {
@@ -346,6 +347,13 @@ export async function handleApi({ request, env, now = Date.now(), fetchImpl = fe
         return json({ ok: true });
       }
       throw new HttpError(405, "method");
+    }
+
+    // ----- profile assistant: answers for empty profile fields from the statute and website -----
+    if (sub === "assistant" && M === "POST") {
+      const m = await requireRole(db, orgId, user, "editor");
+      const cur = await currentProfile(db, m);
+      return await assistantRoute({ env, db, org: m, user, profile: cur.profile, body, now, fetchImpl, waitUntil });
     }
 
     // ----- English copy of the profile's free text -----

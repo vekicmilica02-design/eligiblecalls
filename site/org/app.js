@@ -4,6 +4,7 @@ import { FIELDS, FIELD, ORG_TYPES, TARGET_GROUPS, SCOPES, EXPERIENCE, completene
 import { assessAll, assess, buildDF, band, scoreTier, STATUS_ORDER, DEFAULT_WEIGHTS, HIGH, mandatorySummary, setGlossary, glossaryVersion } from "./rules.js";
 import { TEXT_FIELDS, textHash, estTokens, nonStandardSerbian, serbianLexFix } from "./lang.js";
 import { rubricFor, erasmusAction } from "./rubric.js";
+import { ASSIST_FIELDS, assistFields, pickPassages } from "./assist.js";
 import { templateFor, tplOf, unitsOf, checkDraft, documentModel, factsText, ERASMUS_FIELDS, suggestFacts, factWarnings, draftHash, tbcCount, tbcPlaces, fillPlace, tbcSplit, TBC_SRC, tidyText, blocksOf, cleanTitle, toLatin } from "./templates.js";
 import { ideaIn as ideaInRaw, evalIn as evalInRaw, ideaTexts, evalTexts, applyIdeaTexts, applyEvalTexts } from "./content.js";
 
@@ -15,7 +16,7 @@ const nm = (o) => (o ? o[L()] || o.en : "");
 /* ---------- text ---------- */
 const S = {
   en: {
-    title: "Organization Intelligence", lede: "A profile of your organisation, checked against every open call on Eligible Calls.",
+    title: "Organization Intelligence", orgSwitch: "Organisation", lede: "A profile of your organisation, checked against every open call on Eligible Calls.",
     signinTitle: "Sign in to Organization Intelligence", signinLede: "Create a profile of your organisation, check its eligibility for the open calls and keep the results. Sign in with your Google account: Eligible Calls receives only your e-mail address from Google, never your password.",
     google: "Sign in with Google", acceptFirst: "Tick the privacy box first.", orEmail: "Or receive a sign-in link by e-mail",
     inviteNote: "They get access when they sign in with Google using this address.",
@@ -33,7 +34,7 @@ const S = {
     save: "Save profile", saved: (v) => `Saved as version ${v}.`, unsaved: "Unsaved changes", conflict: "Someone else saved the profile in the meantime. Reload to see their version; your changes are kept in this form.", reload: "Reload", savedMerged: "Values saved meanwhile (from a document, a website or another member) were kept; your changes were added on top.", conflictBusy: "The profile is being changed right now (a document or website is still being read). Wait a moment and save again; your changes are kept in this form.",
     invalid: "Some fields are not valid; they are marked below.", viewerNote: "You can view this organisation. Only editors and owners can change it.",
     sections: { identity: "Identity", about: "Mission and activities", experience: "Experience", capacity: "Capacity and resources", partners: "Partnerships" },
-    prov: { manual: "entered by hand", document: "from document", web: "from website" }, unverified: "auto-filled: please check", verifiedBy: "approved",
+    prov: { manual: "entered by hand", document: "from document", web: "from website", assistant: "written by the assistant" }, unverified: "auto-filled: please check", verifiedBy: "approved",
     yes: "Yes", no: "No", unknown: "Not stated",
     docsTitle: "Documents and sources", docsLede: "Upload a statute, registration certificate, annual report or project document (also scanned, in Cyrillic or Latin script), or name your website. The text is read in your browser, with OCR for scans, and sent once to the AI model; the file itself is not stored. Values found with clear evidence fill empty profile fields automatically, each marked with its source. Values that differ from the profile are shown for you to decide.",
     upload: "Choose a document or scan", reading: "Reading the document…", sending: (i, n) => `Analysing part ${i} of ${n}…`, jobOpen: "Review the values found", jobDocs: "Documents and sources", jobClose: "Close", jobBusy: "A document is still being read. Wait until it is finished, then upload the next one.", aiWait: (i, n, s) => `Part ${i} of ${n}: the AI service's per-minute limit is reached, trying again in ${s} s…`, scanned: "No text could be read from this file. Type the facts in the profile, or try another copy of the document.",
@@ -70,7 +71,7 @@ const S = {
     evalTabCalls: "By call", evalCallsNote: "Your open calls, most compatible first. Criteria are quoted in English, the language of the official documents; the call's own documents prevail.", progL: "Programme",
     evalShowIneligible: "Also show calls you cannot apply to", evalCount: (n, k) => `${n} calls; for ${k} of them the criteria are shown here, for the others the call says where to find them.`,
     kindL: { framework: "General Annex D", document: "Call document", page: "Funder's page", pointer: "See the call" }, openReport: "Detailed report",
-    critNone: "No information on evaluation criteria for this call.", fromCallPage: "Specific to this call (call page):",
+    critNone: "No information on evaluation criteria for this call.", critLang: "", fromCallPage: "Specific to this call (call page):",
     critFromAnnex: (row) => `Horizon Europe General Annex D, row "${row}".`, heAnnex: "General Annex D", critFromDoc: "Section \"Award criteria\" of the call document", callDoc: "Call document", evalForm: "Evaluation form",
     critFromPage: (src) => `${src} call page, section "How we will assess your application".`, critPointer: "The criteria are not published in a form this site can read. They are in the call's own documents.", critPointerNote: "The call page says where its criteria are:",
     criterion: "Criterion", minPass: "Minimum", maxScore: "Maximum", fullText: "Full text of the criteria",
@@ -233,9 +234,19 @@ const S = {
     working: "Working…", loadingPage: "Loading…", op: { uploading: "Uploading", reading: "Reading the document", ocr: "Recognising text (OCR)", analysing: "Analysing with AI", researching: "Reading the website", generating: "Generating with AI", drawing: "Drawing the PDF", saving: "Saving", checking: "Checking against the official text", translating: "Translating to English", completed: "Done", failed: "Failed" },
     trT: "English copy for matching", trLede: "Call texts are in English, so text written in another language is matched through an English copy. The copy below is a machine translation, used only for matching: your original text stays the profile record. You can correct the copy; your edits are kept and never replaced by a new automatic translation.",
     trMachine: (m, t) => `Machine translation${m ? " (" + m + ")" : ""}, ${t}`, trEdited: (t) => `Edited by you, ${t}`, trStaleAuto: "Made from an earlier version of the text, so it is not used for matching until it is translated again.", trStaleEdited: "The original text has changed since you edited this copy. Check that it still matches.",
-    trNone: "No English copy yet: matching uses the original text.", trRun: "Translate now", trSave: "Save copy", trSaved: "Copy saved.", trCleared: "Copy removed; the next save makes a machine translation again.", trDone: (n) => `English copy made for ${n} field(s).`, trNothing: "Every field already has an English copy.", trFailed: "The English copy could not be made, so matching uses the original text:",
+    as: { title: "Profile assistant", lede: "Writes the missing parts of your profile from your statute or other documents and from your website. Pick a question, check the answer, then add it to the profile with one click.",
+      loadingSrc: "Looking for your sources…", srcH: "Sources the assistant uses", chars: (n) => `${n} characters`, forget: "Remove from this browser", noDocs: "No document yet. Add your statute here or on the Documents page.",
+      website: "Website", noSite: "no address in the profile", addDoc: "Add a document (statute)", docNote: "PDF, scan, DOCX or TXT. The text is kept only in this browser on this device.", docAdded: (n) => `${n} is ready for the assistant.`,
+      missingH: (n) => `Questions for the ${n} empty ${n === 1 ? "field" : "fields"} of your profile`, all: (n) => `Answer all ${n}`, cost: "Each answer uses 1 of your daily AI actions.", noneMissing: "Every free-text field of the profile is filled. You can still ask your own question.",
+      askLbl: "Your own question about the organisation", askPh: "For example: Which target groups do we work with?", ask: "Ask",
+      writing: (q) => `Writing the answer to “${q}” from your sources…`, writingN: (i, n, q) => `${i} of ${n}: ${q}`, ready: "The answer is ready: check it, edit if needed and add it to the profile.", notEnoughShort: "Your sources do not answer this question.",
+      allDone: (k, n) => `${k} of ${n} answers written. Check them below, then add them to the profile.`, notEnough: "Your sources do not contain enough to answer this.", unsupported: "None of the quotes was found in the sources: check this answer against your documents before adding it.",
+      gaps: "Not in the sources:", quotes: (f, n) => `Supporting quotes (${f} of ${n} found in the sources)`, found: (s) => `found in ${s}`, notFound: "not found in the sources", sources: "Sources",
+      add: (f) => `Add to profile: ${f}`, added: "Added to the profile", again: "Write again", remove: "Remove", addAll: (n) => `Add all ${n} answers to the profile`, saving: "Saving to the profile…",
+      saved: (list) => `Added to the profile: ${list}.`, editFirst: "Edit on the Profile page", skipped: (list) => `Not replaced, because they were filled in the meantime: ${list}.`, noSources: "Add a document or a website address first." },
+    trNone: "No English copy yet: matching uses the original text.", trRun: "Translate now", trSave: "Save copy", trSaved: "Copy saved.", trCleared: "Copy removed; the next save makes a machine translation again.", trDone: (n) => `English copy made for ${n} field(s).`, trNothing: "Every field already has an English copy.", trFailed: "The English copy could not be made, so matching uses the original text:", trPartial: (list) => `Not translated this time: ${list}. Matching uses the original text for them; press Translate now to try again.`,
     trUse: "Used for matching", trOrig: "Original text",
-    adminTitle: "Administration", auAgents: "Use by function today", auAgentsNote: "Workers AI neurons count only for the Workers AI share; tokens count for every provider. Each row is the sum of the model requests made for that function.", auFn: "Function", auAg: { extract: "Reading documents", research: "Reading websites", ideas: "Project idea generation", fit: "Fit explanation", proposal: "Detailed proposal", evaluate: "Evaluation against call criteria", official: "Official eligibility check", translate: "Translations", improve: "Revising ideas below the threshold", other: "Other" }, auTitle: "AI usage today", auRefresh: "Refresh", auProvider: "Provider and model", auUsed: "Used", auBudget: "Daily budget", auOfBudget: "Of budget", auReq: "Requests",
+    adminTitle: "Administration", auAgents: "Use by function today", auAgentsNote: "Workers AI neurons count only for the Workers AI share; tokens count for every provider. Each row is the sum of the model requests made for that function.", auFn: "Function", auAg: { extract: "Reading documents", research: "Reading websites", ideas: "Project idea generation", fit: "Fit explanation", proposal: "Detailed proposal", evaluate: "Evaluation against call criteria", official: "Official eligibility check", translate: "Translations", assistant: "Profile assistant", improve: "Revising ideas below the threshold", other: "Other" }, auTitle: "AI usage today", auRefresh: "Refresh", auProvider: "Provider and model", auUsed: "Used", auBudget: "Daily budget", auOfBudget: "Of budget", auReq: "Requests",
     auLede: (d, r, s) => `UTC day ${d}. Allowances reset at ${r} (Belgrade time). The site stops each provider at its budget and moves to the next one; the workspace may use at most ${s}% of each budget, so the public assistant keeps working.`,
     auMsgs: (v, l) => `assistant messages from ${v} visitors (limit ${l} per visitor)`, auActions: (u, l) => `workspace AI actions by ${u} users (limit ${l} per user)`, auRequests: "AI requests in total",
     auNeurons: "neurons", auTokens: "tokens", auFree: (f) => `free tier ${f}`, auCached: (n, t) => `${n} answer${n === 1 ? "" : "s"} came from stored results today (${t} tokens the providers did not have to serve).`, auCacheCol: "From stored results", auOff: "not configured", auUsers: "Workspace AI actions per user", auWeek: "Last 7 days", auDay: "Day (UTC)", admLede: "Premium access requests, users and subscription settings. Changes take effect immediately.",
@@ -251,10 +262,10 @@ const S = {
     admFree: "Free idea generations per user", admDaysDefault: "Default days of access (empty = until revoked)",
     admPlan: "Plan", admPlanId: "Code", admPlanName: "Name", admPlanPrice: "Price (as shown)", admPricePh: "e.g. 49 EUR per year", admPlanDesc: "Description", admAddPlan: "+ Add plan",
     admPay: "Payment instructions shown after a request (bank account, reference format)",
-    errors: { no_official_text: "There is no official text for an AI check of this call.", no_criteria: "The award criteria of this call are not in our data, so the idea cannot be evaluated here.", too_many_reports: "This organisation has reached 200 saved reports. Delete older ones first.", too_large: "This report is too large to save.", premium_required: "This needs premium access. See Premium access on the Project ideas page.", no_open_request: "There is no open access request. Request access first.", signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", not_below: "This idea is not below the threshold, so it is not revised.", revision_limit: "This idea has already been revised twice. Generate a new idea for the call instead.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
+    errors: { no_sources: "Add a document or a website address first.", no_official_text: "There is no official text for an AI check of this call.", no_criteria: "The award criteria of this call are not in our data, so the idea cannot be evaluated here.", too_many_reports: "This organisation has reached 200 saved reports. Delete older ones first.", too_large: "This report is too large to save.", premium_required: "This needs premium access. See Premium access on the Project ideas page.", no_open_request: "There is no open access request. Request access first.", signin: "Please sign in.", role: "Your role does not allow this.", not_found: "Not found, or you do not have access.", email: "Enter a valid e-mail address.", terms: "Please accept the privacy notice.", verification: "The bot check failed. Reload the page and try again.", too_many: "Too many requests for today. Try again tomorrow.", email_unavailable: "Sign-in e-mails cannot be sent right now.", ai_user_limit: "You have used today's AI actions. They reset at midnight UTC.", ai_resting: "The AI allowance for today is used up. It resets at midnight UTC.", ai_busy: "The AI service is busy. Try again in a minute.", ai_unavailable: "The AI service did not answer. Try again later.", ai_bad_answer: "The AI answer could not be read. Try again.", not_below: "This idea is not below the threshold, so it is not revised.", revision_limit: "This idea has already been revised twice. Generate a new idea for the call instead.", url_invalid: "Enter a public web address (https://…).", robots_disallow: "The site's robots.txt does not allow automated reading of this page.", page_unavailable: "The page could not be opened.", pdf_upload_instead: "This address is a PDF: download it and upload it as a document.", unsupported_type: "This address is not a web page.", page_empty: "No readable text on this page.", text_too_short: "Too little text to analyse.", last_owner: "An organisation needs at least one owner.", transfer_ownership: "Make another member owner of your shared organisations first.", version_conflict: "Someone else saved the profile in the meantime.", too_many_orgs: "You have reached the number of organisations per account.", google_off: "Google sign-in is not set up on this site yet.", google_cancelled: "Google sign-in was cancelled.", google_state: "The sign-in took too long or was opened in another tab. Please try again.", google_failed: "Google sign-in failed. Please try again.", google_unverified: "Google has not verified this e-mail address.", email_login_off: "Sign-in by e-mail link is not available.", server_error: "Something went wrong on the server.", csrf: "The request was blocked as cross-site. Reload the page.", db_unavailable: "The database is not connected.", network: "No connection to the server.", ideas_limit: "Your organisation has used today's idea generations. Try again tomorrow.", no_calls: "None of the selected calls is open to your organisation.", profile_incomplete: "Complete the profile first: name, type, country and a description.", data_unavailable: "The call data could not be read. Try again later." },
   },
   sr: {
-    title: "Analiza organizacije", lede: "Profil vaše organizacije, proveren u odnosu na sve otvorene pozive na Eligible Calls.",
+    title: "Analiza organizacije", orgSwitch: "Organizacija", lede: "Profil vaše organizacije, proveren u odnosu na sve otvorene pozive na Eligible Calls.",
     signinTitle: "Prijava na analizu organizacije", signinLede: "Napravite profil svoje organizacije, proverite podobnost za otvorene pozive i sačuvajte rezultate. Prijavite se Google nalogom: Eligible Calls od Google-a dobija samo vašu e-mail adresu, nikada lozinku.",
     google: "Prijava preko Google naloga", acceptFirst: "Prvo označite polje o privatnosti.", orEmail: "Ili dobijte link za prijavu e-poštom",
     inviteNote: "Dobiće pristup kada se prijave Google nalogom sa ovom adresom.",
@@ -272,7 +283,7 @@ const S = {
     save: "Sačuvaj profil", saved: (v) => `Sačuvano kao verzija ${v}.`, unsaved: "Nesačuvane izmene", conflict: "Neko drugi je u međuvremenu sačuvao profil. Učitajte ponovo da biste videli njegovu verziju; vaše izmene ostaju u formularu.", reload: "Učitaj ponovo", savedMerged: "Podaci sačuvani u međuvremenu (iz dokumenta, sa veb-sajta ili od drugog člana) su zadržani, a vaše izmene su dodate.", conflictBusy: "Profil se upravo menja (dokument ili veb-sajt se još čita). Sačekajte trenutak i sačuvajte ponovo; vaše izmene ostaju u formularu.",
     invalid: "Neka polja nisu ispravna; označena su ispod.", viewerNote: "Možete da pregledate ovu organizaciju. Menjati je mogu samo urednici i vlasnici.",
     sections: { identity: "Osnovni podaci", about: "Misija i aktivnosti", experience: "Iskustvo", capacity: "Kapaciteti i resursi", partners: "Partnerstva" },
-    prov: { manual: "uneto ručno", document: "iz dokumenta", web: "sa sajta" }, unverified: "automatski popunjeno: proverite", verifiedBy: "odobreno",
+    prov: { manual: "uneto ručno", document: "iz dokumenta", web: "sa sajta", assistant: "napisao asistent" }, unverified: "automatski popunjeno: proverite", verifiedBy: "odobreno",
     yes: "Da", no: "Ne", unknown: "Nije navedeno",
     docsTitle: "Dokumenti i izvori", docsLede: "Otpremite statut, rešenje o registraciji, godišnji izveštaj ili projektni dokument (i skeniran, na ćirilici ili latinici), ili navedite svoj sajt. Tekst se čita u vašem pregledaču, sa OCR-om za skenirane dokumente, i jednom šalje AI modelu; sama datoteka se ne čuva. Vrednosti sa jasnim dokazom automatski popunjavaju prazna polja profila, svaka označena izvorom. Vrednosti koje se razlikuju od profila prikazuju se da vi odlučite.",
     upload: "Izaberite dokument ili sken", reading: "Čitanje dokumenta…", sending: (i, n) => `Analiza dela ${i} od ${n}…`, jobOpen: "Pregledajte pronađene podatke", jobDocs: "Dokumenti i izvori", jobClose: "Zatvori", jobBusy: "Dokument se još čita. Sačekajte da se završi, pa otpremite sledeći.", aiWait: (i, n, s) => `Deo ${i} od ${n}: dostignuto je ograničenje AI servisa po minutu, novi pokušaj za ${s} s…`, scanned: "Iz ove datoteke nije moguće pročitati tekst. Unesite podatke u profil ili pokušajte sa drugom kopijom dokumenta.",
@@ -309,7 +320,7 @@ const S = {
     evalTabCalls: "Po pozivu", evalCallsNote: "Vaši otvoreni pozivi, najkompatibilniji prvi. Kriterijumi su navedeni na engleskom, jeziku zvaničnih dokumenata; merodavna su dokumenta samog poziva.", progL: "Program",
     evalShowIneligible: "Prikaži i pozive na koje ne možete da konkurišete", evalCount: (n, k) => `Poziva: ${n}; za ${k} kriterijumi su prikazani ovde, za ostale poziv navodi gde se nalaze.`,
     kindL: { framework: "Opšti aneks D", document: "Dokument poziva", page: "Stranica finansijera", pointer: "Videti poziv" }, openReport: "Detaljan izveštaj",
-    critNone: "Nema podataka o kriterijumima ocenjivanja za ovaj poziv.", fromCallPage: "Posebno za ovaj poziv (stranica poziva):",
+    critNone: "Nema podataka o kriterijumima ocenjivanja za ovaj poziv.", critLang: "Kriterijumi se navode onako kako ih izvor zvanično objavljuje, na engleskom jeziku.", fromCallPage: "Posebno za ovaj poziv (stranica poziva):",
     critFromAnnex: (row) => `Opšti aneks D programa Horizont Evropa, red „${row}“.`, heAnnex: "Opšti aneks D", critFromDoc: "Odeljak „Award criteria“ dokumenta poziva", callDoc: "Dokument poziva", evalForm: "Obrazac za ocenjivanje",
     critFromPage: (src) => `Stranica poziva (${src}), odeljak „How we will assess your application“.`, critPointer: "Kriterijumi nisu objavljeni u obliku koji ovaj sajt može da pročita. Nalaze se u dokumentima samog poziva.", critPointerNote: "Stranica poziva navodi gde su kriterijumi:",
     criterion: "Kriterijum", minPass: "Minimum", maxScore: "Maksimum", fullText: "Ceo tekst kriterijuma",
@@ -451,7 +462,7 @@ const S = {
         delName: "Naziv isporuke", shortDesc: "Kratak opis", type: "Vrsta", dissem: "Nivo dostupnosti", month: "Mesec isporuke", msName: "Naziv ključne tačke", relWp: "Povezani RP", dueMonth: "Rok (mesec)", verification: "Način provere",
         riskDesc: "Opis rizika", wpsInvolved: "Povezani RP", mitigation: "Predložene mere za ublažavanje rizika", likelihood: "verovatnoća", severity: "ozbiljnost", lv: { low: "niska", medium: "srednja", high: "visoka" }, totalPm: "Ukupno osoba-meseci",
         context: "Kontekst", item: "Stavka", value: "Vrednost", field: "Oblast", formLang: "Jezik na kom se popunjava obrazac", participatingOrgs: "Organizacije učesnice",
-        activity: "Aktivnost", venue: "Mesto", start: "Početak", end: "Kraj", lead: "Organizacija nosilac", amount: "Iznos (EUR)", expected: "Očekivani rezultati", grant: "Grant (EUR)", noActivities: "Broj aktivnosti", total: "Ukupno",
+        activity: "Aktivnost", venue: "Mesto", start: "Početak", end: "Kraj", lead: "Organizacija nosilac", amount: "Iznos (EUR)", expected: "Očekivani rezultati", grant: "Iznos granta (EUR)", noActivities: "Broj aktivnosti", total: "Ukupno",
         pmAmount: "Iznos granta za upravljanje projektom", budgetSummary: "Pregled budžeta", subcontractNote: "Podugovaranje usluga je dozvoljeno ako ne obuhvata ključne aktivnosti; ako je planirano, iznos mora biti uključen u opis aktivnosti.", characters: "znakova", footer: "Nacrt urađen uz pomoć AI, proverite pre podnošenja" },
       chk: { pagesUnknown: (p) => `Procenjena dužina je oko ${p} str.; ograničenje broja strana za ovaj poziv nije u našim podacima.`, basisCriteria: "Struktura je napravljena iz kriterijuma za dodelu, a ne iz zvaničnog obrasca: proverite obrazac prijave za poziv.", basisGeneral: "Opšta struktura, a ne zvanični obrazac: proverite obrazac prijave za poziv i njegova pitanja.",
         unitsDone: (n) => `Napisani su svi delovi (${n}).`, unitsMissing: (m, n) => `Nenapisani delovi: ${m} od ${n}.`, pages: (p, l) => `Procenjena dužina je oko ${p} str.; ograničenje je ${l} str. (merodavan je zvanični obrazac sa propisanim fontom).`,
@@ -472,9 +483,19 @@ const S = {
     working: "Radi se…", loadingPage: "Učitavanje…", op: { uploading: "Otpremanje", reading: "Čitanje dokumenta", ocr: "Prepoznavanje teksta (OCR)", analysing: "AI analiza", researching: "Čitanje sajta", generating: "AI izrada", drawing: "Izrada PDF-a", saving: "Čuvanje", checking: "Provera prema zvaničnom tekstu", translating: "Prevođenje na engleski", completed: "Gotovo", failed: "Neuspešno" },
     trT: "Engleska verzija za poređenje", trLede: "Tekstovi poziva su na engleskom, pa se tekst napisan na drugom jeziku poredi preko engleske verzije. Verzija ispod je mašinski prevod koji služi samo za poređenje: vaš originalni tekst ostaje zapis u profilu. Prevod možete ispraviti; vaše izmene se čuvaju i novi automatski prevod ih nikada ne zamenjuje.",
     trMachine: (m, t) => `Mašinski prevod${m ? " (" + m + ")" : ""}, ${t}`, trEdited: (t) => `Vaša izmena, ${t}`, trStaleAuto: "Napravljen je od ranije verzije teksta, pa se ne koristi za poređenje dok se ponovo ne prevede.", trStaleEdited: "Originalni tekst se promenio otkako ste izmenili ovaj prevod. Proverite da li se i dalje slaže.",
-    trNone: "Još nema engleske verzije: za poređenje se koristi originalni tekst.", trRun: "Prevedi sada", trSave: "Sačuvaj prevod", trSaved: "Prevod je sačuvan.", trCleared: "Prevod je uklonjen; sledeće čuvanje pravi novi mašinski prevod.", trDone: (n) => `Engleska verzija napravljena za polja: ${n}.`, trNothing: "Sva polja već imaju englesku verziju.", trFailed: "Engleska verzija nije napravljena, pa se za poređenje koristi originalni tekst:",
+    as: { title: "Asistent za profil", lede: "Piše delove profila koji nedostaju na osnovu vašeg statuta ili drugih dokumenata i vašeg veb-sajta. Izaberite pitanje, proverite odgovor i dodajte ga u profil jednim klikom.",
+      loadingSrc: "Tražim vaše izvore…", srcH: "Izvori koje asistent koristi", chars: (n) => `${n} znakova`, forget: "Ukloni iz ovog pregledača", noDocs: "Još nema dokumenata. Dodajte statut ovde ili na strani Dokumenti.",
+      website: "Veb-sajt", noSite: "u profilu nema adrese", addDoc: "Dodaj dokument (statut)", docNote: "PDF, skenirani dokument, DOCX ili TXT. Tekst se čuva samo u ovom pregledaču na ovom uređaju.", docAdded: (n) => `Dokument ${n} je spreman za asistenta.`,
+      missingH: (n) => `Pitanja za ${n} ${sr3(n, "prazno polje", "prazna polja", "praznih polja")} vašeg profila`, all: (n) => `Odgovori na sva pitanja (${n})`, cost: "Svaki odgovor troši 1 od vaših dnevnih AI akcija.", noneMissing: "Sva tekstualna polja profila su popunjena. I dalje možete da postavite svoje pitanje.",
+      askLbl: "Vaše pitanje o organizaciji", askPh: "Na primer: Sa kojim ciljnim grupama radimo?", ask: "Pitaj",
+      writing: (q) => `Pišem odgovor na pitanje „${q}“ na osnovu vaših izvora…`, writingN: (i, n, q) => `${i} od ${n}: ${q}`, ready: "Odgovor je spreman: proverite ga, po potrebi izmenite i dodajte u profil.", notEnoughShort: "Vaši izvori ne odgovaraju na ovo pitanje.",
+      allDone: (k, n) => `Napisano odgovora: ${k} od ${n}. Proverite ih ispod, pa ih dodajte u profil.`, notEnough: "Vaši izvori ne sadrže dovoljno podataka za odgovor.", unsupported: "Nijedan citat nije pronađen u izvorima: pre dodavanja proverite ovaj odgovor u svojim dokumentima.",
+      gaps: "Nema u izvorima:", quotes: (f, n) => `Citati kao potvrda (u izvorima pronađeno ${f} od ${n})`, found: (s) => `pronađeno u: ${s}`, notFound: "nije pronađeno u izvorima", sources: "Izvori",
+      add: (f) => `Dodaj u profil: ${f}`, added: "Dodato u profil", again: "Napiši ponovo", remove: "Ukloni", addAll: (n) => `Dodaj sve odgovore u profil (${n})`, saving: "Čuvam u profil…",
+      saved: (list) => `Dodato u profil: ${list}.`, editFirst: "Izmeni na strani Profil", skipped: (list) => `Nije zamenjeno jer je u međuvremenu popunjeno: ${list}.`, noSources: "Prvo dodajte dokument ili adresu veb-sajta." },
+    trNone: "Još nema engleske verzije: za poređenje se koristi originalni tekst.", trRun: "Prevedi sada", trSave: "Sačuvaj prevod", trSaved: "Prevod je sačuvan.", trCleared: "Prevod je uklonjen; sledeće čuvanje pravi novi mašinski prevod.", trDone: (n) => `Engleska verzija napravljena za polja: ${n}.`, trNothing: "Sva polja već imaju englesku verziju.", trFailed: "Engleska verzija nije napravljena, pa se za poređenje koristi originalni tekst:", trPartial: (list) => `Ovaj put nije prevedeno: ${list}. Za ta polja poređenje koristi originalni tekst; kliknite Prevedi sada da pokušate ponovo.`,
     trUse: "Koristi se za poređenje", trOrig: "Originalni tekst",
-    adminTitle: "Administracija", auAgents: "Potrošnja po funkcijama danas", auAgentsNote: "Neuroni se računaju samo za Workers AI; tokeni za svakog dobavljača. Svaki red je zbir zahteva modelu poslatih za tu funkciju.", auFn: "Funkcija", auAg: { extract: "Čitanje dokumenata", research: "Čitanje veb-sajtova", ideas: "Generisanje projektnih ideja", fit: "Obrazloženje podudarnosti", proposal: "Detaljan predlog projekta", evaluate: "Ocena prema kriterijumima poziva", official: "Provera zvaničnih uslova podobnosti", translate: "Prevodi", improve: "Dorada ideja ispod praga", other: "Ostalo" }, auTitle: "Potrošnja AI danas", auRefresh: "Osveži", auProvider: "Dobavljač i model", auUsed: "Potrošeno", auBudget: "Dnevni budžet", auOfBudget: "Od budžeta", auReq: "Zahtevi",
+    adminTitle: "Administracija", auAgents: "Potrošnja po funkcijama danas", auAgentsNote: "Neuroni se računaju samo za Workers AI; tokeni za svakog dobavljača. Svaki red je zbir zahteva modelu poslatih za tu funkciju.", auFn: "Funkcija", auAg: { extract: "Čitanje dokumenata", research: "Čitanje veb-sajtova", ideas: "Generisanje projektnih ideja", fit: "Obrazloženje podudarnosti", proposal: "Detaljan predlog projekta", evaluate: "Ocena prema kriterijumima poziva", official: "Provera zvaničnih uslova podobnosti", translate: "Prevodi", assistant: "Asistent za profil", improve: "Dorada ideja ispod praga", other: "Ostalo" }, auTitle: "Potrošnja AI danas", auRefresh: "Osveži", auProvider: "Dobavljač i model", auUsed: "Potrošeno", auBudget: "Dnevni budžet", auOfBudget: "Od budžeta", auReq: "Zahtevi",
     auLede: (d, r, s) => `UTC dan ${d}. Dozvoljena potrošnja se obnavlja u ${r} (po beogradskom vremenu). Sajt zaustavlja svakog dobavljača na njegovom budžetu i prelazi na sledećeg; radni prostor organizacija sme da potroši najviše ${s}% svakog budžeta, da bi javni asistent nastavio da radi.`,
     auMsgs: (v, l) => `poruka asistentu od ${v} posetilaca (ograničenje ${l} po posetiocu)`, auActions: (u, l) => `AI radnji u radnom prostoru, ${u} korisnika (ograničenje ${l} po korisniku)`, auRequests: "AI zahteva ukupno",
     auNeurons: "neurona", auTokens: "tokena", auFree: (f) => `besplatno ${f}`, auCached: (n, t) => `Iz sačuvanih odgovora danas: ${n} (${t} tokena koje dobavljači nisu morali da obrade).`, auCacheCol: "Iz sačuvanih odgovora", auOff: "nije podešeno", auUsers: "AI radnje po korisniku", auWeek: "Poslednjih 7 dana", auDay: "Dan (UTC)", admLede: "Zahtevi za premium pristup, korisnici i podešavanja pretplate. Izmene važe odmah.",
@@ -490,7 +511,7 @@ const S = {
     admFree: "Besplatnih generisanja ideja po korisniku", admDaysDefault: "Podrazumevano dana pristupa (prazno = do opoziva)",
     admPlan: "Paket", admPlanId: "Šifra", admPlanName: "Naziv", admPlanPrice: "Cena (kako se prikazuje)", admPricePh: "npr. 49 EUR godišnje", admPlanDesc: "Opis", admAddPlan: "+ Dodaj paket",
     admPay: "Uputstvo za uplatu prikazano posle zahteva (račun, format poziva na broj)",
-    errors: { no_official_text: "Za ovaj poziv nema zvaničnog teksta za AI proveru.", no_criteria: "Kriterijumi za dodelu ovog poziva nisu u našim podacima, pa ideja ovde ne može da se oceni.", too_many_reports: "Organizacija je dostigla 200 sačuvanih izveštaja. Prvo obrišite starije.", too_large: "Izveštaj je prevelik za čuvanje.", premium_required: "Za ovo je potreban premium pristup. Pogledajte Premium pristup na strani Projektne ideje.", no_open_request: "Nema otvorenog zahteva za pristup. Prvo zatražite pristup.", signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera zaštite od botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", not_below: "Ova ideja nije ispod praga, pa se ne dorađuje.", revision_limit: "Ova ideja je već dva puta dorađena. Umesto toga generišite novu ideju za ovaj poziv.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran jer dolazi sa drugog sajta. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila dozvoljeni broj generisanja ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, vrsta organizacije, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
+    errors: { no_sources: "Prvo dodajte dokument ili adresu veb-sajta.", no_official_text: "Za ovaj poziv nema zvaničnog teksta za AI proveru.", no_criteria: "Kriterijumi za dodelu ovog poziva nisu u našim podacima, pa ideja ovde ne može da se oceni.", too_many_reports: "Organizacija je dostigla 200 sačuvanih izveštaja. Prvo obrišite starije.", too_large: "Izveštaj je prevelik za čuvanje.", premium_required: "Za ovo je potreban premium pristup. Pogledajte Premium pristup na strani Projektne ideje.", no_open_request: "Nema otvorenog zahteva za pristup. Prvo zatražite pristup.", signin: "Prijavite se.", role: "Vaša uloga to ne dozvoljava.", not_found: "Nije pronađeno ili nemate pristup.", email: "Unesite ispravnu e-mail adresu.", terms: "Prihvatite obaveštenje o privatnosti.", verification: "Provera zaštite od botova nije uspela. Osvežite stranicu i pokušajte ponovo.", too_many: "Previše zahteva za danas. Pokušajte sutra.", email_unavailable: "E-mail za prijavu trenutno ne može da se pošalje.", ai_user_limit: "Iskoristili ste današnje AI akcije. Obnavljaju se u ponoć po UTC.", ai_resting: "Današnja AI kvota je potrošena. Obnavlja se u ponoć po UTC.", ai_busy: "AI servis je zauzet. Pokušajte za minut.", ai_unavailable: "AI servis nije odgovorio. Pokušajte kasnije.", ai_bad_answer: "Odgovor AI modela nije moguće pročitati. Pokušajte ponovo.", not_below: "Ova ideja nije ispod praga, pa se ne dorađuje.", revision_limit: "Ova ideja je već dva puta dorađena. Umesto toga generišite novu ideju za ovaj poziv.", url_invalid: "Unesite javnu veb-adresu (https://…).", robots_disallow: "robots.txt ovog sajta ne dozvoljava automatsko čitanje stranice.", page_unavailable: "Stranicu nije moguće otvoriti.", pdf_upload_instead: "Ova adresa je PDF: preuzmite ga i otpremite kao dokument.", unsupported_type: "Ova adresa nije veb-stranica.", page_empty: "Na stranici nema čitljivog teksta.", text_too_short: "Premalo teksta za analizu.", last_owner: "Organizacija mora imati bar jednog vlasnika.", transfer_ownership: "Prvo dodelite ulogu vlasnika drugom članu zajedničkih organizacija.", version_conflict: "Neko drugi je u međuvremenu sačuvao profil.", too_many_orgs: "Dostigli ste broj organizacija po nalogu.", google_off: "Prijava preko Google naloga još nije podešena na ovom sajtu.", google_cancelled: "Prijava preko Google naloga je otkazana.", google_state: "Prijava je trajala predugo ili je otvorena u drugoj kartici. Pokušajte ponovo.", google_failed: "Prijava preko Google naloga nije uspela. Pokušajte ponovo.", google_unverified: "Google nije potvrdio ovu e-mail adresu.", email_login_off: "Prijava linkom preko e-pošte nije dostupna.", server_error: "Greška na serveru.", csrf: "Zahtev je blokiran jer dolazi sa drugog sajta. Osvežite stranicu.", db_unavailable: "Baza podataka nije povezana.", network: "Nema veze sa serverom.", ideas_limit: "Vaša organizacija je danas iskoristila dozvoljeni broj generisanja ideja. Pokušajte sutra.", no_calls: "Nijedan izabrani poziv nije otvoren za vašu organizaciju.", profile_incomplete: "Prvo dopunite profil: naziv, vrsta organizacije, država i opis.", data_unavailable: "Podaci o pozivima nisu mogli da se učitaju. Pokušajte kasnije." },
   },
 };
 const T = (k, ...a) => { const v = k.split(".").reduce((o, x) => (o ? o[x] : undefined), S[L()]) ?? k.split(".").reduce((o, x) => (o ? o[x] : undefined), S.en); return typeof v === "function" ? v(...a) : v ?? k; };
@@ -545,8 +566,8 @@ const CODES = {
     "rec.groups": () => "Explain in the proposal how your target groups relate to the beneficiaries named in the call.", "rec.readDocument": () => "The source shows only part of the conditions: read the call document.", "rec.officialPage": () => "Open the official call page; it prevails over this assessment.",
   },
   sr: {
-    "country.Y": (p) => `Država ${ccName(p.cc)} je podobna.`, "country.P": (p) => `Država ${ccName(p.cc)} je podobna uz uslov. ${p.reason}`, "country.C": (p) => `Podobnost za ${ccName(p.cc)} nije navedena u izvornim podacima. ${p.reason}`,
-    "country.N": (p) => `Država ${ccName(p.cc)} nije podobna. ${p.reason}`, "country.notListed": (p) => `Nema podataka o podobnosti za ${ccName(p.cc)}.`, "country.missing": () => "U profilu nedostaje država sedišta.",
+    "country.Y": (p) => `Država ${ccName(p.cc)} je podobna.`, "country.P": (p) => `Država ${ccName(p.cc)} je podobna uz uslov. ${p.reason}`, "country.C": (p) => `Podobnost za državu ${ccName(p.cc)} nije navedena u izvornim podacima. ${p.reason}`,
+    "country.N": (p) => `Država ${ccName(p.cc)} nije podobna. ${p.reason}`, "country.notListed": (p) => `Nema podataka o podobnosti za državu ${ccName(p.cc)}.`, "country.missing": () => "U profilu nedostaje država sedišta.",
     "applicant.listed": (p) => `Vrsta vaše organizacije je među podnosiocima za ovaj poziv (${listOf(p.listed, appName)}). ${p.note || ""}`, "applicant.notStated": () => "Podaci o pozivu ne navode vrste podnosilaca.",
     "applicant.informal": () => "Neformalna grupa nije pravno lice: proverite da li poziv prihvata takve podnosioce.", "applicant.individualsOnly": (p) => `Poziv je namenjen pojedincima (${listOf(p.listed, appName)}), ne organizacijama.`,
     "applicant.notListed": (p) => `Vrsta vaše organizacije nije među navedenim podnosiocima (${listOf(p.listed, appName)}). Proverite uslove poziva.`, "applicant.missing": () => "U profilu nedostaje vrsta organizacije.",
@@ -572,12 +593,18 @@ const CODES = {
     "off.ai": (p) => `${p.condition}${p.reason ? ". " + p.reason : ""}`,
     "rec.verifyOfficial": () => "Pre prijave pročitajte deo o podobnosti u zvaničnom dokumentu poziva: ovde nije mogao da se proveri.", "rec.officialWarn": () => "Zvanični dokument postavlja uslov koji može da ograniči vašu ulogu: pogledajte citirani tekst.",
     "rec.notEligible": () => "Obavezan uslov nije ispunjen. Osim ako dokument poziva ne kaže drugačije, usmerite se na druge pozive.", "rec.complete": (p) => `Dopunite profil: ${listOf(p.fields, fieldName)}.`,
-    "rec.checkCountry": (p) => `Pročitajte deo poziva o podobnim zemljama za ${ccName(p.cc)}.`, "rec.checkApplicant": () => "Potvrdite u uslovima poziva da vaša vrsta organizacije može da konkuriše.",
+    "rec.checkCountry": (p) => `Pročitajte deo poziva o podobnim zemljama za državu ${ccName(p.cc)}.`, "rec.checkApplicant": () => "Potvrdite u uslovima poziva da vaša vrsta organizacije može da konkuriše.",
     "rec.partners": (p) => `Pronađite partnere${p.need ? ` iz najmanje ${srNeed(p.need)}` : ""} na vreme pre roka.`, "rec.rule": () => "Proverite citirani uslov u zvaničnom tekstu.",
     "rec.groups": () => "U predlogu objasnite kako su vaše ciljne grupe povezane sa korisnicima koje poziv navodi.", "rec.readDocument": () => "Izvor prikazuje samo deo uslova: pročitajte dokument poziva.", "rec.officialPage": () => "Otvorite zvaničnu stranicu poziva; ona je merodavna.",
   },
 };
-const codeText = (x) => { const f = CODES[L()][x.code] || CODES.en[x.code]; return f ? f(x.params || {}).trim() : x.code; };
+// Reasons and notes the importer writes in English are shown in Serbian on a Serbian page (org/datatext.js).
+const dataText = (s) => (L() === "sr" && globalThis.ECsr ? globalThis.ECsr.data(s) : s);
+const codeText = (x) => {
+  const f = CODES[L()][x.code] || CODES.en[x.code];
+  const p = x.params && x.params.reason ? { ...x.params, reason: dataText(x.params.reason) } : x.params || {};
+  return f ? f(p).trim() : x.code;
+};
 
 /* ---------- operation status ---------- */
 // What the page is doing right now, tied to the real asynchronous work: nothing is shown while idle; a busy state
@@ -621,7 +648,7 @@ async function api(method, path, body) {
   return j;
 }
 // Requests that can use AI actions; after each one the "AI actions left" line is read again (one small request).
-const AI_PATH = /\/(extract|research|ideas|evaluate|evaluation|official-checks|fit-explanation|proposal|translation|translate|improve)(\/|$)/;
+const AI_PATH = /\/(extract|research|assistant|ideas|evaluate|evaluation|official-checks|fit-explanation|proposal|translation|translate|improve)(\/|$)/;
 let aiTimer = null;
 function aiRefresh() {
   clearTimeout(aiTimer);
@@ -744,7 +771,7 @@ function shell(id, sec, body) {
   app().innerHTML = `<div class="wrap oi">
     <aside class="oi-side">
       <div class="oi-org"><span class="eyebrow">${esc(T("title"))}</span><span class="n">${esc(org ? org.name : "")}</span>
-        ${me.orgs.length > 1 ? `<select id="oiSwitch" aria-label="Organisation">${me.orgs.map((o) => `<option value="${o.id}"${o.id === id ? " selected" : ""}>${esc(o.name)}</option>`).join("")}</select>` : ""}
+        ${me.orgs.length > 1 ? `<select id="oiSwitch" aria-label="${esc(T("orgSwitch"))}">${me.orgs.map((o) => `<option value="${o.id}"${o.id === id ? " selected" : ""}>${esc(o.name)}</option>`).join("")}</select>` : ""}
         <span class="fine">${esc(me.user.email)}${org ? " · " + esc(T("roles." + org.role)) : ""}</span>
         <span class="fine${me.ai && me.ai.left === 0 ? " bad" : ""}" id="oiAiLeft">${esc(aiLeftText())}</span></div>
       <nav class="oi-nav" aria-label="${esc(T("title"))}">${items.map((s) => `<a href="#org/${id}/${s}"${s === sec ? ' aria-current="page"' : ""}>${esc(T("nav." + s))}${soon.has(s) ? `<span class="soon">${esc(T("soon"))}</span>` : ""}</a>`).join("")}</nav>
@@ -906,7 +933,7 @@ function renderSignin(token) {
 // Sign out, and account deletion in two steps (the first click asks for confirmation).
 function bindAccount() {
   const out = document.getElementById("oiOut");
-  if (out && !out.dataset.bound) out.dataset.bound = "1", out.addEventListener("click", async () => { await api("POST", "/auth/logout").catch(() => {}); ST.me = undefined; ST.org = null; go("org"); });
+  if (out && !out.dataset.bound) out.dataset.bound = "1", out.addEventListener("click", async () => { await api("POST", "/auth/logout").catch(() => {}); await ldocClear(); ST.me = undefined; ST.org = null; go("org"); });
   const del = document.getElementById("oiDelMe"), msg = document.getElementById("oiAccMsg");
   if (!del || !msg || del.dataset.bound) return;
   del.dataset.bound = "1";
@@ -914,7 +941,7 @@ function bindAccount() {
     msg.innerHTML = `<p class="note warn">${esc(T("deleteAccountNote"))}</p><div class="oi-row"><button type="button" class="btn" id="oiDelYes">${esc(T("deleteAccountConfirm"))}</button><button type="button" class="btn ghost" id="oiDelNo">${esc(T("cancel"))}</button></div>`;
     document.getElementById("oiDelNo").addEventListener("click", () => { msg.innerHTML = ""; });
     document.getElementById("oiDelYes").addEventListener("click", async () => {
-      try { await api("DELETE", "/me"); ST.me = undefined; ST.org = null; go("org"); }
+      try { await api("DELETE", "/me"); await ldocClear(); ST.me = undefined; ST.org = null; go("org"); }
       catch (e) { msg.innerHTML = `<p class="note err">${esc(errText(e))}</p>`; }
     });
   });
@@ -992,7 +1019,7 @@ const GROUPS = { identity: ["name", "orgType", "country", "city", "registrationN
   experience: ["previousProjects", "euFunding", "erasmus", "fundingDetails", "eche"], capacity: ["employees", "volunteers", "infrastructure", "capacity", "expertise"], partners: ["partnerCountries", "partnerships"] };
 function provBadge(m) {
   if (!m) return "";
-  const cls = m.source === "manual" ? "" : m.source === "document" ? "doc" : "web";
+  const cls = m.source === "manual" ? "" : m.source === "document" || m.source === "assistant" ? "doc" : "web";
   const src = m.sourceName || m.sourceUrl || "";
   return `<span class="prov ${cls}" title="${esc((m.evidence ? "“" + m.evidence + "” " : "") + src)}">${esc(T("prov." + m.source))}${src && m.source !== "manual" ? ": " + esc(src.slice(0, 40)) : ""}</span>${m.verified ? "" : `<span class="prov unver">${esc(T("unverified"))}</span>`}`;
 }
@@ -1025,6 +1052,7 @@ function secProfile(arg) {
   const miss = completeness(p).missing;
   return `<h1>${esc(T("nav.profile"))}</h1>${dis ? `<p class="note">${esc(T("viewerNote"))}</p>` : ""}
     ${arg === "missing" && miss.length && !dis ? `<p class="note warn">${esc(T("missingHere", miss.length))} <a href="#org/${org.id}/documents">${esc(T("orFromDocs"))} →</a></p>` : ""}
+    ${dis ? "" : assistHTML()}
     <form class="form" id="oiProfile" novalidate>${Object.entries(GROUPS).map(([g, ids]) => `<fieldset><legend>${esc(T("sections." + g))}</legend>${ids.map((fid) => { const f = FIELD[fid]; return `<div class="fld${wide.has(f.kind) ? " wide" : ""}" data-f="${fid}"><${f.kind === "multi" || f.kind === "countries" ? "span class=\"lbl\"" : `label for="f_${fid}"`}>${esc(nm(f))} ${provBadge(meta[fid])}</${f.kind === "multi" || f.kind === "countries" ? "span" : "label"}>${input(f, p[fid], dis)}<span class="err" hidden></span></div>`; }).join("")}</fieldset>`).join("")}
     ${dis ? "" : `<div class="savebar"><button class="btn" type="submit">${esc(T("save"))}</button><span id="oiSaveMsg" class="fine" role="status"></span></div>`}</form>
     ${trHTML()}`;
@@ -1076,11 +1104,175 @@ async function ensureEnglish(el, force) {
     if (ST.org && ST.org.id === org.id) { const { translated, model, ...view } = r; ST.org.translation = view; ST.resultsKey = null; }
     redrawTr();
     // the copy section may have been drawn again: write to the status element on the page now
-    opState(document.getElementById("oiTrMsg") || el, "completed", r.translated.length ? T("trDone", r.translated.length) : T("trNothing"));
+    const partial = r.failed && r.failed.length ? " " + T("trPartial", r.failed.map((f) => nm(FIELD[f])).join(", ")) : "";
+    opState(document.getElementById("oiTrMsg") || el, "completed", (r.translated.length ? T("trDone", r.translated.length) : T("trNothing")) + partial);
   } catch (e) {
     opState(document.getElementById("oiTrMsg") || el, "failed", T("trFailed") + " " + errText(e));
     if (run) run.disabled = false;
   }
+}
+/* ---------- profile assistant ---------- */
+// Questions for the empty free-text fields of the profile (site/org/assist.js), answered by the API from the statute or
+// other documents read in this browser and from the organisation's website (src/org/assistant.js). An answer goes into
+// the profile only when the member adds it (one field, or all answers at once).
+// Documents are kept in this browser (IndexedDB, this device only) so the assistant can use them again; they are
+// never stored on the server. Signing out removes them.
+const LDOC = { db: null };
+function ldocDb() {
+  if (LDOC.db) return LDOC.db;
+  LDOC.db = new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open("ec-docs", 1);
+      r.onupgradeneeded = () => { const s = r.result.createObjectStore("docs", { keyPath: "key" }); s.createIndex("org", "orgId"); };
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  });
+  return LDOC.db;
+}
+async function ldocTx(mode, fn) {
+  const db = await ldocDb();
+  return new Promise((res, rej) => { const tx = db.transaction("docs", mode); const st = tx.objectStore("docs"); const out = fn(st); tx.oncomplete = () => res(out && out.result !== undefined ? out.result : out); tx.onerror = () => rej(tx.error); });
+}
+const ldocList = (orgId) => ldocTx("readonly", (st) => st.index("org").getAll(orgId)).then((r) => (r || []).sort((a, b) => b.at - a.at)).catch(() => []);
+const ldocPut = (orgId, name, text) => ldocTx("readwrite", (st) => st.put({ key: orgId + "|" + name, orgId, name, text: String(text).slice(0, 200000), chars: text.length, at: Date.now() })).catch(() => {});
+const ldocDel = (key) => ldocTx("readwrite", (st) => st.delete(key)).catch(() => {});
+const ldocClear = () => ldocTx("readwrite", (st) => st.clear()).catch(() => {});
+
+const AS = { byOrg: {} };   // answers of this visit, per organisation: [{id, field, question, answer, quotes, ...}]
+const asList = () => (AS.byOrg[ST.org.id] = AS.byOrg[ST.org.id] || []);
+function asAnswerHTML(a) {
+  const ed = canEdit(), f = a.field && FIELD[a.field];
+  const src = a.sources.map((s) => (s.kind === "web" ? s.url.replace(/^https?:\/\//, "") : s.name)).join(" · ");
+  const quotes = a.quotes.length ? `<details class="as-q"><summary>${esc(T("as.quotes", a.quotes.filter((q) => q.found).length, a.quotes.length))}</summary><ul>${a.quotes.map((q) => `<li><span class="quote">${esc(q.text)}</span> <span class="fine">${esc(q.found ? T("as.found", q.source || "") : T("as.notFound"))}</span></li>`).join("")}</ul></details>` : "";
+  const body = !a.enough
+    ? `<p class="note warn">${esc(T("as.notEnough"))}${a.gaps ? " " + esc(a.gaps) : ""}</p>`
+    : `${f ? `<div class="fld"><label class="sr-only" for="as_${a.id}">${esc(nm(f))}</label><textarea id="as_${a.id}" rows="8" maxlength="${f.max}"${ed && !a.applied ? "" : " disabled"}>${esc(a.answer)}</textarea></div>` : `<div class="as-free">${a.answer.split(/\n{2,}/).map((p) => `<p>${esc(p)}</p>`).join("")}</div>`}
+       ${a.supported ? "" : `<p class="note warn">${esc(T("as.unsupported"))}</p>`}${a.gaps ? `<p class="fine">${esc(T("as.gaps"))} ${esc(a.gaps)}</p>` : ""}`;
+  const btns = ed ? `<div class="oi-row">${a.enough && f && !a.applied ? `<button type="button" class="btn" data-asadd="${a.id}">${esc(T("as.add", nm(f)))}</button>` : ""}${a.applied ? `<span class="fine ok">✓ ${esc(T("as.added"))}</span>` : ""}
+      <button type="button" class="btn ghost" data-asagain="${a.id}">${esc(T("as.again"))}</button><button type="button" class="linkbtn" data-asdel="${a.id}">${esc(T("as.remove"))}</button></div>` : "";
+  return `<div class="as-item" data-asid="${a.id}"><p class="as-ask"><b>${esc(a.question)}</b></p>${body}<p class="fine">${esc(T("as.sources"))}: ${esc(src)}${a.model ? " · " + esc(String(a.model).split("/").pop()) : ""}</p>${quotes}${btns}<div class="op" data-asmsg role="status"></div></div>`;
+}
+function assistHTML() {
+  const org = ST.org, p = org.profile;
+  const missing = assistFields(p);
+  const list = asList();
+  const pending = list.filter((a) => a.enough && a.field && !a.applied);
+  return `<section class="oi-card as" id="oiAssist"><h2>${esc(T("as.title"))}</h2><p class="fine">${esc(T("as.lede"))}</p>
+    <div class="as-src" id="asSrc"><p class="fine">${esc(T("as.loadingSrc"))}</p></div>
+    ${missing.length ? `<h3>${esc(T("as.missingH", missing.length))}</h3><div class="starters as-chips">${missing.map((f) => `<button type="button" class="starter" data-asfield="${f}">${esc(ASSIST_FIELDS[f][L()])}</button>`).join("")}</div>
+      <div class="oi-row"><button type="button" class="btn quiet" id="asAll">${esc(T("as.all", missing.length))}</button><span class="fine">${esc(T("as.cost"))}</span></div>` : `<p class="note ok">${esc(T("as.noneMissing"))}</p>`}
+    <form class="oi-row as-ask-form" id="asAskForm"><div class="fld grow"><label for="asQ">${esc(T("as.askLbl"))}</label><input type="text" id="asQ" maxlength="500" placeholder="${esc(T("as.askPh"))}"></div><button class="btn ghost" type="submit">${esc(T("as.ask"))}</button></form>
+    <div class="op" id="asMsg" role="status" aria-live="polite"></div>
+    ${pending.length > 1 ? `<div class="oi-row"><button type="button" class="btn" id="asAddAll">${esc(T("as.addAll", pending.length))}</button></div>` : ""}
+    <div class="as-list">${list.slice().reverse().map(asAnswerHTML).join("")}</div></section>`;
+}
+function redrawAssist() { const box = document.getElementById("oiAssist"); if (!box) return; const d = document.createElement("div"); d.innerHTML = assistHTML(); box.replaceWith(d.firstElementChild); bindAssist(); }
+async function asSourcesDraw() {
+  const box = document.getElementById("asSrc"); if (!box) return;
+  const org = ST.org, docs = await ldocList(org.id);
+  AS.docs = docs;
+  const sel = (AS.sel = AS.sel || {});
+  const site = org.profile.website || "";
+  box.innerHTML = `<p class="fine"><b>${esc(T("as.srcH"))}</b></p>
+    ${docs.length ? docs.map((d) => `<label class="as-doc"><input type="checkbox" data-asdoc="${esc(d.key)}"${sel[d.key] !== false ? " checked" : ""}> ${esc(d.name)} <span class="fine">(${esc(T("as.chars", d.chars.toLocaleString(L() === "sr" ? "sr-Latn" : "en-GB")))})</span> <button type="button" class="linkbtn" data-asdocdel="${esc(d.key)}">${esc(T("as.forget"))}</button></label>`).join("") : `<p class="fine">${esc(T("as.noDocs"))}</p>`}
+    <label class="as-doc"><input type="checkbox" id="asWeb"${site ? (sel.web !== false ? " checked" : "") : " disabled"}> ${esc(T("as.website"))}: ${site ? esc(site) : `<span class="fine">${esc(T("as.noSite"))}</span>`}</label>
+    <div class="oi-row"><label class="btn ghost" for="asFile">${esc(T("as.addDoc"))}</label><input type="file" id="asFile" accept="${ACCEPT}" hidden><span class="fine">${esc(T("as.docNote"))}</span></div><div class="op" id="asFileMsg" role="status"></div>`;
+  box.querySelectorAll("[data-asdoc]").forEach((c) => c.addEventListener("change", () => (sel[c.dataset.asdoc] = c.checked)));
+  const w = document.getElementById("asWeb"); if (w) w.addEventListener("change", () => (sel.web = w.checked));
+  box.querySelectorAll("[data-asdocdel]").forEach((b) => b.addEventListener("click", async () => { await ldocDel(b.dataset.asdocdel); asSourcesDraw(); }));
+  const file = document.getElementById("asFile");
+  file.addEventListener("change", async () => {
+    const f = file.files[0]; file.value = ""; if (!f) return;
+    const m = document.getElementById("asFileMsg");
+    try {
+      const doc = await readDocument(f, (t, st = "reading", pct = null) => opState(m, st, t, pct));
+      const text = doc.text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+      if (text.replace(/\s/g, "").length < 80) { opState(m, "failed", T(doc.ocrPages ? "ocrEmpty" : "scanned")); return; }
+      await ldocPut(org.id, f.name, text);
+      opState(m, "completed", T("as.docAdded", f.name));
+      asSourcesDraw();
+    } catch (e) { opState(m, "failed", e.message === "type" ? T("badType") : e.message === "ocr_unavailable" ? T("ocrUnavailable") : errText(e)); }
+  });
+}
+// One question: document passages chosen here, the website read by the server.
+async function asAsk({ field = null, question = "", fresh = false, replace = null }) {
+  const org = ST.org, sel = AS.sel || {};
+  const docs = (AS.docs || []).filter((d) => sel[d.key] !== false);
+  const useWeb = !!org.profile.website && sel.web !== false;
+  if (!docs.length && !useWeb) throw Object.assign(new Error("no_sources"), { message: "no_sources" });
+  const passages = pickPassages(docs.map((d) => ({ name: d.name, text: d.text })), { field, question, budget: useWeb ? 2600 : 4200 });
+  const r = await api("POST", `/orgs/${org.id}/assistant`, { field, question, lang: L(), passages, useWebsite: useWeb, fresh });
+  const a = { id: replace || Math.random().toString(36).slice(2, 10), ...r, applied: false };
+  const list = asList();
+  const i = list.findIndex((x) => x.id === replace || (field && x.field === field && !x.applied));
+  if (i >= 0) list[i] = a; else list.push(a);
+  return a;
+}
+// Writes answers into the profile in one save, on top of the latest version. A field filled meanwhile is not replaced.
+async function asApply(items) {
+  const orgId = ST.org.id, now = new Date().toISOString();
+  for (let attempt = 0; ; attempt++) {
+    const cur = await loadOrg(orgId, true);
+    const next = JSON.parse(JSON.stringify(cur.profile)); next._meta = { ...(next._meta || {}) };
+    const done = [], skipped = [];
+    for (const a of items) {
+      const el = document.getElementById("as_" + a.id); const text = ((el ? el.value : a.answer) || "").trim();
+      if (!text) continue;
+      const v = next[a.field];
+      if (v !== undefined && v !== null && String(v).trim() && String(v).trim() !== text) { skipped.push(a); continue; }
+      next[a.field] = text.slice(0, FIELD[a.field].max);
+      const q = a.quotes.find((x) => x.found);
+      next._meta[a.field] = { source: "assistant", sourceName: a.sources.map((s) => (s.kind === "web" ? s.url : s.name)).join(" + ").slice(0, 160), ...(q ? { evidence: q.text.slice(0, 500) } : {}), confidence: a.supported ? "medium" : "low", verified: false, at: now };
+      done.push(a);
+    }
+    if (!done.length) return { done, skipped };
+    try { await api("PUT", `/orgs/${orgId}/profile`, { profile: next, baseVersion: cur.version }); done.forEach((a) => (a.applied = true)); return { done, skipped }; }
+    catch (e) { if (e.message !== "version_conflict" || attempt >= 2) throw e; }
+  }
+}
+function bindAssist() {
+  const box = document.getElementById("oiAssist"); if (!box) return;
+  asSourcesDraw();
+  const msg = () => document.getElementById("asMsg");
+  const lock = (on) => box.querySelectorAll("button, input").forEach((b) => { if (on) { b.dataset.wasOff = b.disabled ? "1" : ""; b.disabled = true; } else b.disabled = b.dataset.wasOff === "1"; });
+  const run = async (fn) => { lock(true); try { await fn(); } catch (e) { opState(msg(), "failed", e.message === "no_sources" ? T("as.noSources") : errText(e)); lock(false); return; } lock(false); };
+  const ask = (field, question) => run(async () => {
+    opState(msg(), "generating", T("as.writing", field ? ASSIST_FIELDS[field][L()] : question));
+    const a = await asAsk({ field, question });
+    redrawAssist(); opState(document.getElementById("asMsg"), "completed", a.enough ? T("as.ready") : T("as.notEnoughShort"));
+  });
+  box.querySelectorAll("[data-asfield]").forEach((b) => b.addEventListener("click", () => ask(b.dataset.asfield, "")));
+  const form = document.getElementById("asAskForm");
+  form.addEventListener("submit", (ev) => { ev.preventDefault(); const q = document.getElementById("asQ").value.trim(); if (q.length >= 5) ask(null, q); });
+  const all = document.getElementById("asAll");
+  if (all) all.addEventListener("click", () => run(async () => {
+    const fields = assistFields(ST.org.profile).filter((f) => !asList().some((a) => a.field === f && !a.applied));
+    let n = 0, failed = 0;
+    for (const f of fields) {
+      opState(msg(), "generating", T("as.writingN", ++n, fields.length, ASSIST_FIELDS[f][L()]), (100 * (n - 1)) / fields.length);
+      try { await asAsk({ field: f }); } catch (e) { failed++; if (["ai_user_limit", "ai_resting", "no_sources"].includes(e.message)) throw e; }
+    }
+    redrawAssist(); opState(document.getElementById("asMsg"), "completed", T("as.allDone", n - failed, fields.length));
+  }));
+  box.querySelectorAll("[data-asagain]").forEach((b) => b.addEventListener("click", () => run(async () => {
+    const a = asList().find((x) => x.id === b.dataset.asagain);
+    opState(msg(), "generating", T("as.writing", a.question));
+    await asAsk({ field: a.field, question: a.field ? "" : a.question, fresh: true, replace: a.id });
+    redrawAssist();
+  })));
+  box.querySelectorAll("[data-asdel]").forEach((b) => b.addEventListener("click", () => { AS.byOrg[ST.org.id] = asList().filter((x) => x.id !== b.dataset.asdel); redrawAssist(); }));
+  const apply = (items) => run(async () => {
+    opState(msg(), "saving", T("as.saving"));
+    const r = await asApply(items);
+    ST.me = undefined; await loadMe(); ST.resultsKey = null;
+    await refresh();
+    const m = document.getElementById("asMsg");
+    opState(m, "completed", T("as.saved", r.done.map((a) => nm(FIELD[a.field])).join(", ")) + (r.skipped.length ? " " + T("as.skipped", r.skipped.map((a) => nm(FIELD[a.field])).join(", ")) : ""));
+    ensureEnglish(document.getElementById("oiTrMsg"));
+  });
+  box.querySelectorAll("[data-asadd]").forEach((b) => b.addEventListener("click", () => apply([asList().find((x) => x.id === b.dataset.asadd)])));
+  const addAll = document.getElementById("asAddAll");
+  if (addAll) addAll.addEventListener("click", () => apply(asList().filter((a) => a.enough && a.field && !a.applied)));
 }
 afterRender.profile = (arg) => {
   const form = document.getElementById("oiProfile"); if (!form) return;
@@ -1092,6 +1284,7 @@ afterRender.profile = (arg) => {
     if (first) { first.scrollIntoView({ block: "center" }); const inp = first.querySelector("input,select,textarea"); if (inp) inp.focus({ preventScroll: true }); }
   }
   bindTr();
+  bindAssist();
   if (!canEdit()) return;
   const msg = document.getElementById("oiSaveMsg");
   // The form saves against the profile it was drawn from. Only the fields changed in the form are written: when the
@@ -1299,6 +1492,7 @@ async function runDocJob(f) {
     const doc = await readDocument(f, say);
     const text = doc.text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
     if (text.replace(/\s/g, "").length < 80) { j.err = true; say(T(doc.ocrPages ? "ocrEmpty" : "scanned"), "failed"); return; }
+    ldocPut(orgId, f.name, text);   // kept in this browser for the profile assistant (never sent for storage)
     const parts = splitText(text);
     let last = null, runId = null, cached = 0;
     const left = ST.me && ST.me.ai ? ST.me.ai.left : null;
@@ -1566,27 +1760,29 @@ function heRowHTML(fw, rowId, opts = {}) {
 function heScoring(fw, e) {
   return `<div class="crit-sum"><span class="sc-chip t-medium">${esc(T("heThresholds"))}</span>${e && e.ia ? `<span class="sc-chip t-medium">${esc(T("iaWeight"))}</span>` : ""}${e && e.twoStage ? `<span class="sc-chip t-medium">${esc(T("twoStageChip"))}</span>` : ""}</div>`;
 }
+// On a Serbian page: the criteria are quoted as the source publishes them (in English).
+const critLang = () => (L() === "sr" ? `<p class="fine">${esc(T("critLang"))}</p>` : "");
 // One call: its criteria from the general annex, its call document, its funder's page, or where to find them
 function critHTML(e, c) {
   const crit = ST.crit;
   if (!e) return `<p class="fine">${esc(T("critNone"))}</p>${c && c.url ? `<p>${ext(c.url, T("official"))}</p>` : ""}`;
-  const note = e.note ? `<div class="crit-note"><span class="fine">${esc(T("fromCallPage"))}</span><p>${esc(e.note)}</p></div>` : "";
+  const note = e.note ? `<div class="crit-note"><span class="fine">${esc(T("fromCallPage"))}</span><p>${esc(L() === "sr" && globalThis.ECsr ? globalThis.ECsr.critNote(e.note) : e.note)}</p></div>` : "";
   if (e.kind === "framework") {
     const fw = crit.frameworks[e.framework];
-    return `<p class="fine">${esc(T("critFromAnnex", trTitle(fw.rows[e.row].name)))} · ${ext(fw.url, T("heAnnex"))}</p>${heScoring(fw, e)}
+    return `<p class="fine">${esc(T("critFromAnnex", trTitle(fw.rows[e.row].name)))} · ${ext(fw.url, T("heAnnex"))}</p>${critLang()}${heScoring(fw, e)}
       ${e.twoStage ? `<p class="fine">${esc(T("stage1Note"))}</p>` : ""}${heRowHTML(fw, e.row, { ia: e.ia, twoStage: e.twoStage })}${note}`;
   }
   if (e.kind === "document") {
     const t = e.table;
-    return `<p class="fine">${esc(T("critFromDoc"))}${e.version ? " (" + esc(e.version) + ")" : ""} · ${ext(e.url, T("callDoc"))}${e.evalForm ? " · " + ext(e.evalForm, T("evalForm")) : ""}</p>
+    return `<p class="fine">${esc(T("critFromDoc"))}${e.version ? " (" + esc(e.version) + ")" : ""} · ${ext(e.url, T("callDoc"))}${e.evalForm ? " · " + ext(e.evalForm, T("evalForm")) : ""}</p>${critLang()}
       ${t ? `<div class="tw"><table class="oi-t crit-t"><thead><tr><th>${esc(T("criterion"))}</th><th class="num">${esc(T("minPass"))}</th><th class="num">${esc(T("maxScore"))}</th></tr></thead><tbody>
         ${t.rows.map((r) => `<tr><td>${esc(crName(r.name))}</td><td class="num">${esc(/^n\/a$/i.test(r.min) ? "n/a" : /^-$/.test(r.min) ? "–" : r.min)}</td><td class="num">${esc(pts(r.max))}</td></tr>`).join("")}
         <tr class="tot"><td>${esc(t.total.name)}</td><td class="num">${esc(t.total.min)}</td><td class="num">${esc(pts(t.total.max))}</td></tr></tbody></table></div>${t.rows.some((r) => /^n\/a$/i.test(r.min)) ? `<p class="fine">${esc(T("evNoMin", t.rows.filter((r) => /^n\/a$/i.test(r.min)).map((r) => r.name).join(", ")))}</p>` : ""}` : ""}
-      ${e.summary && e.summary.length ? `<ul class="crit-sumtext">${e.summary.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      ${e.summary && e.summary.length ? `<ul class="crit-sumtext">${e.summary.map((x) => `<li>${esc(L() === "sr" && globalThis.ECsr ? globalThis.ECsr.critSum(x) : x)}</li>`).join("")}</ul>` : ""}
       <details class="crit-full"><summary>${esc(T("fullText"))}</summary>${textBlocks(e.blocks)}</details>${note}`;
   }
   if (e.kind === "page") {
-    return `<p class="fine">${esc(T("critFromPage", e.source || ""))} · ${ext(e.url, T("official"))}</p><details class="crit-full" open><summary>${esc(e.heading)}</summary>${textBlocks(e.blocks)}</details>`;
+    return `<p class="fine">${esc(T("critFromPage", e.source || ""))} · ${ext(e.url, T("official"))}</p>${critLang()}<details class="crit-full" open><summary>${esc(e.heading)}</summary>${textBlocks(e.blocks)}</details>`;
   }
   return `<p class="fine">${esc(T(e.note ? "critPointerNote" : "critPointer"))}</p>${note}<p>${ext(e.url || (c && c.url), T(e.url && /\.pdf($|\?)/i.test(e.url) ? "callDoc" : "official"))}${e.evalForm ? " · " + ext(e.evalForm, T("evalForm")) : ""}</p>`;
 }
@@ -2702,5 +2898,37 @@ afterRender.settings = () => {
   if (dn) { dn.addEventListener("input", () => { db.disabled = dn.value.trim() !== org.name; }); db.addEventListener("click", async () => { await api("DELETE", `/orgs/${org.id}`); ST.me = undefined; ST.org = null; try { localStorage.removeItem("konkursi.org"); } catch {} go("org"); }); }
 };
 
-window.ECOrg = { render };
+// The site's chat assistant (index.html) offers the same profile questions while a member who can edit is in an
+// organisation's workspace; answers and "add to profile" go through the functions above, so both places share them.
+const profileAssist = {
+  available() {
+    if (!/^#org\//.test(location.hash) || !ST.org || !ST.me || !ST.me.user || !canEdit()) return null;
+    return { orgId: ST.org.id, name: (ST.org.profile && ST.org.profile.name) || ST.org.name, title: T("as.title"), fields: assistFields(ST.org.profile).map((f) => ({ id: f, q: ASSIST_FIELDS[f][L()] })) };
+  },
+  async ask({ field = null, question = "" }) {
+    if (!AS.docs) AS.docs = await ldocList(ST.org.id);
+    const a = await asAsk({ field, question });
+    if (location.hash === `#org/${ST.org.id}/profile`) redrawAssist();
+    return a;
+  },
+  html(a) {
+    const f = a.field && FIELD[a.field];
+    const src = a.sources.map((x) => (x.kind === "web" ? x.url.replace(/^https?:\/\//, "") : x.name)).join(" · ");
+    if (!a.enough) return `<p>${esc(T("as.notEnough"))}${a.gaps ? " " + esc(a.gaps) : ""}</p><p class="fine">${esc(T("as.sources"))}: ${esc(src)}</p>`;
+    return `${a.answer.split(/\n{2,}/).map((x) => `<p>${esc(x)}</p>`).join("")}${a.supported ? "" : `<p class="fine">${esc(T("as.unsupported"))}</p>`}
+      <p class="fine">${esc(T("as.sources"))}: ${esc(src)} · ${esc(T("as.quotes", a.quotes.filter((q) => q.found).length, a.quotes.length))}</p>
+      ${f ? `<p>${a.applied ? `<span class="fine">✓ ${esc(T("as.added"))}</span>` : `<button type="button" class="btn" data-pa-add="${a.id}">${esc(T("as.add", nm(f)))}</button>`} <a class="fine" href="#org/${ST.org.id}/profile">${esc(T("as.editFirst"))}</a></p>` : ""}`;
+  },
+  async apply(id) {
+    const a = asList().find((x) => x.id === id);
+    const r = await asApply([a]);
+    ST.me = undefined; await loadMe(); ST.resultsKey = null;
+    await loadOrg(ST.org.id, true);
+    if (location.hash.startsWith(`#org/${ST.org.id}`)) await refresh();
+    ensureEnglish(document.getElementById("oiTrMsg"));
+    return r.done.length ? T("as.saved", nm(FIELD[a.field])) : T("as.skipped", nm(FIELD[a.field]));
+  },
+  error: (e) => (e && e.message === "no_sources" ? T("as.noSources") : errText(e)),
+};
+window.ECOrg = { render, profileAssist };
 window.dispatchEvent(new Event("ecorg-ready"));

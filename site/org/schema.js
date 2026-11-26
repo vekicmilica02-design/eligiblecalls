@@ -67,7 +67,7 @@ export const FIELDS = [
   { id: "expertise", kind: "long", max: 3000, w: 4, en: "Expertise and competencies", sr: "Stručnost i kompetencije" },
 ];
 export const FIELD = Object.fromEntries(FIELDS.map((f) => [f.id, f]));
-export const SOURCES = ["manual", "document", "web"];
+export const SOURCES = ["manual", "document", "web", "assistant"];   // assistant: written by the profile assistant from the named sources
 export const CONFIDENCE = ["high", "medium", "low"];
 
 const isStr = (v) => typeof v === "string";

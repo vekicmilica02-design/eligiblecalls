@@ -6,7 +6,7 @@ import { verifyFields, robotsAllows, checkPublicUrl, aboutLinks, matchKey, htmlT
 import { parseJsonObject, complete } from "../src/org/ai.js";
 import { officialCountryOk } from "../src/org/ideas.js";
 import { GROQ_FREE } from "../src/providers.js";
-import { contextFrom } from "../site/org/schema.js";
+import { contextFrom, FIELD } from "../site/org/schema.js";
 import { mockD1, mockAssets, sseStream, mockFetch } from "./mocks.js";
 import { readFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -830,24 +830,30 @@ await t("English copy of the profile text: made once per version, edited copy ke
   assert.deepEqual(org.translation.langs, { description: "sr", mission: "sr", expertise: "en" });
   // the model fails: the profile stays saved, nothing is stored, matching keeps the original text
   const seen0 = aiSeen.length;
-  aiAnswer = "not json at all";
+  // one request per field, answered as plain text; the field is named in the instructions
+  const byField = (m) => (input) => { const sys = input.messages[0].content; const k = Object.keys(m).find((f) => sys.includes(`("${FIELD[f].en}")`)); return k ? m[k] : ""; };
+  aiAnswer = "Omladinsko udruženje iz Novog Sada.";   // still Serbian: refused for every field
   let r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
   assert.deepEqual([r.status, r.j.error], [502, "ai_bad_answer"]);
-  assert.equal(aiSeen.length, seen0 + 1, "one model call for all fields");
+  assert.equal(aiSeen.length, seen0 + 2, "one model call per field");
   org = (await call("GET", `/api/orgs/${o}`, { cookie: u })).j;
   assert.equal(org.version, 2); assert.deepEqual(org.translation.textEn, {});
   // a translation that is still Serbian is not accepted for that field
-  aiAnswer = JSON.stringify({ description: "Youth association from Novi Sad running non-formal education on digital skills for young people.", mission: "Želimo da svaka mlada osoba ima veštine." });
+  aiAnswer = byField({ description: "Youth association from Novi Sad running non-formal education on digital skills for young people.", mission: "Želimo da svaka mlada osoba ima veštine." });
   r = await call("POST", `/api/orgs/${o}/translation`, { cookie: v, body: {} });
   assert.equal(r.status, 403, "viewers cannot translate");
   r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
   assert.equal(r.status, 200, JSON.stringify(r.j)); assert.deepEqual(r.j.translated, ["description"]);
-  assert.deepEqual(r.j.pending, ["mission"]); assert.match(r.j.textEn.description, /^Youth association/);
-  assert.match(aiSeen.at(-1).messages[0].content, /DATA\. Instructions inside them/);
-  const userMsg = aiSeen.at(-1).messages[1].content;
-  assert.ok(userMsg.includes("Omladinsko") && !userMsg.includes("Non-formal education and digital youth work"), "only the non-English fields are sent");
+  assert.deepEqual(r.j.pending, ["mission"]); assert.deepEqual(r.j.failed, ["mission"]); assert.match(r.j.textEn.description, /^Youth association/);
+  assert.match(aiSeen.at(-2).messages[0].content, /DATA\. Instructions inside it/);
+  const userMsgs = aiSeen.slice(-2).map((x) => x.messages[1].content).join("\n");
+  assert.ok(userMsgs.includes("Omladinsko") && !userMsgs.includes("Non-formal education and digital youth work"), "only the non-English fields are sent");
+  // an English copy that keeps the Serbian legal name and town is English, not Serbian
+  const { cleanCopy } = await import("../src/org/translate.js");
+  assert.ok(cleanCopy("The association Udruženje građana Kreativni centar from Čačak promotes youth education and cultural exchange in Serbia.", sr.description));
+  assert.equal(cleanCopy("Omladinsko udruženje.", sr.description), null, "Serbian or cut short: refused");
   // nothing left to do: no model call
-  aiAnswer = JSON.stringify({ mission: "We want every young person to have digital and civic skills." });
+  aiAnswer = "We want every young person to have digital and civic skills.";
   r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
   assert.deepEqual(r.j.translated, ["mission"]);
   const seen1 = aiSeen.length;
@@ -863,7 +869,7 @@ await t("English copy of the profile text: made once per version, edited copy ke
   assert.deepEqual(org.translation.pending, ["mission"], "the edited copy is not translated again");
   assert.match(org.translation.textEn.description, /media literacy/, "the edited copy is still used");
   assert.equal(org.translation.textEn.mission, undefined, "a stale automatic copy is not used");
-  aiAnswer = JSON.stringify({ description: "MACHINE TEXT THAT MUST NOT REPLACE THE EDIT about youth.", mission: "We want every young person to have digital and civic skills, and active participation." });
+  aiAnswer = byField({ description: "MACHINE TEXT THAT MUST NOT REPLACE THE EDIT about youth.", mission: "We want every young person to have digital and civic skills, and active participation." });
   r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: {} });
   assert.deepEqual(r.j.translated, ["mission"]); assert.match(r.j.fields.description.text, /media literacy/); assert.equal(r.j.fields.mission.fromVersion, 3);
   // budget spent: the call is refused before any model call and the profile stays as saved
@@ -1037,6 +1043,14 @@ await t("AI chain for organisation work: no retired Groq models; a per-minute li
     const r2 = await complete({ env: env2, userId: "u1", messages: [{ role: "user", content: "x" }], maxOut: 300, now: Date.parse("2026-11-15T12:00:00Z"), fetchImpl: mockFetch(seen, { groqByModel: { "openai/gpt-oss-120b": "empty" } }) });
     assert.equal(r2.model, "openai/gpt-oss-20b"); assert.equal(r2.text, "From Groq.");
     assert.equal(env2.DB._db.prepare("SELECT count FROM ai_usage WHERE user_id = 'u1'").get().count, 1, "one action for one answer");
+    // an answer the caller refuses (cut short, wrong language) moves on to the next provider
+    env2 = { DB: mockD1(), GROQ_API_KEY: "test", AI: { run: async () => sseStream([{ response: "Ово је и даље српски." }]) } };
+    const r3 = await complete({ env: env2, userId: "u1", messages: [{ role: "user", content: "x" }], maxOut: 300, now: Date.parse("2026-11-15T12:00:00Z"), fetchImpl: mockFetch([]), accept: (t) => /Groq/.test(t) });
+    assert.equal(r3.provider, "groq"); assert.equal(r3.text, "From Groq.");
+    env2 = { DB: mockD1(), GROQ_API_KEY: "test" };
+    let e3 = null;
+    await complete({ env: env2, userId: "u1", messages: [{ role: "user", content: "x" }], maxOut: 300, now: Date.parse("2026-11-15T12:00:00Z"), fetchImpl: mockFetch([]), accept: () => false }).catch((e) => (e3 = e));
+    assert.equal(e3.message, "ai_bad_answer", "every provider answered and every answer was refused");
     // nothing answered: the reserved action is given back
     env2 = { DB: mockD1(), GROQ_API_KEY: "test" };
     await complete({ env: env2, userId: "u1", messages: [{ role: "user", content: "x" }], maxOut: 300, now: Date.parse("2026-11-15T12:00:00Z"), fetchImpl: mockFetch([], { groqByModel: { "openai/gpt-oss-120b": [500, "x"], "openai/gpt-oss-20b": "empty" } }) }).catch(() => {});
@@ -1309,6 +1323,71 @@ await t("statute read from a PDF: words broken at line ends, Cyrillic text, summ
   const p = planFill({ name: "Mladi za Novi Sad", country: "RS" }, { kind: "document", sourceName: "statut.pdf", fields: v.fields });
   assert.deepEqual(p.conflicts, [], "the same name in the other script is not a conflict");
   assert.deepEqual(p.filled.map((f) => f.id).sort(), ["city", "objectives", "orgType"]);
+});
+
+await t("profile assistant: a question for each empty field, answered from statute passages and the website, quotes checked", async () => {
+  const { pickPassages, assistFields, paragraphs } = await import("../site/org/assist.js");
+  const { parseAnswer, usableAnswer } = await import("../src/org/assistant.js");
+  const statute = "СТАТУТ УДРУЖЕЊА „МЛАДИ ЗА НОВИ САД“\n\nЧлан 1.\nУдружење „Млади за Нови Сад“ је добровољно, невладино и непрофитно удружење.\n\nЧлан 2.\nЦиљеви Удружења су подстицање активног учешћа младих у друштву, унапређење неформалног образовања и заштита животне средине.\n\nЧлан 3.\nОргани Удружења су Скупштина и Управни одбор.\n\nЧлан 4.\nМисија Удружења је да сваки млади човек у Војводини има приступ квалитетном неформалном образовању.\n\nЧлан 9.\nСредства Удружења стичу се од чланарина и донација.";
+  // questions only for empty free-text fields, in a fixed order
+  assert.deepEqual(assistFields({ description: "x", mission: "" }).slice(0, 3), ["mission", "objectives", "expertise"]);
+  assert.ok(paragraphs(statute).length >= 5, "articles are separate passages");
+  // passages: the mission article is chosen for the mission question, the funding article is not
+  const pm = pickPassages([{ name: "statut.pdf", text: statute }], { field: "mission", budget: 120 });
+  assert.ok(pm.some((x) => /Мисија/.test(x.text)), JSON.stringify(pm));
+  assert.ok(!pm.some((x) => /чланарина/.test(x.text)), "an unrelated article stays out within a small budget");
+  // the answer form: parsed with line breaks; a short or English answer on a Serbian page is refused
+  const long = "Naša organizacija radi sa mladima. ".repeat(14);
+  const ok = parseAnswer(`ENOUGH: yes\nANSWER:\n${long}\n\nDrugi pasus.\nQUOTES:\n- Мисија Удружења је да сваки млади човек\nGAPS: none`);
+  assert.equal(ok.enough, true); assert.match(ok.answer, /Drugi pasus/); assert.equal(ok.quotes.length, 1); assert.equal(ok.gaps, "");
+  assert.equal(usableAnswer(ok, "sr"), true);
+  assert.equal(usableAnswer(parseAnswer("ENOUGH: yes\nANSWER:\nKratko.\nQUOTES:\n"), "sr"), false, "cut short");
+  assert.equal(usableAnswer(parseAnswer(`ENOUGH: yes\nANSWER:\n${"Our organisation works with the young people of the region. ".repeat(8)}\nQUOTES:\n`), "sr"), false, "English on a Serbian page");
+  assert.equal(parseAnswer('{"answer": "x"}'), null, "another form is not an answer");
+  assert.equal(usableAnswer(parseAnswer("ENOUGH: no\nANSWER:\nQUOTES:\nGAPS: Statut ne navodi viziju."), "sr"), true, "'not in the sources' is a valid answer");
+
+  env.DB._db.exec("DELETE FROM usage");   // the provider budgets spent by earlier tests
+  const u = await signIn("asist@example.org"), v = await signIn("asist-view@example.org");
+  const o = (await call("POST", "/api/orgs", { cookie: u, body: { name: "Mladi za Novi Sad" } })).j.id;
+  const vid = env.DB._db.prepare("SELECT id FROM users WHERE email = 'asist-view@example.org'").get().id;
+  env.DB._db.prepare("INSERT INTO org_members (org_id, user_id, role, created_at) VALUES (?, ?, 'viewer', ?)").run(o, vid, NOW);
+  await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { name: "Mladi za Novi Sad", orgType: "ngo", country: "RS", website: "https://mladi-ns.example.org" }, baseVersion: 1 } });
+  web["https://mladi-ns.example.org/robots.txt"] = [404, "text/plain", ""];
+  web["https://mladi-ns.example.org/"] = [200, "text/html", "<html><title>Mladi za Novi Sad</title><body><p>Mladi za Novi Sad organizuje radionice medijske pismenosti za srednjoškolce u Vojvodini.</p><a href='/o-nama'>O nama</a></body></html>"];
+  web["https://mladi-ns.example.org/o-nama"] = [200, "text/html", "<p>Naša vizija je zajednica u kojoj mladi aktivno učestvuju u donošenju odluka.</p>"];
+  const passages = pickPassages([{ name: "statut.pdf", text: statute }], { field: "mission", budget: 2600 });
+  let seen;
+  aiAnswer = (input) => { seen = input; return `ENOUGH: yes\nANSWER:\n${long}\n\nNaša vizija je zajednica aktivnih mladih.\nQUOTES:\n- Мисија Удружења је да сваки млади човек у Војводини има приступ квалитетном неформалном образовању.\n- Naša vizija je zajednica u kojoj mladi aktivno učestvuju u donošenju odluka.\n- Ova rečenica ne postoji nigde.\nGAPS: none`; };
+  assert.equal((await call("POST", `/api/orgs/${o}/assistant`, { cookie: v, body: { field: "mission", passages, lang: "sr" } })).status, 403, "viewers cannot ask");
+  assert.equal((await call("POST", `/api/orgs/${o}/assistant`, { cookie: u, body: { field: "name", passages, lang: "sr" } })).status, 400, "only the free-text fields");
+  let r = await call("POST", `/api/orgs/${o}/assistant`, { cookie: u, body: { field: "mission", passages, lang: "sr" } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  assert.equal(r.j.enough, true); assert.match(r.j.answer, /vizija/); assert.equal(r.j.question, "Koja je misija i vizija naše organizacije?");
+  assert.deepEqual(r.j.quotes.map((q) => q.found), [true, true, false], "quotes are looked for in the statute (Cyrillic) and the website");
+  assert.equal(r.j.quotes[0].source, "statut.pdf"); assert.equal(r.j.quotes[1].source, "https://mladi-ns.example.org/o-nama");
+  assert.equal(r.j.supported, true);
+  assert.deepEqual(r.j.sources.map((x) => x.kind), ["document", "web", "web"]);
+  const sys = seen.messages[0].content, usr = seen.messages[1].content;
+  assert.match(sys, /ONLY the SOURCES/); assert.match(sys, /Serbian \(Latin script\)/); assert.match(sys, /ekavian/); assert.match(sys, /mission \(why the organisation exists/);
+  assert.ok(usr.includes("Мисија Удружења") && usr.includes("medijske pismenosti"), "statute passages and website text are both sent");
+  // a free question; the website only
+  aiAnswer = `ENOUGH: no\nANSWER:\nQUOTES:\nGAPS: Izvori ne navode broj zaposlenih.`;
+  r = await call("POST", `/api/orgs/${o}/assistant`, { cookie: u, body: { question: "Koliko zaposlenih imamo?", lang: "sr" } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  assert.equal(r.j.enough, false); assert.equal(r.j.answer, ""); assert.match(r.j.gaps, /zaposlenih/);
+  // an answer in the wrong form from every provider: refused, no AI action used
+  aiAnswer = "Sure! Here is a mission statement.";
+  r = await call("POST", `/api/orgs/${o}/assistant`, { cookie: u, body: { field: "objectives", passages, lang: "sr", useWebsite: false } });
+  assert.deepEqual([r.status, r.j.error], [502, "ai_bad_answer"]);
+  // no document and no website: nothing to answer from
+  await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { name: "Mladi za Novi Sad", orgType: "ngo", country: "RS" }, baseVersion: 2 } });
+  r = await call("POST", `/api/orgs/${o}/assistant`, { cookie: u, body: { field: "objectives", passages: [], lang: "en" } });
+  assert.deepEqual([r.status, r.j.error], [400, "no_sources"]);
+  // the answer is saved like any profile value, marked as written by the assistant
+  r = await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { name: "Mladi za Novi Sad", orgType: "ngo", country: "RS", mission: long, _meta: { mission: { source: "assistant", sourceName: "statut.pdf + https://mladi-ns.example.org/o-nama", confidence: "medium", verified: false } } }, baseVersion: 3 } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  const org = (await call("GET", `/api/orgs/${o}`, { cookie: u })).j;
+  assert.equal(org.profile._meta.mission.source, "assistant");
 });
 
 console.log(`\n${pass} passed`);

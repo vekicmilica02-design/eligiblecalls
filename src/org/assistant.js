@@ -9,12 +9,14 @@
 // does not follow the form is refused and the next provider is asked (src/org/ai.js accept). Every quote the model
 // gives is looked for in the sources; the page shows which were found. Nothing is written to the profile here: the
 // page saves an answer through the normal profile save when the member chooses to.
+// Answers for empty fields use no AI action (an organisation may have ORG_ASSIST_PER_DAY a day); own questions use one.
 
 import { FIELD } from "../../site/org/schema.js";
 import { ASSIST_FIELDS, pickPassages } from "../../site/org/assist.js";
 import { toLatin } from "../../site/org/templates.js";
 import { complete } from "./ai.js";
 import { HttpError, json } from "./http.js";
+import { utcDay, visitorHit } from "../budget.js";
 import { SR_STYLE } from "../core.js";
 import { checkPublicUrl, robotsChecker, fetchPage, aboutLinks, quoteIn, matchKey, joinBreaks, scrub } from "./extract.js";
 import { serbianLexFix } from "../../site/org/lang.js";
@@ -37,7 +39,7 @@ export function assistantMessages({ field, question, lang, orgName, sources }) {
     "5. Give two to four QUOTES: sentences copied character for character from the sources that support the answer, each on its own line starting with \"- \".",
     `6. Write the ANSWER in ${lang === "sr" ? "Serbian (Latin script)" : "English"}, whatever the language of the sources. Quotes stay in the language of the source.`,
     ...(lang === "sr" ? [SR_STYLE] : []),
-    "Answer in exactly this form and nothing else:",
+    "Answer in exactly this form and nothing else. Keep the four labels ENOUGH, ANSWER, QUOTES and GAPS in English exactly as written, whatever the language of the answer:",
     "ENOUGH: yes or no",
     "ANSWER:",
     "<the text>",
@@ -51,20 +53,24 @@ export function assistantMessages({ field, question, lang, orgName, sources }) {
 }
 
 // The plain-text answer form. Returns {enough, answer, quotes, gaps} or null when the form is not there.
+// Models asked for a Serbian answer sometimes translate the labels too (ODGOVOR, CITATI): both forms are read.
+const LBL = { enough: "ENOUGH|DOVOLJNO|DOVOLJNO PODATAKA", answer: "ANSWER|ODGOVOR", quotes: "QUOTES|CITATI|NAVODI", gaps: "GAPS|NEDOSTAJE|PRAZNINE|NEDOSTACI" };
+const lbl = (k, flags = "im") => new RegExp(`^\\s*[#*_]*\\s*(?:${LBL[k]})\\s*[*_]*\\s*:\\s*[*_]*`, flags);
 export function parseAnswer(text) {
   const s = String(text || "").replace(/\r/g, "").replace(/^```[a-z]*\n?|```\s*$/g, "").trim();
-  const enough = (s.match(/^\s*\**ENOUGH\**\s*:\s*\**\s*(yes|no|da|ne)\b/im) || [])[1];
-  const a = s.search(/^\s*\**ANSWER\**\s*:/im);
+  const em = s.match(new RegExp(lbl("enough").source + "\\s*(yes|no|da|ne)\\b", "im"));
+  const enough = em && em[1];
+  const a = s.search(lbl("answer"));
   if (!enough || a < 0) return null;
-  const rest = s.slice(a).replace(/^\s*\**ANSWER\**\s*:\s*/i, "");
-  const qi = rest.search(/^\s*\**QUOTES\**\s*:/im), gi = rest.search(/^\s*\**GAPS\**\s*:/im);
+  const rest = s.slice(a).replace(lbl("answer", "i"), "");
+  const qi = rest.search(lbl("quotes")), gi = rest.search(lbl("gaps"));
   const cut = [qi, gi].filter((x) => x >= 0);
   const answer = (cut.length ? rest.slice(0, Math.min(...cut)) : rest).trim();
-  const quotesPart = qi >= 0 ? rest.slice(qi, gi > qi ? gi : undefined).replace(/^\s*\**QUOTES\**\s*:\s*/i, "") : "";
+  const quotesPart = qi >= 0 ? rest.slice(qi, gi > qi ? gi : undefined).replace(lbl("quotes", "i"), "") : "";
   const quotes = quotesPart.split("\n").map((l) => l.replace(/^\s*[-*•]\s*/, "").replace(/^["“„«]|["”“»]$/g, "").trim()).filter((l) => l.length >= 8).slice(0, 6);
-  const gaps = gi >= 0 ? rest.slice(gi).replace(/^\s*\**GAPS\**\s*:\s*/i, "").split("\n")[0].trim() : "";
+  const gaps = gi >= 0 ? rest.slice(gi).replace(lbl("gaps", "i"), "").split("\n")[0].trim() : "";
   const yes = /^(yes|da)$/i.test(enough);
-  return { enough: yes && answer.length > 0, answer, quotes, gaps: /^(none|nema|-)\.?$/i.test(gaps) ? "" : gaps };
+  return { enough: yes && answer.length > 0, answer, quotes, gaps: /^(none|nema|nista|ništa|-)\.?$/i.test(gaps) ? "" : gaps };
 }
 
 // An answer worth showing: the form is there, and an answer marked as enough is a real text of some length.
@@ -130,9 +136,17 @@ export async function assistantRoute({ env, db, org, user, profile, body, now, f
   if (!sources.length) throw new HttpError(400, "no_sources");
 
   const messages = assistantMessages({ field, question, lang, orgName: profile.name, sources });
-  const maxOut = 1400;
+  // Room for a 250-word answer with its quotes plus the reasoning tokens gpt-oss models spend first; Serbian text and
+  // Cyrillic quotes need more tokens per word.
+  const maxOut = lang === "sr" ? 2400 : 1800;
+  // Answers for the profile's empty fields use no AI action (filling the profile is what the site is for); an
+  // organisation may have ORG_ASSIST_PER_DAY of them a day (default 40). A member's own question uses one action.
+  if (field) {
+    const day = utcDay(now);
+    if ((await visitorHit(db, day, "assist:" + org.id)) > (+env.ORG_ASSIST_PER_DAY || 40)) throw new HttpError(429, "assist_limit", { limit: +env.ORG_ASSIST_PER_DAY || 40 });
+  }
   let parsed = null;
-  const r = await complete({ env, userId: user.id, messages, agent: "assistant", maxOut, now, fetchImpl, waitUntil, cacheOrg: org.id, fresh: body.fresh === true, prefer: "fast",
+  const r = await complete({ env, userId: user.id, messages, agent: "assistant", maxOut, now, fetchImpl, waitUntil, cacheOrg: org.id, fresh: body.fresh === true, prefer: "fast", charge: !field,
     accept: (t) => usableAnswer(parseAnswer(t), lang) });
   parsed = parseAnswer(r.text);
   await r.keep();

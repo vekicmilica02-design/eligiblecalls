@@ -9,6 +9,7 @@ import path from "node:path";
 import { handleChat, handleHealth } from "../src/chat.js";
 import { handleApi } from "../src/org/api.js";
 import { handleQueryEn } from "../src/queryen.js";
+import { handleTranslateText } from "../src/texttr.js";
 import { mockD1, mockAI, mockFetch, sseStream, ROOT } from "./mocks.js";
 
 const SITE = path.join(ROOT, "site");
@@ -39,10 +40,16 @@ function demoAI(seen) {
       const text = JSON.stringify({ words: Object.fromEntries(words.map((w) => [w, known[w] || ""])) });
       return sseStream([{ response: text }, { response: "", usage: { prompt_tokens: 200, completion_tokens: 30 } }]);
     }
+    if (sys.startsWith("You translate texts from European funding calls")) {
+      // Site texts: a marked copy in the target language.
+      const sr = /into Serbian/.test(sys), u = input.messages[1].content, mark = sr ? "[SR] " : "[EN] ";
+      const text = /^<text>/.test(u) ? mark + u.replace(/^<text>\n|\n<\/text>$/g, "") : u.split("\n").map((l) => l.replace(/^(\d+)\. /, "$1. " + mark)).join("\n");
+      return sseStream([{ response: text }, { response: "", usage: { prompt_tokens: 300, completion_tokens: 300 } }]);
+    }
     if (sys.startsWith("You translate one field")) {
       // Profile translation: a marked English copy of the text.
       const src = (input.messages[1].content.match(/<text>\n([\s\S]*)\n<\/text>/) || [, ""])[1];
-      const en = "This English copy was made by the test model and stands for the translation of the field. ";
+      const en = /into Serbian/.test(sys) ? "Ovaj srpski prevod napravio je test model i zamenjuje prevod polja na srpski. " : "This English copy was made by the test model and stands for the translation of the field. ";
       return sseStream([{ response: en.repeat(Math.max(1, Math.round(src.length / en.length))) }, { response: "", usage: { prompt_tokens: 400, completion_tokens: 200 } }]);
     }
     if (sys.startsWith("You write one part of an organisation's profile")) {
@@ -214,6 +221,7 @@ const server = http.createServer(async (req, res) => {
       if (url.pathname === "/api/chat" && req.method === "POST") r = await handleChat({ request, env, now: nowFn(), fetchImpl: mockFetch() });
       else if (url.pathname === "/api/health") r = await handleHealth({ env, now: nowFn() });
       else if (url.pathname === "/api/query-en" && req.method === "POST") r = await handleQueryEn({ request, env, now: nowFn(), fetchImpl: mockFetch() });
+      else if (url.pathname === "/api/translate-text" && req.method === "POST") r = await handleTranslateText({ request, env, now: nowFn(), fetchImpl: mockFetch() });
       else if (/^\/api\/(auth|orgs|admin|access)(\/|$)|^\/api\/me(\/|$)/.test(url.pathname)) r = await handleApi({ request, env, now: nowFn(), fetchImpl: googleStub });
       else r = new Response("not found", { status: 404 });
       const hs = Object.fromEntries([...r.headers].filter(([k]) => k !== "set-cookie"));

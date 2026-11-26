@@ -1325,6 +1325,68 @@ await t("statute read from a PDF: words broken at line ends, Cyrillic text, summ
   assert.deepEqual(p.filled.map((f) => f.id).sort(), ["city", "objectives", "orgType"]);
 });
 
+await t("profile texts in both page languages: Serbian copies of English fields on a Serbian page, a few per request", async () => {
+  env.DB._db.exec("DELETE FROM usage");
+  const u = await signIn("dvojezicno@example.org");
+  const o = (await call("POST", "/api/orgs", { cookie: u, body: { name: "Energetika" } })).j.id;
+  const en = "We exist to provide reliable district heating services to the residents and businesses of Kragujevac, with accurate billing.";
+  const sr = "Energetski subjekt koji obavlja dve energetske delatnosti u gradu Kragujevcu.";
+  await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { name: "Energetika", orgType: "company", country: "RS", description: sr, mission: en, objectives: en + " Also maintenance.", capacity: en + " Staff.", infrastructure: en + " Network.", partnerships: en + " Forums." }, baseVersion: 1 } });
+  let org = (await call("GET", `/api/orgs/${o}`, { cookie: u })).j;
+  assert.deepEqual(org.translation.pending, ["description"], "English copy only for the Serbian field");
+  assert.deepEqual(org.translation.pendingSr, ["mission", "objectives", "partnerships", "infrastructure", "capacity"], "Serbian copies for the English fields");
+  aiAnswer = (input) => /into Serbian/.test(input.messages[0].content) ? "Postojimo da bismo stanovnicima i preduzećima Kragujevca pružali pouzdano daljinsko grejanje uz tačan obračun potrošnje." : "Energy company carrying out two energy activities in the city of Kragujevac.";
+  const n0 = aiSeen.length;
+  let r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: { lang: "sr" } });
+  assert.equal(r.status, 200, JSON.stringify(r.j));
+  assert.equal(r.j.translatedAll.length, 4, "at most four copies per request"); assert.equal(r.j.more, true);
+  assert.ok(r.j.translatedAll.every((x) => x.startsWith("sr:")), "the page's language first");
+  assert.match(aiSeen.at(-1).messages[0].content, /ekavian/);
+  r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: { lang: "sr" } });
+  assert.deepEqual(r.j.translatedAll, ["sr:capacity", "en:description"]); assert.equal(r.j.more, false);
+  assert.equal(aiSeen.length, n0 + 6);
+  assert.match(r.j.sr.mission.text, /daljinsko grejanje/); assert.match(r.j.fields.description.text, /^Energy company/);
+  assert.deepEqual(r.j.pendingSr, []); assert.deepEqual(r.j.pending, []);
+  assert.deepEqual(Object.keys(r.j.textEn), ["description"], "matching reads only its own fields");
+  assert.equal(env.DB._db.prepare("SELECT COUNT(*) n FROM ai_usage WHERE user_id = (SELECT id FROM users WHERE email = 'dvojezicno@example.org')").get().n, 0, "page translations use no AI action");
+  // an English page asks for English copies only
+  await call("PUT", `/api/orgs/${o}/profile`, { cookie: u, body: { profile: { name: "Energetika", orgType: "company", country: "RS", description: sr, mission: en + " Changed." }, baseVersion: 2 } });
+  org = (await call("GET", `/api/orgs/${o}`, { cookie: u })).j;
+  assert.equal(org.translation.sr.mission.stale, true, "a copy of an older text is marked stale");
+  const n1 = aiSeen.length;
+  r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: { lang: "en" } });
+  assert.equal(aiSeen.length, n1, "nothing to do on an English page"); assert.deepEqual(r.j.pendingSr, ["mission"]);
+  // a copy still in the wrong language is refused; the next request skips the failed field
+  aiAnswer = "We exist to provide reliable district heating services to the residents of Kragujevac, and more.";
+  r = await call("POST", `/api/orgs/${o}/translation`, { cookie: u, body: { lang: "sr" } });
+  assert.deepEqual([r.status, r.j.error], [502, "ai_bad_answer"], "the only field failed: the error is the answer");
+});
+
+await t("POST /api/translate-text: call titles and official texts in the page language, kept for every visitor", async () => {
+  const { handleTranslateText, parseNumbered } = await import("../src/texttr.js");
+  env.DB._db.exec("DELETE FROM usage");
+  const req = (b, ip = "198.51.100.7") => new Request("https://x.test/api/translate-text", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": ip }, body: JSON.stringify(b) });
+  const go = async (b, ip) => (await handleTranslateText({ request: req(b, ip), env, now: NOW, fetchImpl })).json();
+  assert.deepEqual(parseNumbered("1. Prvi\n2. Drugi", ["First", "Second"]), ["Prvi", "Drugi"]);
+  assert.equal(parseNumbered("1. Prvi", ["First", "Second"]), null, "an item missing: refused");
+  let seen = null;
+  aiAnswer = (input) => { seen = input; return "1. Zajednica prakse\n2. Pozivi za novinare"; };
+  let r = await go({ lang: "sr", mode: "short", texts: ["Community of practice", "Calls for journalists"] });
+  assert.deepEqual(r.tr, ["Zajednica prakse", "Pozivi za novinare"]);
+  assert.match(seen.messages[0].content, /into Serbian/); assert.match(seen.messages[1].content, /^1\. Community of practice\n2\. Calls for journalists$/);
+  const n = aiSeen.length;
+  r = await go({ lang: "sr", mode: "lookup", texts: ["Calls for journalists", "Something new"] }, "198.51.100.8");
+  assert.deepEqual(r.tr, ["Pozivi za novinare", null], "kept for another visitor; lookup never asks the model");
+  assert.equal(aiSeen.length, n);
+  aiAnswer = "PUBLIC CALL - Programme supporting companies to enter the supply chains of multinational companies.";
+  r = await go({ lang: "en", mode: "long", texts: ["JAVNI POZIV - Program podrške privrednim društvima za ulazak u lance dobavljača multinacionalnih kompanija"] });
+  assert.match(r.tr[0], /^PUBLIC CALL/);
+  aiAnswer = "Ovo je i dalje na srpskom: program podrške privrednim društvima i preduzećima u Srbiji.";
+  r = await go({ lang: "en", mode: "long", texts: ["Drugi javni poziv za podršku privrednim društvima u Republici Srbiji."] });
+  assert.equal(r.tr[0], null); assert.equal(r.unavailable, true, "a copy still in Serbian is not kept");
+  assert.equal((await go({ lang: "xx", texts: ["a"] })).error, "bad_request");
+});
+
 await t("profile assistant: a question for each empty field, answered from statute passages and the website, quotes checked", async () => {
   const { pickPassages, assistFields, paragraphs } = await import("../site/org/assist.js");
   const { parseAnswer, usableAnswer } = await import("../src/org/assistant.js");

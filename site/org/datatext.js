@@ -186,5 +186,32 @@
     return text;
   }
 
-  g.ECsr = { data, source, prog, critNote, critSum };
+  // Whether a text from a source needs a machine translation for a page in `lang`. Same rules as detectLang in
+  // site/org/lang.js (kept here because this file is a classic script the page loads before the modules).
+  const SRW = new Set("i u na za sa se je su da od do iz kao koji koja koje kojih ili kroz kod prema nije smo ste bi biti ovo ova ovaj njihov naš naša naše nas svoje svojih takođe takodje kako".split(" "));
+  const ENW = new Set("the and of to in for with is are on by from that this our we their as an be at which who".split(" "));
+  function langOf(text) {
+    const t = String(text || ""), letters = (t.match(/\p{L}/gu) || []).length;
+    if (!letters) return "unknown";
+    if ((t.match(/[Ѐ-ӿ]/g) || []).length / letters > 0.3) return "sr";
+    const dia = (t.match(/[čćšžđČĆŠŽĐ]/g) || []).length;
+    const words = t.toLowerCase().split(/[^\p{L}]+/u).filter(Boolean);
+    let sr = 0, en = 0;
+    for (const w of words) { if (SRW.has(w)) sr++; if (ENW.has(w)) en++; }
+    if (en >= 3 && en > 2 * sr) return "en";
+    if (dia >= 2 || (dia >= 1 && sr >= 1) || (sr >= 2 && sr > en)) return "sr";
+    if (en >= 2 || (en >= 1 && words.length <= 8)) return "en";
+    const morph = words.filter((w) => (/(tion|tions|ment|ments|ing|ity|ities|ance|ence|ship|ness|ive|able|ical|ology|ials|ies|ics)$/.test(w) || /^(call|calls|open|grant|grants|fund|award|prize|digital|network|programme|support|research|sandpit|data|energy|health)$/.test(w))).length;
+    if (words.length >= 6 && morph >= Math.max(2, words.length / 4) && !dia) return "en";
+    if (words.length >= 6) return "other";
+    return "unknown";
+  }
+  function needsTr(text, lang) {
+    const words = String(text || "").split(/[^\p{L}]+/u).filter((w) => w.length >= 3);
+    if (words.length < 2) return false;   // codes, acronyms, single names
+    const l = langOf(text);
+    return lang === "sr" ? l !== "sr" : l === "sr" || l === "other";
+  }
+
+  g.ECsr = { data, source, prog, critNote, critSum, langOf, needsTr };
 })(typeof globalThis !== "undefined" ? globalThis : window);

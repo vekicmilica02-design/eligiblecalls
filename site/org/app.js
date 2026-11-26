@@ -12,6 +12,9 @@ const EC = window.EC;
 const esc = EC.esc;
 const L = () => (EC.lang === "sr" ? "sr" : "en");
 const nm = (o) => (o ? o[L()] || o.en : "");
+// A text from a source (call title, official criteria text) that the page translates when it is not in the page
+// language (index.html trScan, POST /api/translate-text).
+const trs = (s) => (EC.trs ? EC.trs(s ?? "") : esc(s ?? ""));
 
 /* ---------- text ---------- */
 const S = {
@@ -244,7 +247,7 @@ const S = {
       gaps: "Not in the sources:", quotes: (f, n) => `Supporting quotes (${f} of ${n} found in the sources)`, found: (s) => `found in ${s}`, notFound: "not found in the sources", sources: "Sources",
       add: (f) => `Add to profile: ${f}`, added: "Added to the profile", again: "Write again", remove: "Remove", addAll: (n) => `Add all ${n} answers to the profile`, saving: "Saving to the profile…",
       saved: (list) => `Added to the profile: ${list}.`, editFirst: "Edit on the Profile page", skipped: (list) => `Not replaced, because they were filled in the meantime: ${list}.`, noSources: "Add a document or a website address first." },
-    trNone: "No English copy yet: matching uses the original text.", trRun: "Translate now", trSave: "Save copy", trSaved: "Copy saved.", trCleared: "Copy removed; the next save makes a machine translation again.", trDone: (n) => `English copy made for ${n} field(s).`, trNothing: "Every field already has an English copy.", trFailed: "The English copy could not be made, so matching uses the original text:", trPartial: (list) => `Not translated this time: ${list}. Matching uses the original text for them; press Translate now to try again.`,
+    trNone: "No English copy yet: matching uses the original text.", trRun: "Translate now", trSave: "Save copy", trSaved: "Copy saved.", trCleared: "Copy removed; the next save makes a machine translation again.", trDone: (n) => `English copy made for ${n} field(s).`, trNothing: "Every field already has an English copy.", trFailed: "The translation could not be made, so the original text is shown:", trPartial: (list) => `Not translated this time: ${list}. The original text is shown for them; press Translate now to try again.`, trShown: "machine translation", trOrigTip: "Original: ", trWaiting: "original; translation pending", trMaking: "Translating the profile texts…", trDoneAll: "The profile texts are shown in English.", trPendingN: (list) => `Not yet in English: ${list}.`,
     trUse: "Used for matching", trOrig: "Original text",
     adminTitle: "Administration", auAgents: "Use by function today", auAgentsNote: "Workers AI neurons count only for the Workers AI share; tokens count for every provider. Each row is the sum of the model requests made for that function.", auFn: "Function", auAg: { extract: "Reading documents", research: "Reading websites", ideas: "Project idea generation", fit: "Fit explanation", proposal: "Detailed proposal", evaluate: "Evaluation against call criteria", official: "Official eligibility check", translate: "Translations", assistant: "Profile assistant", improve: "Revising ideas below the threshold", other: "Other" }, auTitle: "AI usage today", auRefresh: "Refresh", auProvider: "Provider and model", auUsed: "Used", auBudget: "Daily budget", auOfBudget: "Of budget", auReq: "Requests",
     auLede: (d, r, s) => `UTC day ${d}. Allowances reset at ${r} (Belgrade time). The site stops each provider at its budget and moves to the next one; the workspace may use at most ${s}% of each budget, so the public assistant keeps working.`,
@@ -320,7 +323,7 @@ const S = {
     evalTabCalls: "Po pozivu", evalCallsNote: "Vaši otvoreni pozivi, najkompatibilniji prvi. Kriterijumi su navedeni na engleskom, jeziku zvaničnih dokumenata; merodavna su dokumenta samog poziva.", progL: "Program",
     evalShowIneligible: "Prikaži i pozive na koje ne možete da konkurišete", evalCount: (n, k) => `Poziva: ${n}; za ${k} kriterijumi su prikazani ovde, za ostale poziv navodi gde se nalaze.`,
     kindL: { framework: "Opšti aneks D", document: "Dokument poziva", page: "Stranica finansijera", pointer: "Videti poziv" }, openReport: "Detaljan izveštaj",
-    critNone: "Nema podataka o kriterijumima ocenjivanja za ovaj poziv.", critLang: "Kriterijumi se navode onako kako ih izvor zvanično objavljuje, na engleskom jeziku.", fromCallPage: "Posebno za ovaj poziv (stranica poziva):",
+    critNone: "Nema podataka o kriterijumima ocenjivanja za ovaj poziv.", critLang: "Tekst kriterijuma je mašinski preveden sa engleskog; merodavan je zvanični tekst (pređite mišem preko teksta za original).", fromCallPage: "Posebno za ovaj poziv (stranica poziva):",
     critFromAnnex: (row) => `Opšti aneks D programa Horizont Evropa, red „${row}“.`, heAnnex: "Opšti aneks D", critFromDoc: "Odeljak „Award criteria“ dokumenta poziva", callDoc: "Dokument poziva", evalForm: "Obrazac za ocenjivanje",
     critFromPage: (src) => `Stranica poziva (${src}), odeljak „How we will assess your application“.`, critPointer: "Kriterijumi nisu objavljeni u obliku koji ovaj sajt može da pročita. Nalaze se u dokumentima samog poziva.", critPointerNote: "Stranica poziva navodi gde su kriterijumi:",
     criterion: "Kriterijum", minPass: "Minimum", maxScore: "Maksimum", fullText: "Ceo tekst kriterijuma",
@@ -493,7 +496,7 @@ const S = {
       gaps: "Nema u izvorima:", quotes: (f, n) => `Citati kao potvrda (u izvorima pronađeno ${f} od ${n})`, found: (s) => `pronađeno u: ${s}`, notFound: "nije pronađeno u izvorima", sources: "Izvori",
       add: (f) => `Dodaj u profil: ${f}`, added: "Dodato u profil", again: "Napiši ponovo", remove: "Ukloni", addAll: (n) => `Dodaj sve odgovore u profil (${n})`, saving: "Čuvam u profil…",
       saved: (list) => `Dodato u profil: ${list}.`, editFirst: "Izmeni na strani Profil", skipped: (list) => `Nije zamenjeno jer je u međuvremenu popunjeno: ${list}.`, noSources: "Prvo dodajte dokument ili adresu veb-sajta." },
-    trNone: "Još nema engleske verzije: za poređenje se koristi originalni tekst.", trRun: "Prevedi sada", trSave: "Sačuvaj prevod", trSaved: "Prevod je sačuvan.", trCleared: "Prevod je uklonjen; sledeće čuvanje pravi novi mašinski prevod.", trDone: (n) => `Engleska verzija napravljena za polja: ${n}.`, trNothing: "Sva polja već imaju englesku verziju.", trFailed: "Engleska verzija nije napravljena, pa se za poređenje koristi originalni tekst:", trPartial: (list) => `Ovaj put nije prevedeno: ${list}. Za ta polja poređenje koristi originalni tekst; kliknite Prevedi sada da pokušate ponovo.`,
+    trNone: "Još nema engleske verzije: za poređenje se koristi originalni tekst.", trRun: "Prevedi sada", trSave: "Sačuvaj prevod", trSaved: "Prevod je sačuvan.", trCleared: "Prevod je uklonjen; sledeće čuvanje pravi novi mašinski prevod.", trDone: (n) => `Engleska verzija napravljena za polja: ${n}.`, trNothing: "Sva polja već imaju englesku verziju.", trFailed: "Prevod nije napravljen, pa se prikazuje originalni tekst:", trPartial: (list) => `Ovaj put nije prevedeno: ${list}. Za ta polja prikazuje se originalni tekst; kliknite Prevedi sada da pokušate ponovo.`, trShown: "mašinski prevod", trOrigTip: "Original: ", trWaiting: "original; prevod je u izradi", trMaking: "Prevodim tekstove profila…", trDoneAll: "Tekstovi profila prikazani su na srpskom.", trPendingN: (list) => `Još nije na srpskom: ${list}.`,
     trUse: "Koristi se za poređenje", trOrig: "Originalni tekst",
     adminTitle: "Administracija", auAgents: "Potrošnja po funkcijama danas", auAgentsNote: "Neuroni se računaju samo za Workers AI; tokeni za svakog dobavljača. Svaki red je zbir zahteva modelu poslatih za tu funkciju.", auFn: "Funkcija", auAg: { extract: "Čitanje dokumenata", research: "Čitanje veb-sajtova", ideas: "Generisanje projektnih ideja", fit: "Obrazloženje podudarnosti", proposal: "Detaljan predlog projekta", evaluate: "Ocena prema kriterijumima poziva", official: "Provera zvaničnih uslova podobnosti", translate: "Prevodi", assistant: "Asistent za profil", improve: "Dorada ideja ispod praga", other: "Ostalo" }, auTitle: "Potrošnja AI danas", auRefresh: "Osveži", auProvider: "Dobavljač i model", auUsed: "Potrošeno", auBudget: "Dnevni budžet", auOfBudget: "Od budžeta", auReq: "Zahtevi",
     auLede: (d, r, s) => `UTC dan ${d}. Dozvoljena potrošnja se obnavlja u ${r} (po beogradskom vremenu). Sajt zaustavlja svakog dobavljača na njegovom budžetu i prelazi na sledećeg; radni prostor organizacija sme da potroši najviše ${s}% svakog budžeta, da bi javni asistent nastavio da radi.`,
@@ -992,7 +995,7 @@ async function secOverview(arg) {
       ${stat(`#org/${id}/ideas/saved`, T("savedIdeasN"), savedIdeas, "", T("goIdeas"))}
       ${stat(`#org/${id}/reports`, T("savedReportsN"), savedReports, "", T("goReports"))}
     </div>
-    <div class="oi-card"><h2>${esc(T("upcoming"))}</h2>${soon.length ? `<div class="tw"><table class="oi-t upc"><tbody>${soon.map(({ r, dl }) => `<tr><td class="num">${esc(EC.fmtDate(dl))}</td><td><a href="#org/${id}/match/${encodeURIComponent(r.call.key)}">${esc(r.call.title)}</a><div class="fine">${esc((EC.P[r.call.programme] || {}).short || r.call.programmeName || "")}</div></td><td class="num">${scoreNum(r.score)}</td><td>${statusBadge(r.status)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="fine">${esc(T("none"))}</p>`}</div>
+    <div class="oi-card"><h2>${esc(T("upcoming"))}</h2>${soon.length ? `<div class="tw"><table class="oi-t upc"><tbody>${soon.map(({ r, dl }) => `<tr><td class="num">${esc(EC.fmtDate(dl))}</td><td><a href="#org/${id}/match/${encodeURIComponent(r.call.key)}">${trs(r.call.title)}</a><div class="fine">${esc((EC.P[r.call.programme] || {}).short || r.call.programmeName || "")}</div></td><td class="num">${scoreNum(r.score)}</td><td>${statusBadge(r.status)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="fine">${esc(T("none"))}</p>`}</div>
     <div class="oi-cols mt">
       <div class="oi-card"><h2>${esc(T("missingTitle"))}</h2>${c.missing.length ? `<p>${esc(listOf(c.missing.slice(0, 12), fieldName))}</p><p><a href="#org/${id}/profile/missing">${esc(T("fillProfile"))} →</a></p>` : `<p class="fine">${esc(T("missingNone"))}</p>`}
         <h2 class="mt">${esc(T("strengthsTitle"))}</h2>${strengths.length ? `<ul>${strengths.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="fine">${esc(T("none"))}</p>`}</div>
@@ -1046,6 +1049,21 @@ function readField(f) {
   if (f.kind === "bool") return el.value === "" ? null : el.value === "true";
   return el.value.trim() || null;
 }
+// A long free-text field in the page language: the copy in that language when the original is written in the other one
+// (src/org/translate.js); otherwise the original. A copy whose original changed since is not shown.
+function shownOf(org, f) {
+  const v = org && org.profile ? org.profile[f] : undefined;
+  if (!v || !FIELD[f] || FIELD[f].kind !== "long" || !org.translation) return v;
+  const x = (L() === "sr" ? org.translation.sr : org.translation.fields) || {};
+  return x[f] && !x[f].stale && x[f].text ? x[f].text : v;
+}
+function trBadge(org, f) {
+  const v = org.profile[f];
+  if (!v || FIELD[f].kind !== "long" || !org.translation) return "";
+  if (shownOf(org, f) !== v) return `<span class="prov tr" title="${esc(T("trOrigTip") + v.slice(0, 400))}">${esc(T("trShown"))}</span>`;
+  const pend = (L() === "sr" ? org.translation.pendingSr : org.translation.pending) || [];
+  return pend.includes(f) ? `<span class="prov unver">${esc(T("trWaiting"))}</span>` : "";
+}
 function secProfile(arg) {
   const org = ST.org, p = org.profile, meta = p._meta || {}, dis = !canEdit();
   const wide = new Set(["long", "multi", "countries"]);
@@ -1053,63 +1071,57 @@ function secProfile(arg) {
   return `<h1>${esc(T("nav.profile"))}</h1>${dis ? `<p class="note">${esc(T("viewerNote"))}</p>` : ""}
     ${arg === "missing" && miss.length && !dis ? `<p class="note warn">${esc(T("missingHere", miss.length))} <a href="#org/${org.id}/documents">${esc(T("orFromDocs"))} →</a></p>` : ""}
     ${dis ? "" : assistHTML()}
-    <form class="form" id="oiProfile" novalidate>${Object.entries(GROUPS).map(([g, ids]) => `<fieldset><legend>${esc(T("sections." + g))}</legend>${ids.map((fid) => { const f = FIELD[fid]; return `<div class="fld${wide.has(f.kind) ? " wide" : ""}" data-f="${fid}"><${f.kind === "multi" || f.kind === "countries" ? "span class=\"lbl\"" : `label for="f_${fid}"`}>${esc(nm(f))} ${provBadge(meta[fid])}</${f.kind === "multi" || f.kind === "countries" ? "span" : "label"}>${input(f, p[fid], dis)}<span class="err" hidden></span></div>`; }).join("")}</fieldset>`).join("")}
-    ${dis ? "" : `<div class="savebar"><button class="btn" type="submit">${esc(T("save"))}</button><span id="oiSaveMsg" class="fine" role="status"></span></div>`}</form>
-    ${trHTML()}`;
+    ${trHTML()}
+    <form class="form" id="oiProfile" novalidate>${Object.entries(GROUPS).map(([g, ids]) => `<fieldset><legend>${esc(T("sections." + g))}</legend>${ids.map((fid) => { const f = FIELD[fid]; return `<div class="fld${wide.has(f.kind) ? " wide" : ""}" data-f="${fid}"><${f.kind === "multi" || f.kind === "countries" ? "span class=\"lbl\"" : `label for="f_${fid}"`}>${esc(nm(f))} ${provBadge(meta[fid])}${trBadge(org, fid)}</${f.kind === "multi" || f.kind === "countries" ? "span" : "label"}>${input(f, shownOf(org, fid), dis)}<span class="err" hidden></span></div>`; }).join("")}</fieldset>`).join("")}
+    ${dis ? "" : `<div class="savebar"><button class="btn" type="submit">${esc(T("save"))}</button><span id="oiSaveMsg" class="fine" role="status"></span></div>`}</form>`;
 }
-// English copy of the free-text fields that are not in English (src/org/translate.js): shown and editable here.
+// Copies of the long free-text fields in the other site language (src/org/translate.js). The form above shows each
+// field in the page language; this line says what is being translated and offers to try again after a failure.
 function trHTML() {
-  const org = ST.org, tr = org.translation, p = org.profile, dis = !canEdit();
-  if (!tr) return `<section class="oi-card tr" id="oiTr" hidden></section>`;
-  const show = TEXT_FIELDS.filter((f) => p[f] && ((tr.langs || {})[f] === "sr" || (tr.langs || {})[f] === "other" || tr.fields[f]));
-  if (!show.length) return `<section class="oi-card tr" id="oiTr" hidden></section>`;
-  const rows = show.map((f) => {
-    const x = tr.fields[f], used = tr.textEn && tr.textEn[f];
-    const state = !x ? T("trNone") : x.edited ? T("trEdited", fmtTime(x.at)) : T("trMachine", x.model ? String(x.model).split("/").pop() : "", fmtTime(x.at));
-    const warn = x && x.stale ? `<p class="note warn">${esc(T(x.edited ? "trStaleEdited" : "trStaleAuto"))}</p>` : "";
-    return `<div class="tr-f" data-trf="${f}"><h3>${esc(nm(FIELD[f]))}</h3>
-      <details class="tr-orig"><summary>${esc(T("trOrig"))}</summary><p>${esc(p[f])}</p></details>
-      <p class="fine">${esc(state)}${used ? ` · <b>${esc(T("trUse"))}</b>` : ""}</p>${warn}
-      <div class="fld"><label class="sr-only" for="tr_${f}">${esc(nm(FIELD[f]))} (EN)</label><textarea id="tr_${f}" rows="4" lang="en"${dis ? " disabled" : ""}>${esc(x ? x.text : "")}</textarea></div>
-      ${dis ? "" : `<div class="oi-row"><button type="button" class="btn quiet" data-trsave="${f}">${esc(T("trSave"))}</button><span class="fine" data-trmsg role="status"></span></div>`}</div>`;
-  }).join("");
-  return `<section class="oi-card tr" id="oiTr"><h2>${esc(T("trT"))}</h2><p class="fine">${esc(T("trLede"))}</p>
-    ${!dis && tr.pending && tr.pending.length ? `<div class="oi-row"><button type="button" class="btn" id="trRun">${esc(T("trRun"))}</button></div>` : ""}<div class="op" id="oiTrMsg" role="status" aria-live="polite"></div>
-    ${rows}</section>`;
+  const org = ST.org, tr = org.translation, dis = !canEdit();
+  const pend = tr ? (L() === "sr" ? tr.pendingSr : tr.pending) || [] : [];
+  return `<section class="tr-line" id="oiTr"><div class="op" id="oiTrMsg" role="status" aria-live="polite"></div>
+    ${!dis && pend.length ? `<div class="oi-row"><span class="fine">${esc(T("trPendingN", pend.map((f) => nm(FIELD[f])).join(", ")))}</span><button type="button" class="btn quiet" id="trRun">${esc(T("trRun"))}</button></div>` : ""}</section>`;
 }
 function bindTr() {
-  const box = document.getElementById("oiTr"); if (!box || box.hidden) return;
-  const org = ST.org;
   const run = document.getElementById("trRun");
   if (run) run.addEventListener("click", () => ensureEnglish(document.getElementById("oiTrMsg"), true));
-  box.querySelectorAll("[data-trsave]").forEach((b) => b.addEventListener("click", async () => {
-    const f = b.dataset.trsave, m = b.parentElement.querySelector("[data-trmsg]"), text = document.getElementById("tr_" + f).value;
-    b.disabled = true;
-    try {
-      ST.org.translation = await api("PUT", `/orgs/${org.id}/translation`, { field: f, text });
-      redrawTr(); const nm2 = document.querySelector(`[data-trf="${f}"] [data-trmsg]`); if (nm2) { nm2.className = "fine ok"; nm2.textContent = T(text.trim() ? "trSaved" : "trCleared"); }
-    } catch (e) { b.disabled = false; if (m) { m.className = "fine err"; m.textContent = errText(e); } }
-  }));
 }
 function redrawTr() { const box = document.getElementById("oiTr"); if (!box) return; const d = document.createElement("div"); d.innerHTML = trHTML(); box.replaceWith(d.firstElementChild); bindTr(); }
-// Makes the English copy of fields that need one: once after each save, or when the user asks. The profile is
-// already saved; a failure only means matching keeps using the original text.
+// Makes the missing copies: English always (matching reads it), the page language when it is Serbian. A few per
+// request, repeated while the server says more are left; a field that fails is skipped for the rest of the round.
+// The profile is already saved; a failure only means the original text is shown and used.
+const TRRUN = { on: false };
 async function ensureEnglish(el, force) {
   const org = ST.org, tr = org && org.translation;
-  if (!org || !tr || !canEdit() || (!force && !(tr.pending && tr.pending.length))) return;
+  if (!org || !tr || !canEdit() || TRRUN.on) return;
+  const pend = [...(tr.pending || []), ...(L() === "sr" ? tr.pendingSr || [] : [])];
+  if (!force && !pend.length) return;
+  TRRUN.on = true;
   const run = document.getElementById("trRun"); if (run) run.disabled = true;
-  opState(el, "translating");
+  opState(el, "translating", T("trMaking"));
+  const skip = [], failed = [];
+  let made = 0, lastErr = null;
   try {
-    const r = await api("POST", `/orgs/${org.id}/translation`, {});
-    if (ST.org && ST.org.id === org.id) { const { translated, model, ...view } = r; ST.org.translation = view; ST.resultsKey = null; }
-    redrawTr();
-    // the copy section may have been drawn again: write to the status element on the page now
-    const partial = r.failed && r.failed.length ? " " + T("trPartial", r.failed.map((f) => nm(FIELD[f])).join(", ")) : "";
-    opState(document.getElementById("oiTrMsg") || el, "completed", (r.translated.length ? T("trDone", r.translated.length) : T("trNothing")) + partial);
-  } catch (e) {
-    opState(document.getElementById("oiTrMsg") || el, "failed", T("trFailed") + " " + errText(e));
-    if (run) run.disabled = false;
-  }
+    for (let round = 0; round < 8; round++) {
+      let r;
+      try { r = await api("POST", `/orgs/${org.id}/translation`, { lang: L(), skip }); }
+      catch (e) { lastErr = e; break; }
+      if (ST.org && ST.org.id === org.id) { const { translated, translatedAll, failed: f1, failedAll, more, model, ...view } = r; ST.org.translation = view; ST.resultsKey = null; }
+      made += (r.translatedAll || []).length;
+      for (const x of r.failedAll || []) { skip.push(x); failed.push(x.split(":")[1]); }
+      if (!r.more) break;
+    }
+  } finally { TRRUN.on = false; }
+  // The form shows the new copies when the member has not started editing it.
+  const form = document.getElementById("oiProfile");
+  if (made && location.hash === `#org/${org.id}/profile` && !(form && form.dataset.dirty)) await refresh();
+  else redrawTr();
+  const msg = document.getElementById("oiTrMsg") || el;
+  if (lastErr && !made) opState(msg, "failed", T("trFailed") + " " + errText(lastErr));
+  else if (failed.length) opState(msg, "completed", T("trPartial", [...new Set(failed)].map((f) => nm(FIELD[f])).join(", ")));
+  else if (made) opState(msg, "completed", T("trDoneAll"));
+  else opState(msg, "idle");
 }
 /* ---------- profile assistant ---------- */
 // Questions for the empty free-text fields of the profile (site/org/assist.js), answered by the API from the statute or
@@ -1171,6 +1183,7 @@ async function asSourcesDraw() {
   const box = document.getElementById("asSrc"); if (!box) return;
   const org = ST.org, docs = await ldocList(org.id);
   AS.docs = docs;
+  if (!box.isConnected) return;   // the page was drawn again meanwhile; the new card draws its own sources
   const sel = (AS.sel = AS.sel || {});
   const site = org.profile.website || "";
   box.innerHTML = `<p class="fine"><b>${esc(T("as.srcH"))}</b></p>
@@ -1180,8 +1193,8 @@ async function asSourcesDraw() {
   box.querySelectorAll("[data-asdoc]").forEach((c) => c.addEventListener("change", () => (sel[c.dataset.asdoc] = c.checked)));
   const w = document.getElementById("asWeb"); if (w) w.addEventListener("change", () => (sel.web = w.checked));
   box.querySelectorAll("[data-asdocdel]").forEach((b) => b.addEventListener("click", async () => { await ldocDel(b.dataset.asdocdel); asSourcesDraw(); }));
-  const file = document.getElementById("asFile");
-  file.addEventListener("change", async () => {
+  const file = box.querySelector("#asFile");
+  if (file) file.addEventListener("change", async () => {
     const f = file.files[0]; file.value = ""; if (!f) return;
     const m = document.getElementById("asFileMsg");
     try {
@@ -1286,18 +1299,20 @@ afterRender.profile = (arg) => {
   bindTr();
   bindAssist();
   if (!canEdit()) return;
+  ensureEnglish(document.getElementById("oiTrMsg"));
   const msg = document.getElementById("oiSaveMsg");
   // The form saves against the profile it was drawn from. Only the fields changed in the form are written: when the
   // profile changed meanwhile (a document or website read in the background, or another member), the save is made
   // again on top of the newer version, so neither side's values are lost. A field changed both here and there takes
   // the value from this form, since saving it is the member's own decision.
   let drawn = ST.org;
-  form.addEventListener("input", (ev) => { msg.textContent = T("unsaved"); const box = ev.target.closest(".need"); if (box) box.classList.remove("need"); });
+  form.addEventListener("input", (ev) => { form.dataset.dirty = "1"; msg.textContent = T("unsaved"); const box = ev.target.closest(".need"); if (box) box.classList.remove("need"); });
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const btn = form.querySelector('[type="submit"]'); if (btn) btn.disabled = true;
-    const old = drawn.profile, mine = {};
-    for (const f of FIELDS) { const v = readField(f); if (JSON.stringify(v ?? null) !== JSON.stringify(old[f.id] ?? null)) mine[f.id] = v; }
+    // A field counts as changed only when it differs from what the form showed (a long field may show its translation).
+    const mine = {};
+    for (const f of FIELDS) { const v = readField(f); if (JSON.stringify(v ?? null) !== JSON.stringify(shownOf(drawn, f.id) ?? null)) mine[f.id] = v; }
     const build = (base) => {
       const next = {}, meta = { ...(base._meta || {}) };
       for (const f of FIELDS) {
@@ -1416,6 +1431,7 @@ function splitText(text) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function valueText(f, v) {
   if (v === undefined || v === null || v === "") return "";
+  if (f.kind === "long" && ST.org && ST.org.profile[f.id] === v) return String(shownOf(ST.org, f.id));
   if (f.kind === "enum") return nm(f.options.find((o) => o.id === v)) || v;
   if (f.kind === "multi") return listOf(v, f.source === "sectors" ? sectorName : groupName);
   if (f.kind === "countries") return listOf(v, ccName);
@@ -1594,7 +1610,7 @@ function matchCard(r) {
     <div class="sc"><span class="sc-k">${esc(T("compatK"))}</span>${scoreNum(r.score)}${scoreMeter(r.score)}<span class="fine">${esc(T("bandL." + r.band))}</span></div>
     <div class="mc-main">
       <div class="mc-meta">${statusBadge(r.status)}<span class="mc-req">${esc(T("mreq", n.pass, n.verify, n.fail))}</span></div>
-      <h3><a href="${href}">${esc(c.title)}</a></h3>
+      <h3><a href="${href}">${trs(c.title)}</a></h3>
       <div class="mc-sub"><span>${esc((EC.P[c.programme] || {}).short || c.programmeName || c.programme)}</span>${dl ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(dl))}</b> · <span data-dl="${esc(dl)}">${esc(EC.leftText(dl))}</span></span>` : ""}${fund ? `<span>${esc(fund)}</span>` : ""}</div>
       <div class="cols">${r.strengths.length ? `<div><h4>${esc(T("strengths"))}</h4><ul>${r.strengths.slice(0, 2).map((s) => `<li>${esc(codeText(s))}</li>`).join("")}</ul></div>` : ""}
         ${probs.length ? `<div><h4>${esc(T("problems"))}</h4><ul>${probs.map((x) => `<li><span class="res ${x.result}">${esc(T("resL." + x.result))}</span> ${esc(codeText(x).slice(0, 220))}</li>`).join("")}</ul></div>` : ""}
@@ -1671,7 +1687,7 @@ function reportSections(a, id) {
     <section class="oi-card"><h2>${esc(T("repE"))}</h2>${a.missing.length ? `<p>${esc(listOf(a.missing, fieldName))}</p><p><a href="#org/${id}/profile">${esc(T("fillProfile"))} →</a></p>` : `<p class="fine">${esc(T("missingCall"))}</p>`}</section>
     <section class="oi-card"><h2>${esc(T("repF"))}</h2><ol>${a.next.map((x) => `<li>${esc(codeText(x))}</li>`).join("")}</ol></section>`;
 }
-const callMeta = (c) => `<div class="oi-row"><span>${esc(c.programmeName || "")}</span>${c.deadline ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(c.deadline))}</b></span>` : ""}${c.funding ? `<span>${esc(T("funding"))}: ${esc(c.funding)}</span>` : ""}${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(T("official"))} ↗</a>` : ""}${EC.BYKEY[c.key] ? ` · <a href="#c-${encodeURIComponent(c.key)}">Eligible Calls</a>` : ""}</div>`;
+const callMeta = (c) => `<div class="oi-row"><span>${esc((EC.P[c.programme] || {}).name || c.programmeName || "")}</span>${c.deadline ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(c.deadline))}</b></span>` : ""}${c.funding ? `<span>${esc(T("funding"))}: ${esc(c.funding)}</span>` : ""}${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(T("official"))} ↗</a>` : ""}${EC.BYKEY[c.key] ? ` · <a href="#c-${encodeURIComponent(c.key)}">Eligible Calls</a>` : ""}</div>`;
 async function secReport(key) {
   const c = EC.BYKEY[decodeURIComponent(key)];
   if (!c) return `<p class="note err">${esc(T("errors.not_found"))}</p>`;
@@ -1679,7 +1695,7 @@ async function secReport(key) {
   const snap = snapshot(c, r), id = ST.org.id;
   ST.lastSnap = snap;
   return `<a class="back" href="#org/${id}/matching">← ${esc(T("matchTitle"))}</a>
-    <h1>${esc(c.title)}</h1>${callMeta(snap.call)}
+    <h1>${trs(c.title)}</h1>${callMeta(snap.call)}
     ${reportSections(snap.assessment, id)}
     ${officialHTML(c)}
     <section class="oi-card"><h2>${esc(T("repEval"))}</h2>${critHTML((await loadCriteria()).calls[c.id], c)}</section>
@@ -1748,14 +1764,14 @@ const ext = (url, label) => (url ? `<a href="${esc(url)}" target="_blank" rel="n
 const pts = (n) => String(n).replace(/\.0$/, "");
 // Official text, kept in its own language (English) and nesting
 function textBlocks(blocks) {
-  return `<div class="crit-text">${blocks.map((b) => b.head ? `<h4>${esc(b.text)}</h4>` : `<p class="lv${Math.min(b.level || 0, 4)}">${b.level ? "<span aria-hidden=\"true\">• </span>" : ""}${esc(b.text)}</p>`).join("")}</div>`;
+  return `<div class="crit-text">${blocks.map((b) => b.head ? `<h4>${trs(b.text)}</h4>` : `<p class="lv${Math.min(b.level || 0, 4)}">${b.level ? "<span aria-hidden=\"true\">• </span>" : ""}${trs(b.text)}</p>`).join("")}</div>`;
 }
 function heRowHTML(fw, rowId, opts = {}) {
   const row = fw.rows[rowId];
   return `<div class="crit-list">${row.criteria.map((c) => `<div class="crit"><h3><span>${esc(crName(c.name))}</span><span class="fine num">${esc(T("scoreOf5"))}${opts.ia && c.name === "Impact" ? " · " + esc(T("iaWeight")) : ""}</span></h3>
-    ${c.name === "Excellence" ? `<p class="fine">${esc(fw.excellenceNote)}</p>` : ""}
-    <ul>${c.aspects.map((a) => `<li>${a.stage1 && opts.twoStage !== false ? `<span class="s1" title="${esc(T("stage1Mark"))}">${esc(T("stage1Short"))}</span> ` : ""}${esc(a.text)}</li>`).join("")}</ul></div>`).join("")}</div>
-    ${row.note ? `<p class="fine">${esc(row.note)}</p>` : ""}`;
+    ${c.name === "Excellence" ? `<p class="fine">${trs(fw.excellenceNote)}</p>` : ""}
+    <ul>${c.aspects.map((a) => `<li>${a.stage1 && opts.twoStage !== false ? `<span class="s1" title="${esc(T("stage1Mark"))}">${esc(T("stage1Short"))}</span> ` : ""}${trs(a.text)}</li>`).join("")}</ul></div>`).join("")}</div>
+    ${row.note ? `<p class="fine">${trs(row.note)}</p>` : ""}`;
 }
 function heScoring(fw, e) {
   return `<div class="crit-sum"><span class="sc-chip t-medium">${esc(T("heThresholds"))}</span>${e && e.ia ? `<span class="sc-chip t-medium">${esc(T("iaWeight"))}</span>` : ""}${e && e.twoStage ? `<span class="sc-chip t-medium">${esc(T("twoStageChip"))}</span>` : ""}</div>`;
@@ -1766,7 +1782,7 @@ const critLang = () => (L() === "sr" ? `<p class="fine">${esc(T("critLang"))}</p
 function critHTML(e, c) {
   const crit = ST.crit;
   if (!e) return `<p class="fine">${esc(T("critNone"))}</p>${c && c.url ? `<p>${ext(c.url, T("official"))}</p>` : ""}`;
-  const note = e.note ? `<div class="crit-note"><span class="fine">${esc(T("fromCallPage"))}</span><p>${esc(L() === "sr" && globalThis.ECsr ? globalThis.ECsr.critNote(e.note) : e.note)}</p></div>` : "";
+  const note = e.note ? `<div class="crit-note"><span class="fine">${esc(T("fromCallPage"))}</span><p>${trs(L() === "sr" && globalThis.ECsr ? globalThis.ECsr.critNote(e.note) : e.note)}</p></div>` : "";
   if (e.kind === "framework") {
     const fw = crit.frameworks[e.framework];
     return `<p class="fine">${esc(T("critFromAnnex", trTitle(fw.rows[e.row].name)))} · ${ext(fw.url, T("heAnnex"))}</p>${critLang()}${heScoring(fw, e)}
@@ -1778,11 +1794,11 @@ function critHTML(e, c) {
       ${t ? `<div class="tw"><table class="oi-t crit-t"><thead><tr><th>${esc(T("criterion"))}</th><th class="num">${esc(T("minPass"))}</th><th class="num">${esc(T("maxScore"))}</th></tr></thead><tbody>
         ${t.rows.map((r) => `<tr><td>${esc(crName(r.name))}</td><td class="num">${esc(/^n\/a$/i.test(r.min) ? "n/a" : /^-$/.test(r.min) ? "–" : r.min)}</td><td class="num">${esc(pts(r.max))}</td></tr>`).join("")}
         <tr class="tot"><td>${esc(t.total.name)}</td><td class="num">${esc(t.total.min)}</td><td class="num">${esc(pts(t.total.max))}</td></tr></tbody></table></div>${t.rows.some((r) => /^n\/a$/i.test(r.min)) ? `<p class="fine">${esc(T("evNoMin", t.rows.filter((r) => /^n\/a$/i.test(r.min)).map((r) => r.name).join(", ")))}</p>` : ""}` : ""}
-      ${e.summary && e.summary.length ? `<ul class="crit-sumtext">${e.summary.map((x) => `<li>${esc(L() === "sr" && globalThis.ECsr ? globalThis.ECsr.critSum(x) : x)}</li>`).join("")}</ul>` : ""}
+      ${e.summary && e.summary.length ? `<ul class="crit-sumtext">${e.summary.map((x) => `<li>${trs(L() === "sr" && globalThis.ECsr ? globalThis.ECsr.critSum(x) : x)}</li>`).join("")}</ul>` : ""}
       <details class="crit-full"><summary>${esc(T("fullText"))}</summary>${textBlocks(e.blocks)}</details>${note}`;
   }
   if (e.kind === "page") {
-    return `<p class="fine">${esc(T("critFromPage", e.source || ""))} · ${ext(e.url, T("official"))}</p>${critLang()}<details class="crit-full" open><summary>${esc(e.heading)}</summary>${textBlocks(e.blocks)}</details>`;
+    return `<p class="fine">${esc(T("critFromPage", e.source || ""))} · ${ext(e.url, T("official"))}</p>${critLang()}<details class="crit-full" open><summary>${trs(e.heading)}</summary>${textBlocks(e.blocks)}</details>`;
   }
   return `<p class="fine">${esc(T(e.note ? "critPointerNote" : "critPointer"))}</p>${note}<p>${ext(e.url || (c && c.url), T(e.url && /\.pdf($|\?)/i.test(e.url) ? "callDoc" : "official"))}${e.evalForm ? " · " + ext(e.evalForm, T("evalForm")) : ""}</p>`;
 }
@@ -1799,8 +1815,8 @@ async function secEvaluation() {
     if (!fw) return head + `<p class="note err">${esc(T("errors.data_unavailable"))}</p>`;
     const n = {}; for (const e of Object.values(crit.calls)) if (e.kind === "framework") n[e.row] = (n[e.row] || 0) + 1;
     return head + `<p class="fine">${ext(fw.url, fw.title)} · ${esc(T("retrieved", fw.retrieved))} · ${esc(T("critNotice"))}</p>
-      <section class="oi-card"><h2>${esc(T("heScoringTitle"))}</h2><ul>${fw.scoring.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-        <h3>${esc(T("heTwoStageTitle"))}</h3><ul>${fw.twoStage.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><p class="fine">${esc(T("stage1Note"))}</p></section>
+      <section class="oi-card"><h2>${esc(T("heScoringTitle"))}</h2><ul>${fw.scoring.map((x) => `<li>${trs(x)}</li>`).join("")}</ul>
+        <h3>${esc(T("heTwoStageTitle"))}</h3><ul>${fw.twoStage.map((x) => `<li>${trs(x)}</li>`).join("")}</ul><p class="fine">${esc(T("stage1Note"))}</p></section>
       ${Object.keys(fw.rows).map((k) => `<section class="oi-card"><h2>${esc(trTitle(fw.rows[k].name))}</h2><p class="fine">${esc(T("openCallsUsing", n[k] || 0))}</p>${heRowHTML(fw, k, { twoStage: true })}</section>`).join("")}
       <p class="fine">${esc(T("heOwn"))}</p>`;
   }
@@ -1825,7 +1841,7 @@ async function secEvaluation() {
       <label class="opt"><input type="checkbox" id="evAll"${EF.all ? " checked" : ""}> ${esc(T("evalShowIneligible"))}</label></div>
     <p class="fine" role="status">${esc(T("evalCount", list.length, withCrit))}</p>
     <div class="match-list">${list.slice(0, EF.shown).map((r) => { const c = r.call, e = crit.calls[r.callId], dl = EC.nextDl(c);
-      return `<details class="oi-card eval-call"><summary><span class="eval-t">${esc(c.title)}</span><span class="oi-row fine"><span>${esc((EC.P[c.programme] || {}).short || c.programme)}</span>${dl ? `<span>${esc(EC.fmtDate(dl))}</span>` : ""}${scoreNum(r.score)}${statusBadge(r.status)}<span class="sc-chip ${e && e.kind !== "pointer" ? "t-high" : "t-low"}">${esc(T("kindL." + (e ? e.kind : "pointer")))}</span></span></summary>
+      return `<details class="oi-card eval-call"><summary><span class="eval-t">${trs(c.title)}</span><span class="oi-row fine"><span>${esc((EC.P[c.programme] || {}).short || c.programme)}</span>${dl ? `<span>${esc(EC.fmtDate(dl))}</span>` : ""}${scoreNum(r.score)}${statusBadge(r.status)}<span class="sc-chip ${e && e.kind !== "pointer" ? "t-high" : "t-low"}">${esc(T("kindL." + (e ? e.kind : "pointer")))}</span></span></summary>
         <div class="eval-body">${critHTML(e, c)}<p class="fine"><a href="#org/${id}/match/${encodeURIComponent(c.key)}">${esc(T("openReport"))} →</a></p></div></details>`; }).join("")}</div>
     ${list.length > EF.shown ? `<button type="button" class="btn ghost" id="evMore">${esc(T("more"))}</button>` : ""}`;
 }
@@ -1991,7 +2007,7 @@ function ideaCard(x, res) {
     <p>${esc(it.concept)}</p>
     ${it.previous ? `<p class="fine">${esc(T("revised", it.revisions || 1, ptsTxt(it.previous.evaluation && it.previous.evaluation.total), ptsTxt(it.previous.evaluation && it.previous.evaluation.max)))}</p>` : ""}
     <div class="idea-call"><span class="fine">${esc(T("ideaCall"))}</span>
-      ${call ? `<a href="#org/${org.id}/match/${encodeURIComponent(call.key)}">${esc(call.title)}</a>` : `<span>${esc(x.callTitle || x.callId)}</span>`}
+      ${call ? `<a href="#org/${org.id}/match/${encodeURIComponent(call.key)}">${trs(call.title)}</a>` : `<span>${trs(x.callTitle || x.callId)}</span>`}
       <div class="oi-row">${call ? `<span>${esc((EC.P[call.programme] || {}).short || call.programmeName || call.programme)}</span>` : ""}${dl ? `<span>${esc(T("deadline"))}: <b>${esc(EC.fmtDate(dl))}</b> · <span data-dl="${esc(dl)}">${esc(EC.leftText(dl))}</span></span>` : `<span class="note warn">${esc(T("ideaClosed"))}</span>`}${call && call.url ? `<a class="fine" href="${esc(call.url)}" target="_blank" rel="noopener">${esc(T("official"))} ↗</a>` : ""}</div></div>
     <div class="idea-scores">
       <div><span class="fine">${esc(T("compatRule"))}</span><div class="oi-row">${scoreNum(score)}${statusBadge(status)}</div>${scoreMeter(score)}</div>
@@ -2108,7 +2124,7 @@ function appTools(x, tpl) {
   const p = x.proposal && x.proposal.v === 2 ? x.proposal : null, old = x.proposal && !x.proposal.v ? x.proposal : null;
   const can = premium() && canEdit(), src = tpl.source;
   return `<div class="idea-tools app-tools" data-app>
-    <div class="app-head"><b>${esc(T("app.title"))}</b><span class="fine">${tpl.basis === "criteria" || tpl.basis === "general" ? esc(T(tpl.basis === "criteria" ? "app.basisCriteria" : "app.basisGeneral")) : `${esc(T("app.follows"))}: ${esc(tpl.name)} · ${esc(src.title)}${src.version ? ", " + esc(src.version) : ""}${src.date ? ` (${esc(src.date)})` : ""}`}${src.url ? ` <a href="${esc(src.url)}" target="_blank" rel="noopener">↗</a>` : ""}</span></div>
+    <div class="app-head"><b>${esc(T("app.title"))}</b><span class="fine">${tpl.basis === "criteria" || tpl.basis === "general" ? esc(T(tpl.basis === "criteria" ? "app.basisCriteria" : "app.basisGeneral")) : `${esc(T("app.follows"))}: ${trs(tpl.name)} · ${trs(src.title)}${src.version ? ", " + esc(src.version) : ""}${src.date ? ` (${esc(src.date)})` : ""}`}${src.url ? ` <a href="${esc(src.url)}" target="_blank" rel="noopener">↗</a>` : ""}</span></div>
     <p class="fine">${esc(T("app.lede"))}</p>
     <div class="oi-row">
       ${p ? `<button type="button" class="btn pdf" data-act="appopen" aria-expanded="${ST.appOpen.has(x.id)}">${esc(T(ST.appOpen.has(x.id) ? "app.hide" : "app.open"))}</button><span class="fine">${esc(T("app.partsWritten", p.written || 0))}</span>`
@@ -2555,7 +2571,7 @@ async function secIdeas(arg) {
     ${!canEdit() ? `<p class="note">${esc(T("ideasViewerNote"))}</p>` : ""}
     ${canEdit() ? `<section class="oi-card"><h2>${esc(T("ideasPick"))}</h2>
       ${!ready ? `<p class="note warn">${esc(T("ideasNeed"))} <a href="#org/${org.id}/profile">${esc(T("fillProfile"))}</a></p>` : ""}
-      ${cands.length ? `<p class="fine">${esc(T("ideasPickNote", IDEA_CALLS))}</p><div class="idea-picks">${cands.map((r) => `<label class="opt"><input type="checkbox" data-pick="${esc(r.callId)}"${ST.ideaPick.has(r.callId) ? " checked" : ""}><span>${esc(r.call.title)} <span class="fine">· ${esc((EC.P[r.call.programme] || {}).short || r.call.programme)}</span>${weak.has(r.callId) ? ` <span class="fine warn">· ${esc(T("pickBelow"))}</span>` : ""}</span>${scoreNum(r.score)}</label>`).join("")}</div>
+      ${cands.length ? `<p class="fine">${esc(T("ideasPickNote", IDEA_CALLS))}</p><div class="idea-picks">${cands.map((r) => `<label class="opt"><input type="checkbox" data-pick="${esc(r.callId)}"${ST.ideaPick.has(r.callId) ? " checked" : ""}><span>${trs(r.call.title)} <span class="fine">· ${esc((EC.P[r.call.programme] || {}).short || r.call.programme)}</span>${weak.has(r.callId) ? ` <span class="fine warn">· ${esc(T("pickBelow"))}</span>` : ""}</span>${scoreNum(r.score)}</label>`).join("")}</div>
         <div class="oi-row"><button type="button" class="btn" id="oiGen"${ready && ST.ideaPick.size && canGen ? "" : " disabled"}>${esc(T(ideas.length ? "ideasRegenerate" : "ideasGenerate"))}</button><span class="fine">${esc(T("ideasUse"))}</span></div><div id="oiGenMsg" role="status"></div><div id="oiEvalMsg" role="status"></div>`
         : `<p class="note">${esc(T("ideasNoCalls"))} <a href="#org/${org.id}/matching/all">${esc(T("openMatching"))} →</a></p>`}</section>` : ""}
     ${canEdit() ? paywallHTML(acc, ST.accessSet) : ""}
@@ -2680,7 +2696,7 @@ afterRender.ideas = (arg) => {
     ST.lastIdeaNote = n;
     if (m) {
       m.className = n.ok ? "note ok" : "note warn";
-      m.innerHTML = `<p>${esc(n.text)}</p>` + (n.miss.length ? `<p>${esc(T("ideasMissing"))}</p><ul>${n.miss.map((x) => `<li><b>${esc(x.title)}</b>: ${esc(x.why)}</li>`).join("")}</ul><p class="fine">${esc(T("ideasRetry"))}</p>` : "");
+      m.innerHTML = `<p>${esc(n.text)}</p>` + (n.miss.length ? `<p>${esc(T("ideasMissing"))}</p><ul>${n.miss.map((x) => `<li><b>${trs(x.title)}</b>: ${esc(x.why)}</li>`).join("")}</ul><p class="fine">${esc(T("ideasRetry"))}</p>` : "");
     }
     ST.ideaNote = null;
   }
@@ -2789,7 +2805,7 @@ async function secReports(arg) {
     ${list.length ? `<div class="oi-row rep-tools"><div class="fld grow"><label for="rpSearch">${esc(T("reportsSearch"))}</label><input type="search" id="rpSearch" value="${esc(ST.reportQuery || "")}"></div><button type="button" class="btn quiet" id="rpCsv">${esc(T("repCsv"))}</button></div>
       <div class="tscroll"><table class="oi-t rep-t"><thead><tr><th>${esc(T("repColSaved"))}</th><th>${esc(T("repColCall"))}</th><th class="num">${esc(T("repColScore"))}</th><th>${esc(T("repColStatus"))}</th><th class="num">${esc(T("repColNow"))}</th><th></th></tr></thead><tbody>
       ${list.map((r) => `<tr data-q="${esc((r.callTitle + " " + r.programme + " " + r.note).toLowerCase())}"><td>${esc(fmtTime(r.createdAt))}<div class="fine">${esc(T("repProfileV", r.profileVersion))}</div></td>
-        <td><a href="#org/${id}/reports/${esc(r.id)}">${esc(r.callTitle)}</a><div class="fine">${esc(r.programme)}${r.deadline ? " · " + esc(EC.fmtDate(r.deadline)) : ""}</div>${r.note ? `<div class="fine rep-note">“${esc(r.note)}”</div>` : ""}</td>
+        <td><a href="#org/${id}/reports/${esc(r.id)}">${trs(r.callTitle)}</a><div class="fine">${esc(r.programme)}${r.deadline ? " · " + esc(EC.fmtDate(r.deadline)) : ""}</div>${r.note ? `<div class="fine rep-note">“${esc(r.note)}”</div>` : ""}</td>
         <td class="num">${scoreNum(r.score)}</td><td>${statusBadge(r.status)}</td><td class="num">${nowCell(r)}</td>
         <td><div class="oi-row"><a class="btn ghost" href="#org/${id}/reports/${esc(r.id)}">${esc(T("open"))}</a><button type="button" class="btn ghost" data-rpdf="${esc(r.id)}">PDF</button></div></td></tr>`).join("")}
       </tbody></table></div><div role="status" id="rpMsg"></div>`
@@ -2827,7 +2843,7 @@ async function secSavedReport(rid) {
       <p><a href="#org/${id}/match/${encodeURIComponent(rep.callKey)}">${esc(T("repOpenCurrent"))} →</a></p></section>`;
   } else change = `<p class="note warn">${esc(T("repCallGone"))}</p>`;
   return `<a class="back" href="#org/${id}/reports">← ${esc(T("reportsTitle"))}</a>
-    <h1>${esc(d.call.title)}</h1>${callMeta(d.call)}
+    <h1>${trs(d.call.title)}</h1>${callMeta(d.call)}
     <section class="oi-card rep-head"><p class="fine">${esc(T("repSavedAt", fmtTime(rep.createdAt)))}${rep.createdBy ? " · " + esc(rep.createdBy) : ""} · ${esc(T("repProfileV", rep.profileVersion))}${ST.org.version !== rep.profileVersion ? " " + esc(T("repProfileNow", ST.org.version)) : ""}${d.dataGenerated ? " · " + esc(T("repDataDate", EC.fmtDate(d.dataGenerated))) : ""}</p>
       ${canEdit() ? `<div class="oi-row"><div class="fld grow"><label for="rpNote">${esc(T("repNote"))}</label><input type="text" id="rpNote" maxlength="1000" value="${esc(rep.note)}" placeholder="${esc(T("repNotePh"))}"></div><button type="button" class="btn quiet" id="rpNoteSave">${esc(T("repNoteSave"))}</button></div>` : rep.note ? `<p>${esc(T("repNote"))}: ${esc(rep.note)}</p>` : ""}
       <div class="oi-row"><button type="button" class="btn" id="rpPdf"><span class="pdf-ic" aria-hidden="true">PDF</span> ${esc(T("repPdf"))}</button>${canEdit() ? `<button type="button" class="btn ghost" id="rpDel">${esc(T("repDelete"))}</button>` : ""}</div>

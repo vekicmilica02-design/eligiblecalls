@@ -436,3 +436,7 @@ mark.tbc.flash { animation: tbcflash 1.6s ease-out 1; }
 .as-free p { margin: 0 0 8px; }
 .as-q ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; }
 .as textarea { width: 100%; min-height: 180px; }
+/* translated profile text and source texts */
+.prov.tr { background: var(--green-soft, rgba(46,125,100,.15)); color: var(--ink-2); }
+.tr-line { margin: 6px 0 14px; }
+.tr-line:empty { display: none; }

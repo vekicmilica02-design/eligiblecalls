@@ -68,6 +68,10 @@ export function detectLang(text) {
   if (en >= 3 && en > 2 * sr) return { lang: "en", script: "latn" };
   if (dia >= 2 || (dia >= 1 && sr >= 1) || (sr >= 2 && sr > en)) return { lang: "sr", script: "latn" };
   if (en >= 2 || (en >= 1 && words.length <= 8)) return { lang: "en", script: "latn" };
+  // Titles and names often have no function words ("Materials Innovation Programme Digital Materials Sandpit"):
+  // English word endings decide those.
+  const morph = words.filter((w) => (/(tion|tions|ment|ments|ing|ity|ities|ance|ence|ship|ness|ive|able|ical|ology|ials|ies|ics)$/.test(w) || /^(call|calls|open|grant|grants|fund|award|prize|digital|network|programme|support|research|sandpit|data|energy|health)$/.test(w))).length;
+  if (words.length >= 6 && morph >= Math.max(2, words.length / 4) && !dia) return { lang: "en", script: "latn" };
   if (words.length >= 6) return { lang: "other", script: null };
   return { lang: "unknown", script: null };
 }

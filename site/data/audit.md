@@ -1,8 +1,8 @@
-# Import audit — 2026-11-27T14:27:59.000Z
+# Import audit — 2026-11-27T16:17:35.000Z
 
-- Search results (types grant/cfp/cascade, status Open): 1239 rows, 1152 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-27 15:27 Brussels, deadlines counted at 17:00 Brussels): 448, of which forthcoming: 266
-- Not published by design: EU external action calls 20 (the call page needs EU Login and could not be verified)
+- Search results (types grant/cfp/cascade, status Open): 1240 rows, 1153 unique
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-27 17:17 Brussels, deadlines counted at 17:00 Brussels): 448, of which forthcoming: 266
+- Not published by design: EU external action calls 21 (the call page needs EU Login and could not be verified)
 
 ## Other sources
 - EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 181, noFutureDeadline 69, noOrganiserLink 8, linkNotVerified 52, published 52
@@ -13,17 +13,17 @@
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 19, noFutureDeadline 0, linkNotVerified 0, published 14
 - ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
 - Erasmus+ Programme Guide (actions managed by the national agencies): OK · guideYear 2026, rounds 4, noFutureDeadline 4, pageUnavailable 0, published 0
-- Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost): OK · listed 13, notFundingCall 0, read 13, pageUnavailable 0, closed 10, noDeadline 2, pastDeadline 0, published 1
+- Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost): OK · listed 0, notFundingCall 0, read 0, pageUnavailable 0, closed 0, noDeadline 0, pastDeadline 0, published 0
 - Ministry of Tourism and Youth of the Republic of Serbia (Ministarstvo turizma i omladine): OK · listed 71, notFundingCall 61, read 10, pageUnavailable 0, closed 0, noDeadline 5, pastDeadline 5, published 0
-- Ministry for Human and Minority Rights and Social Dialogue of the Republic of Serbia: OK · listed 20, notFundingCall 15, read 5, pageUnavailable 0, closed 0, noDeadline 1, pastDeadline 4, published 0
+- Ministry for Human and Minority Rights and Social Dialogue of the Republic of Serbia: OK · listed 0, notFundingCall 0, read 0, pageUnavailable 0, closed 0, noDeadline 0, pastDeadline 0, published 0
 - Development Agency of Serbia (Razvojna agencija Srbije): OK · listed 2, notFundingCall 1, read 1, pageUnavailable 0, closed 0, noDeadline 1, pastDeadline 0, published 0
 - Science Fund of the Republic of Serbia (Fond za nauku): OK · listed 6, notFundingCall 0, read 6, pageUnavailable 0, closed 0, noDeadline 0, pastDeadline 6, published 0
 
 - Dropped at build: 2
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 614
+- Published: 613
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 1 new, 0 changed, 0 closed
+- Changes since the previous import: 0 new, 0 changed, 1 closed
 
 ## Calls by programme
 - HORIZON: 342
@@ -44,12 +44,11 @@
 - JTM: 2
 - PARTNERSHIPS: 1
 - PPPA: 1
-- RS-IFOND: 1
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- N: 4377
-- Y: 16571
+- N: 4334
+- Y: 16570
 - P: 708
 - C: 5360
 

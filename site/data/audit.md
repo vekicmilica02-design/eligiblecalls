@@ -1,11 +1,11 @@
-# Import audit — 2026-11-27T04:17:35.000Z
+# Import audit — 2026-11-27T06:17:27.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1238 rows, 1151 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-27 05:17 Brussels, deadlines counted at 17:00 Brussels): 448, of which forthcoming: 266
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-27 07:17 Brussels, deadlines counted at 17:00 Brussels): 448, of which forthcoming: 266
 - Not published by design: EU external action calls 19 (the call page needs EU Login and could not be verified)
 
 ## Other sources
-- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 181, noFutureDeadline 69, noOrganiserLink 8, linkNotVerified 51, published 53
+- EU Funding & Tenders Portal: calls by EU-funded projects (organiser page checked): OK · listed 181, noFutureDeadline 69, noOrganiserLink 8, linkNotVerified 52, published 52
 - interreg.eu calls for projects (Interact / keep.eu), linked to each programme's call page: OK · listed 26, noFutureDeadline 0, linkNotVerified 1, published 25
 - EEA and Norway Grants open calls (eeagrants.org, Financial Mechanism Office): OK · listed 0, noFutureDeadline 0, linkNotVerified 0, published 0
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 22, horizonTopic 6, noFutureDeadline 15, linkNotVerified 0, published 1
@@ -21,9 +21,9 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 614
+- Published: 613
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 0 new, 0 changed, 0 closed
+- Changes since the previous import: 0 new, 0 changed, 1 closed
 
 ## Calls by programme
 - HORIZON: 342
@@ -44,14 +44,13 @@
 - JTM: 2
 - PARTNERSHIPS: 1
 - PPPA: 1
-- I3: 1
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
 - N: 4334
 - Y: 16570
 - P: 708
-- C: 5404
+- C: 5360
 
 ## Calls with call-specific country rules
 - HORIZON-EIC-2026-DEFENCE-01

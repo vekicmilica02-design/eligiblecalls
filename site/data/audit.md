@@ -1,7 +1,7 @@
-# Import audit — 2026-11-27T18:17:27.000Z
+# Import audit — 2026-11-27T20:17:28.000Z
 
 - Search results (types grant/cfp/cascade, status Open): 1240 rows, 1153 unique
-- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-27 19:17 Brussels, deadlines counted at 17:00 Brussels): 448, of which forthcoming: 266
+- Kept after topic check (topic page exists, status Open or Forthcoming, a deadline after 2026-11-27 21:17 Brussels, deadlines counted at 17:00 Brussels): 448, of which forthcoming: 266
 - Not published by design: EU external action calls 21 (the call page needs EU Login and could not be verified)
 
 ## Other sources
@@ -11,7 +11,7 @@
 - ERA-LEARN call calendar (European partnerships' joint calls): OK · listed 22, horizonTopic 6, noFutureDeadline 15, linkNotVerified 0, published 1
 - UKRI Funding Finder (ukri.org): OK · listed 136, inviteOnly 3, noFutureDeadline 57, published 76
 - EIT opportunities (eit.europa.eu, European Institute of Innovation and Technology): OK · listed 19, noFutureDeadline 0, linkNotVerified 0, published 14
-- ESA Business Applications funding (business.esa.int): OK · listed 11, noClosingDate 4, noFutureDeadline 0, published 7
+- ESA Business Applications funding (business.esa.int): OK · listed 10, noClosingDate 4, noFutureDeadline 0, published 6
 - Erasmus+ Programme Guide (actions managed by the national agencies): OK · guideYear 2026, rounds 4, noFutureDeadline 4, pageUnavailable 0, published 0
 - Innovation Fund of the Republic of Serbia (Fond za inovacionu delatnost): OK · listed 0, notFundingCall 0, read 0, pageUnavailable 0, closed 0, noDeadline 0, pastDeadline 0, published 0
 - Ministry of Tourism and Youth of the Republic of Serbia (Ministarstvo turizma i omladine): OK · listed 71, notFundingCall 61, read 10, pageUnavailable 0, closed 0, noDeadline 5, pastDeadline 5, published 0
@@ -21,9 +21,9 @@
 
 - Dropped at build: 2
 - Duplicates across sources removed: 8 (EIT-seedbed-venture-catalyst-call-startups; FSTP-16961; FSTP-16962; FSTP-15661; FSTP-17237; FSTP-17238; FSTP-16641; FSTP-16501)
-- Published: 608
+- Published: 607
 - Calls with an unreviewed participation restriction (non-EU set to 'check'): 36
-- Changes since the previous import: 0 new, 0 changed, 5 closed
+- Changes since the previous import: 0 new, 0 changed, 1 closed
 
 ## Calls by programme
 - HORIZON: 339
@@ -35,8 +35,8 @@
 - CREA: 19
 - EIT: 13
 - EDF: 9
-- ESA: 7
 - CERV: 7
+- ESA: 6
 - EUBA: 4
 - JUST: 3
 - ISF: 2
@@ -47,8 +47,8 @@
 - SMP: 1
 
 ## Eligibility answers (calls × countries)
-- N: 4334
-- Y: 16570
+- N: 4311
+- Y: 16549
 - P: 708
 - C: 5140
 

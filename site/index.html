@@ -184,6 +184,8 @@ dialog.welcome::backdrop { background: rgba(10, 20, 15, .45); }
 dialog.welcome h2 { margin: 0 32px 10px 0; font-size: 22px; line-height: 1.25; }
 dialog.welcome p { margin: 0 0 20px; color: var(--ink-2); font-size: 15px; line-height: 1.55; }
 .welcome-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.welcome-off { margin: 16px 0 0; padding: 4px 0; border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.welcome-off:hover, .welcome-off:focus-visible { color: var(--ink); }
 .welcome-x { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: 0; border-radius: var(--r); background: transparent; color: var(--ink-2); font-size: 24px; line-height: 1; cursor: pointer; }
 .welcome-x:hover, .welcome-x:focus-visible { background: var(--line); color: var(--ink); }
 @media (prefers-reduced-motion: no-preference) { dialog.welcome[open] { animation: welcome-in .18s ease-out; } }
@@ -587,6 +589,7 @@ body.chat-open .chat-fab { display: none; }
     <a class="btn" href="#about" data-welcome="about" data-i18n="welcomeAbout">How the platform works</a>
     <button type="button" class="btn quiet" data-welcome="close" data-i18n="welcomeStart">Start searching</button>
   </div>
+  <button type="button" class="welcome-off" data-welcome="off" data-i18n="welcomeOff">Don't show this again</button>
 </dialog>
 <aside class="chat-panel" id="chatPanel" hidden role="dialog" aria-labelledby="chatTitle">
   <div class="chat-head">
@@ -627,7 +630,7 @@ const I18N = {
     howTitle: "How the platform works",
     welcomeTitle: "Welcome to Eligible Calls",
     welcomeBody: "Search open European and national funding calls, see which ones your organisation can apply to, and draft the application. It takes two minutes to see how it works.",
-    welcomeAbout: "How the platform works", welcomeStart: "Start searching", welcomeClose: "Close",
+    welcomeAbout: "How the platform works", welcomeStart: "Start searching", welcomeClose: "Close", welcomeOff: "Don't show this again",
     howBody: `<p>Eligible Calls is a directory of open European and national funding calls, plus a workspace that checks which of them fit your organisation. Anyone can search the calls; the workspace needs a sign-in.</p>
 <ol><li><b>Sign in with Google</b> under Profile and create your organisation.</li>
 <li><b>Fill in the profile:</b> type of organisation, country, sectors, experience and the other fields. You can upload documents (PDF, scans, Word files, images) and the platform reads them and fills in the fields, marking each value "auto-filled: please check".</li>
@@ -709,7 +712,7 @@ const I18N = {
     howTitle: "Kako platforma funkcioniše",
     welcomeTitle: "Dobro došli na Eligible Calls",
     welcomeBody: "Pretražite otvorene evropske i nacionalne pozive za finansiranje, proverite na koje vaša organizacija može da konkuriše i napravite nacrt prijave. Za dva minuta saznajte kako sve funkcioniše.",
-    welcomeAbout: "Kako platforma funkcioniše", welcomeStart: "Počnite pretragu", welcomeClose: "Zatvori",
+    welcomeAbout: "Kako platforma funkcioniše", welcomeStart: "Počnite pretragu", welcomeClose: "Zatvori", welcomeOff: "Ne prikazuj ponovo",
     howBody: `<p>Eligible Calls je pregled otvorenih evropskih i nacionalnih poziva za finansiranje, uz radni prostor koji proverava koji od njih odgovaraju vašoj organizaciji. Pozive može da pretražuje svako; za radni prostor je potrebna prijava.</p>
 <ol><li><b>Prijavite se preko Google naloga</b> u delu Profil i napravite svoju organizaciju.</li>
 <li><b>Popunite profil:</b> vrstu organizacije, državu, sektore, iskustvo i ostala polja. Možete otpremiti dokumente (PDF, skenirane dokumente, Word fajlove, slike), a platforma ih čita i popunjava polja, uz oznaku „automatski popunjeno: proverite“ za svaku vrednost.</li>
@@ -2117,15 +2120,15 @@ window.EC = {
 };
 lang = store.get("lang", "en") === "sr" ? "sr" : "en";
 syncThemeBtn();
-/* First visit: a short welcome that leads to "How the platform works" on the About page. Shown once per browser, only
-   on the home page (a visitor who came by a link to a call or another page is left to it), and not while another
-   window of the page is open. Closing it in any way (button, ×, Escape, a click outside) counts as seen. */
+/* Welcome that leads to "How the platform works" on the About page. Shown on every load of the home page (a visitor
+   who came by a link to a call or another page is left to it), and not while another window of the page is open,
+   until the visitor presses "Don't show this again" (localStorage konkursi.welcomeOff). Closing it any other way
+   (button, ×, Escape, a click outside) hides it for this page load only. */
 function maybeWelcome() {
   const d = document.getElementById("welcome");
-  if (!d || typeof d.showModal !== "function" || store.get("welcomed", false) || lastRoute !== "home" || location.hash.length > 1) return;
+  if (!d || typeof d.showModal !== "function" || store.get("welcomeOff", false) || lastRoute !== "home" || location.hash.length > 1) return;
   setTimeout(() => {
-    if (store.get("welcomed", false) || lastRoute !== "home" || location.hash.length > 1 || document.querySelector("dialog[open]") || !document.getElementById("chatPanel").hidden) return;
-    store.set("welcomed", true);
+    if (store.get("welcomeOff", false) || lastRoute !== "home" || location.hash.length > 1 || document.querySelector("dialog[open]") || !document.getElementById("chatPanel").hidden) return;
     applyLang();
     d.showModal();
     d.querySelector('[data-welcome="about"]').focus();
@@ -2134,6 +2137,7 @@ function maybeWelcome() {
 function initWelcome() {
   const d = document.getElementById("welcome"); if (!d) return;
   d.querySelectorAll('[data-welcome="close"]').forEach((b) => b.addEventListener("click", () => d.close()));
+  d.querySelector('[data-welcome="off"]').addEventListener("click", () => { store.set("welcomeOff", true); d.close(); });
   d.querySelector('[data-welcome="about"]').addEventListener("click", () => { try { sessionStorage.setItem("ec-scroll-about", "how"); } catch (err) { /* storage blocked */ } d.close(); });
   // A click on the backdrop (outside the dialog's box) closes it; clicks on its padding do not.
   d.addEventListener("click", (e) => { if (e.target !== d) return; const r = d.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close(); });
